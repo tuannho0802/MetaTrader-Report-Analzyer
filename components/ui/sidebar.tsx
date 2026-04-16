@@ -516,11 +516,18 @@ const SidebarMenuButton = React.forwardRef<
       size = "default",
       tooltip,
       className,
+      children,
       ...props
     },
     ref
   ) => {
     const { isMobile, state } = useSidebar()
+
+    const finalRender = asChild
+      ? (renderProps: any) =>
+          React.cloneElement(children as React.ReactElement, renderProps)
+      : render
+
     const comp = useRender({
       defaultTagName: "button",
       props: mergeProps<"button">(
@@ -530,7 +537,7 @@ const SidebarMenuButton = React.forwardRef<
         },
         props
       ),
-      render: !tooltip ? render : <TooltipTrigger render={render} />,
+      render: !tooltip ? finalRender : <TooltipTrigger render={finalRender} />,
       state: {
         slot: "sidebar-menu-button",
         sidebar: "menu-button",
@@ -540,7 +547,13 @@ const SidebarMenuButton = React.forwardRef<
     })
 
     if (!tooltip) {
-      return comp
+      if (asChild) return comp
+      return (
+        <React.Fragment>
+          {comp}
+          {!asChild && children}
+        </React.Fragment>
+      )
     }
 
     if (typeof tooltip === "string") {
@@ -551,7 +564,14 @@ const SidebarMenuButton = React.forwardRef<
 
     return (
       <Tooltip>
-        {comp}
+        {asChild ? (
+          comp
+        ) : (
+          <React.Fragment>
+            {comp}
+            {children}
+          </React.Fragment>
+        )}
         <TooltipContent
           side="right"
           align="center"
@@ -571,28 +591,38 @@ const SidebarMenuAction = React.forwardRef<
       showOnHover?: boolean
       asChild?: boolean
     }
->(({ className, render, showOnHover = false, asChild = false, ...props }, ref) => {
-  return useRender({
-    defaultTagName: "button",
-    props: mergeProps<"button">(
-      {
-        className: cn(
-          "absolute top-1.5 right-1 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground ring-sidebar-ring outline-hidden transition-transform group-data-[collapsible=icon]:hidden peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-2.5 peer-data-[size=sm]/menu-button:top-1 after:absolute after:-inset-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 md:after:hidden [&>svg]:size-4 [&>svg]:shrink-0",
-          showOnHover &&
-            "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 peer-data-active/menu-button:text-sidebar-accent-foreground aria-expanded:opacity-100 md:opacity-0",
-          className
-        ),
-        ref,
+>(
+  (
+    { className, render, showOnHover = false, asChild = false, children, ...props },
+    ref
+  ) => {
+    const finalRender = asChild
+      ? (renderProps: any) =>
+          React.cloneElement(children as React.ReactElement, renderProps)
+      : render
+
+    return useRender({
+      defaultTagName: "button",
+      props: mergeProps<"button">(
+        {
+          className: cn(
+            "absolute top-1.5 right-1 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground ring-sidebar-ring outline-hidden transition-transform group-data-[collapsible=icon]:hidden peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[size=default]/menu-button:top-1.5 peer-data-[size=lg]/menu-button:top-2.5 peer-data-[size=sm]/menu-button:top-1 after:absolute after:-inset-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 md:after:hidden [&>svg]:size-4 [&>svg]:shrink-0",
+            showOnHover &&
+              "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 peer-data-active/menu-button:text-sidebar-accent-foreground aria-expanded:opacity-100 md:opacity-0",
+            className
+          ),
+          ref,
+        },
+        props
+      ),
+      render: finalRender,
+      state: {
+        slot: "sidebar-menu-action",
+        sidebar: "menu-action",
       },
-      props
-    ),
-    render,
-    state: {
-      slot: "sidebar-menu-action",
-      sidebar: "menu-action",
-    },
-  })
-})
+    })
+  }
+)
 SidebarMenuAction.displayName = "SidebarMenuAction"
 
 function SidebarMenuBadge({
@@ -686,28 +716,46 @@ const SidebarMenuSubButton = React.forwardRef<
       isActive?: boolean
       asChild?: boolean
     }
->(({ render, size = "md", isActive = false, asChild = false, className, ...props }, ref) => {
-  return useRender({
-    defaultTagName: "a",
-    props: mergeProps<"a">(
-      {
-        className: cn(
-          "flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground ring-sidebar-ring outline-hidden group-data-[collapsible=icon]:hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[size=md]:text-sm data-[size=sm]:text-xs data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
-          className
-        ),
-        ref,
-      },
-      props
-    ),
-    render,
-    state: {
-      slot: "sidebar-menu-sub-button",
-      sidebar: "menu-sub-button",
-      size,
-      active: isActive,
+>(
+  (
+    {
+      render,
+      size = "md",
+      isActive = false,
+      asChild = false,
+      className,
+      children,
+      ...props
     },
-  })
-})
+    ref
+  ) => {
+    const finalRender = asChild
+      ? (renderProps: any) =>
+          React.cloneElement(children as React.ReactElement, renderProps)
+      : render
+
+    return useRender({
+      defaultTagName: "a",
+      props: mergeProps<"a">(
+        {
+          className: cn(
+            "flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground ring-sidebar-ring outline-hidden group-data-[collapsible=icon]:hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[size=md]:text-sm data-[size=sm]:text-xs data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
+            className
+          ),
+          ref,
+        },
+        props
+      ),
+      render: finalRender,
+      state: {
+        slot: "sidebar-menu-sub-button",
+        sidebar: "menu-sub-button",
+        size,
+        active: isActive,
+      },
+    })
+  }
+)
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
 
 export {

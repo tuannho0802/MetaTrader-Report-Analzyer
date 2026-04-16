@@ -3,16 +3,43 @@
 import * as React from "react"
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip"
 
+import { mergeProps } from "@base-ui/react/merge-props"
 import { cn } from "@/lib/utils"
 
 const TooltipProvider = TooltipPrimitive.Provider
 const Tooltip = TooltipPrimitive.Root
 
+interface TooltipTriggerProps extends TooltipPrimitive.Trigger.Props {
+  asChild?: boolean
+}
+
 const TooltipTrigger = React.forwardRef<
   HTMLButtonElement,
-  TooltipPrimitive.Trigger.Props & { asChild?: boolean }
->(({ asChild, ...props }, ref) => {
-  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" ref={ref} {...props} />
+  TooltipTriggerProps
+>(({ asChild, children, ...props }, ref) => {
+  if (asChild) {
+    return (
+      <TooltipPrimitive.Trigger
+        data-slot="tooltip-trigger"
+        {...props}
+        render={(triggerProps) => {
+          return React.cloneElement(
+            children as React.ReactElement,
+            mergeProps(triggerProps, { ref })
+          )
+        }}
+      />
+    )
+  }
+  return (
+    <TooltipPrimitive.Trigger
+      data-slot="tooltip-trigger"
+      ref={ref}
+      {...props}
+    >
+      {children}
+    </TooltipPrimitive.Trigger>
+  )
 })
 TooltipTrigger.displayName = "TooltipTrigger"
 

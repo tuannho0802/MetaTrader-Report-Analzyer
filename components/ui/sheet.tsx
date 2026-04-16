@@ -3,17 +3,44 @@
 import * as React from "react"
 import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
 
+import { mergeProps } from "@base-ui/react/merge-props"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "lucide-react"
 
 const Sheet = SheetPrimitive.Root
 
+interface SheetTriggerProps extends SheetPrimitive.Trigger.Props {
+  asChild?: boolean
+}
+
 const SheetTrigger = React.forwardRef<
   HTMLButtonElement,
-  SheetPrimitive.Trigger.Props & { asChild?: boolean }
->(({ asChild, ...props }, ref) => {
-  return <SheetPrimitive.Trigger data-slot="sheet-trigger" ref={ref} {...props} />
+  SheetTriggerProps
+>(({ asChild, children, ...props }, ref) => {
+  if (asChild) {
+    return (
+      <SheetPrimitive.Trigger
+        data-slot="sheet-trigger"
+        {...props}
+        render={(triggerProps) => {
+          return React.cloneElement(
+            children as React.ReactElement,
+            mergeProps(triggerProps, { ref })
+          )
+        }}
+      />
+    )
+  }
+  return (
+    <SheetPrimitive.Trigger
+      data-slot="sheet-trigger"
+      ref={ref}
+      {...props}
+    >
+      {children}
+    </SheetPrimitive.Trigger>
+  )
 })
 SheetTrigger.displayName = "SheetTrigger"
 
