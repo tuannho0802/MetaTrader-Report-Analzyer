@@ -1,65 +1,99 @@
-import Image from "next/image";
+"use client";
+
+import React, { useState } from "react";
+import FileUploader from "@/components/FileUploader";
+import FilterForm, { FilterFormData } from "@/components/FilterForm";
+import ResultsTable from "@/components/ResultsTable";
+import { runParserWorker } from "@/lib/parser";
+import { ParseResult } from "@/lib/types";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export default function Home() {
+  const [file, setFile] = useState<File | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [statusMsg, setStatusMsg] = useState("");
+  const [result, setResult] = useState<ParseResult | null>(null);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleFilter = async (data: FilterFormData) => {
+    if (!file) {
+      setErrorMsg("Vui lòng upload file MT4 Statement (.htm/.html) trước.");
+      return;
+    }
+
+    setIsProcessing(true);
+    setStatusMsg("");
+    setErrorMsg("");
+
+    try {
+      const res = await runParserWorker(file, {
+        commentPattern: data.commentPattern,
+        threshold: data.threshold,
+        startDate: new Date(data.startDate),
+        endDate: new Date(data.endDate),
+      }, (msg) => setStatusMsg(msg));
+      
+      setResult(res);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Đã có lỗi xảy ra trong quá trình phân tích file.");
+    } finally {
+      setIsProcessing(false);
+      setStatusMsg("");
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-slate-50 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">MT4 EA Profit Filter</h1>
+          <p className="text-slate-500 mt-2">Phân tích Statement và lọc profit theo thuật toán tìm kiếm Comment thông minh</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Dữ liệu đầu vào</CardTitle>
+                <CardDescription>Upload file HTML xuất từ MT4 và nhập điều kiện lọc</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FileUploader onFileSelect={(f) => {
+                  setFile(f);
+                  setErrorMsg("");
+                  setResult(null);
+                }} />
+                
+                {errorMsg && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">
+                    {errorMsg}
+                  </div>
+                )}
+                
+                {statusMsg && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 text-blue-600 rounded-md text-sm flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                    </span>
+                    {statusMsg}
+                  </div>
+                )}
+
+                <FilterForm 
+                  onSubmit={handleFilter} 
+                  isLoading={isProcessing}
+                  disabled={!file}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="w-full">
+            <ResultsTable result={result} />
+          </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
