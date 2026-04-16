@@ -40,3 +40,31 @@ React state is updated with a `ParseResult` object. The `ResultsTable` component
 ## Scalability to MT5
 The internal pipeline is built on a **Pipeline Pattern** that allows swapping the "Extraction Loop" (Step 3) while keeping Steps 1, 4, and 5 identical. 
 - **Future Integration**: A `StatementSniffer` service will determine the file format and dispatch the correct version of the extractor before the filtering logic begins.
+
+## UI Refactoring: Base UI & asChild Compatibility
+
+When using **Base UI** (instead of Radix UI) for shadcn/ui primitives, the traditional `asChild` prop is not natively supported. We follow this refactoring pattern:
+
+1. **Primitive Trigger Mapping**: Instead of passing `asChild` directly to the primitive, use the `render` prop.
+2. **Prop Merging**: Use the `mergeProps` utility from `@base-ui/react/merge-props` to combine Base UI's internal `triggerProps` with any custom `ref` or `className`.
+3. **TypeScript Safety**: Define a custom `TriggerProps` interface that extends the primitive props to include `asChild?: boolean`.
+
+**Standard Pattern:**
+```tsx
+const Trigger = React.forwardRef<HTMLButtonElement, TriggerProps>(
+  ({ asChild, children, ...props }, ref) => {
+    if (asChild) {
+      return (
+        <Primitive.Trigger
+          {...props}
+          render={(triggerProps) => React.cloneElement(
+            children as React.ReactElement,
+            mergeProps(triggerProps, { ref })
+          )}
+        />
+      );
+    }
+    return <Primitive.Trigger ref={ref} {...props}>{children}</Primitive.Trigger>;
+  }
+);
+```
