@@ -16,6 +16,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
+import { translations } from "@/lib/i18n";
+
 interface ResultsTableProps {
   result: ParseResult | null;
 }
@@ -23,6 +26,8 @@ interface ResultsTableProps {
 export default function ResultsTable({ result }: ResultsTableProps) {
   const [page, setPage] = useState(1);
   const itemsPerPage = 50;
+  const { language } = useAnalysisStore();
+  const t = translations[language];
 
   if (!result) return null;
 
@@ -34,6 +39,7 @@ export default function ResultsTable({ result }: ResultsTableProps) {
   const exportCSV = () => {
     if (trades.length === 0) return;
     
+    // CSV headers also translated or kept standard? Let's keep keys standard for data processing compatibility
     const headers = ["Ticket", "Open Time", "Type", "Size", "Symbol", "Close Time", "Profit", "Comment", "Match %"];
     const csvContent = [
       headers.join(","),
@@ -54,32 +60,32 @@ export default function ResultsTable({ result }: ResultsTableProps) {
 
   return (
     <Card className="border-none shadow-none bg-transparent">
-      <CardHeader className="flex flex-row items-center justify-between px-0 pt-0">
+      <CardHeader className="flex flex-row items-center justify-between px-0 pt-0 pb-4">
         <div className="space-y-1">
           <CardTitle className="text-xl font-bold flex items-center gap-2">
             <Hash className="h-5 w-5 text-primary" />
-            Matched Operations
+            {t.transactionDetails}
           </CardTitle>
         </div>
-        <Button variant="outline" size="sm" onClick={exportCSV} disabled={trades.length === 0} className="gap-2">
-          <Download className="w-4 h-4" /> Export CSV
+        <Button variant="outline" size="sm" onClick={exportCSV} disabled={trades.length === 0} className="gap-2 rounded-lg font-semibold text-xs h-8">
+          <Download className="w-4 h-4" /> CSV
         </Button>
       </CardHeader>
       <CardContent className="px-0 pb-0">
-        <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+        <div className="rounded-xl border bg-card/30 backdrop-blur-sm overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-muted/50 border-b">
                 <TableRow>
-                  <TableHead className="w-[100px] h-10 px-4 text-xs font-bold uppercase tracking-wider">Ticket</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">Open Time</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">Type</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-center">Size</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">Symbol</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">Close Time</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-right">Net Profit</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">Comment</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-right">Match</TableHead>
+                  <TableHead className="w-[100px] h-10 px-4 text-xs font-bold uppercase tracking-wider">TICKET</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">{t.startDate.toUpperCase()}</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">TYPE</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-center">SIZE</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">SYMBOL</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">{t.endDate.toUpperCase()}</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-right">{t.netProfit.toUpperCase()}</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">COMMENT</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-right">MATCH</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -129,7 +135,7 @@ export default function ResultsTable({ result }: ResultsTableProps) {
                     <TableCell colSpan={9} className="text-center py-20 text-muted-foreground h-40">
                       <div className="flex flex-col items-center justify-center space-y-2">
                         <BarChart3 className="size-8 opacity-20" />
-                        <p>No transactions matched your filtering criteria.</p>
+                        <p>{t.noPresets}</p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -142,7 +148,7 @@ export default function ResultsTable({ result }: ResultsTableProps) {
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-6 px-2">
             <span className="text-xs text-muted-foreground">
-              Showing <span className="font-medium text-foreground">{(page - 1) * itemsPerPage + 1}</span> - <span className="font-medium text-foreground">{Math.min(page * itemsPerPage, trades.length)}</span> of <span className="font-medium text-foreground">{trades.length}</span> results
+              {language === 'en' ? 'Showing' : 'Hiển thị'} <span className="font-medium text-foreground">{(page - 1) * itemsPerPage + 1}</span> - <span className="font-medium text-foreground">{Math.min(page * itemsPerPage, trades.length)}</span> {language === 'en' ? 'of' : 'trong'} <span className="font-medium text-foreground">{trades.length}</span> {language === 'en' ? 'results' : 'kết quả'}
             </span>
             <div className="flex gap-2">
               <Button 
@@ -156,7 +162,7 @@ export default function ResultsTable({ result }: ResultsTableProps) {
                 <span className="sr-only">Previous page</span>
               </Button>
               <div className="flex items-center text-xs font-medium px-2">
-                Page {page} of {totalPages}
+                {language === 'en' ? 'Page' : 'Trang'} {page} {language === 'en' ? 'of' : '/'} {totalPages}
               </div>
               <Button 
                 variant="outline" 

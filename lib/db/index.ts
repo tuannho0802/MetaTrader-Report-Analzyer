@@ -1,44 +1,37 @@
-import Dexie, { Table } from 'dexie';
+import Dexie, { type EntityTable } from 'dexie';
+import { Trade } from '../types';
 
-export interface UserSetting {
-  id?: number;
+interface StatementRecord {
+  id: string; // Generic ID, or 'latest'
+  fileName: string;
+  uploadedAt: number;
+  totalTrades: number;
+  tradesJson: string; // Stringified Trade[]
+}
+
+interface SettingRecord {
   key: string;
-  value: any;
+  value: string;
 }
 
-export interface TradeNote {
-  id?: number;
-  ticket: string; // Linking to trade ticket
-  note: string;
-  tags: string[];
-  updatedAt: number;
+const db = new Dexie('MT4AnalyzerDB') as Dexie & {
+  statements: EntityTable<StatementRecord, 'id'>;
+  settings: EntityTable<SettingRecord, 'key'>;
+};
+
+db.version(1).stores({
+  statements: 'id, fileName, uploadedAt',
+  settings: 'key'
+});
+
+export async function getSetting(key: string, defaultValue: string = ""): Promise<string> {
+  const record = await db.settings.get(key);
+  return record ? record.value : defaultValue;
 }
 
-export class AppDatabase extends Dexie {
-  settings!: Table<UserSetting>;
-  notes!: Table<TradeNote>;
-
-  constructor() {
-    super('Mt4ProfitFilterDB');
-    this.version(1).stores({
-      settings: '++id, key',
-      notes: '++id, ticket, updatedAt'
-    });
-  }
+export async function saveSetting(key: string, value: string): Promise<void> {
+  await db.settings.put({ key, value });
 }
 
-export const db = new AppDatabase();
-
-// Helper functions
-export async function saveSetting(key: string, value: any) {
-  const existing = await db.settings.where('key').equals(key).first();
-  if (existing) {
-    return db.settings.update(existing.id!, { value });
-  }
-  return db.settings.add({ key, value });
-}
-
-export async function getSetting<T>(key: string, defaultValue: T): Promise<T> {
-  const item = await db.settings.where('key').equals(key).first();
-  return item ? item.value : defaultValue;
-}
+export type { StatementRecord };
+export { db };

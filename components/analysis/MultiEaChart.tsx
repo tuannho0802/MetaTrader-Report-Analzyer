@@ -13,9 +13,14 @@ import {
 } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore"
+import { translations } from "@/lib/i18n"
+import { LayoutGrid } from "lucide-react"
 
 export function MultiEaChart() {
-  const { multiEaResults } = useAnalysisStore()
+  const { sessions, activeSessionId, language } = useAnalysisStore()
+  const activeSession = sessions.find(s => s.id === activeSessionId)
+  const multiEaResults = activeSession?.multiEaResults || {}
+  const t = translations[language]
 
   const chartData = useMemo(() => {
     const patterns = Object.keys(multiEaResults)
@@ -75,61 +80,80 @@ export function MultiEaChart() {
   }
 
   const colors = [
-    "#2563eb", // blue
-    "#10b981", // emerald
-    "#f59e0b", // amber
-    "#ef4444", // red
-    "#8b5cf6", // violet
-    "#ec4899", // pink
+    "#3b82f6", // blue-500
+    "#10b981", // emerald-500
+    "#f59e0b", // amber-500
+    "#6366f1", // indigo-500
+    "#f43f5e", // rose-500
+    "#8b5cf6", // violet-500
   ]
 
   return (
-    <Card className="col-span-full">
-      <CardHeader>
-        <CardTitle>Comparative Equity Curve</CardTitle>
-        <CardDescription>
-          Cumulative Net Profit over time for selected EA patterns.
-        </CardDescription>
+    <Card className="col-span-full border-border/50 shadow-lg overflow-hidden">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-xl">{t.equityCurve}</CardTitle>
+            <CardDescription className="text-xs">
+              {t.cumulativeProfit}
+            </CardDescription>
+          </div>
+          <div className="p-2 bg-primary/5 rounded-lg border border-primary/10">
+            <LayoutGrid size={18} className="text-primary" />
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="h-[400px]">
+      <CardContent className="h-[400px] pt-6 pr-6">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
             margin={{
               top: 5,
-              right: 30,
-              left: 20,
+              right: 10,
+              left: 0,
               bottom: 5,
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted/30" />
             <XAxis 
               dataKey="time" 
-              hide={true} // Hide complex date strings on X axis for cleaner look
+              hide={true}
             />
             <YAxis 
-              tick={{ fontSize: 12 }} 
-              tickFormatter={(val) => `${val}`}
+              tick={{ fontSize: 10, fontWeight: 500 }} 
+              tickFormatter={(val) => `$${val}`}
+              axisLine={false}
+              tickLine={false}
               className="fill-muted-foreground"
             />
             <Tooltip 
               contentStyle={{ 
-                backgroundColor: 'hsl(var(--background))', 
+                backgroundColor: 'hsl(var(--card))', 
                 border: '1px solid hsl(var(--border))',
-                borderRadius: '8px'
+                borderRadius: '12px',
+                boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                padding: '12px'
               }}
-              labelStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+              itemStyle={{ fontSize: '12px', fontWeight: '600', padding: '2px 0' }}
+              labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: 'hsl(var(--muted-foreground))', marginBottom: '8px' }}
             />
-            <Legend />
+            <Legend 
+              verticalAlign="top" 
+              align="right" 
+              iconType="circle"
+              iconSize={8}
+              wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', color: 'hsl(var(--foreground))', paddingBottom: '20px' }}
+            />
             {Object.keys(multiEaResults).map((p, i) => (
               <Line
                 key={p}
                 type="monotone"
                 dataKey={p}
                 stroke={colors[i % colors.length]}
-                strokeWidth={2}
+                strokeWidth={3}
                 dot={false}
-                activeDot={{ r: 4 }}
+                activeDot={{ r: 6, strokeWidth: 0 }}
+                animationDuration={1000}
               />
             ))}
           </LineChart>

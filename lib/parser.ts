@@ -38,6 +38,57 @@ export function isCommentMatch(pattern: string, comment: string, threshold: numb
   return diceCoefficient(p, c) * 100 >= threshold;
 }
 
+export function filterTrades(trades: Trade[], params: FilterParams): { filtered: Trade[], totalProfit: number } {
+  const filtered: Trade[] = [];
+  let totalProfit = 0;
+
+  const p = params.commentPattern.toLowerCase().trim();
+  const st = params.startDate ? new Date(params.startDate) : null;
+  const en = params.endDate ? new Date(params.endDate) : null;
+  
+  if (st) st.setHours(0, 0, 0, 0);
+  if (en) en.setHours(23, 59, 59, 999);
+
+  trades.forEach(t => {
+    // 1. Filter by Date
+    const tradeDate = parseMT4Date(t.closeTime) || parseMT4Date(t.openTime);
+    let isDateMatch = true;
+    if (tradeDate && st && en) {
+       isDateMatch = tradeDate >= st && tradeDate <= en;
+    }
+
+    // 2. Filter by Comment Pattern
+    let similarity = 0;
+    let matched = false;
+    const c = t.comment.toLowerCase().trim();
+
+    if (isCommentMatch(p, c, params.threshold)) {
+      matched = true;
+      if (c.includes(p)) {
+        similarity = 100;
+      } else {
+        similarity = diceCoefficient(p, c) * 100;
+      }
+    }
+
+    if (isDateMatch && matched) {
+      filtered.push({ ...t, similarity });
+      totalProfit += t.profit;
+    }
+  });
+
+  return { filtered, totalProfit };
+}
+
+export function recalculateResult(allTrades: Trade[], params: FilterParams): ParseResult {
+  const { filtered, totalProfit } = filterTrades(allTrades, params);
+  return {
+    totalProfit,
+    trades: filtered,
+    totalFound: allTrades.length
+  };
+}
+
 export function parseHTMLStatement(html: string, params: FilterParams): ParseResult {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
@@ -45,7 +96,6 @@ export function parseHTMLStatement(html: string, params: FilterParams): ParseRes
   const allTables = doc.querySelectorAll("table");
   let targetTable = null;
 
-  // Search for the table containing "Closed Transactions:"
   for (let i = 0; i < allTables.length; i++) {
     const table = allTables[i];
     if (table.textContent?.includes("Closed Transactions:")) {
@@ -54,7 +104,6 @@ export function parseHTMLStatement(html: string, params: FilterParams): ParseRes
     }
   }
 
-  // Fallback to table with Ticket and Item headers
   if (!targetTable) {
     for (let i = 0; i < allTables.length; i++) {
       const table = allTables[i];
@@ -70,23 +119,19 @@ export function parseHTMLStatement(html: string, params: FilterParams): ParseRes
   }
 
   const rows = targetTable.querySelectorAll("tr");
-  const trades: Trade[] = [];
+  const allExtractedTrades: Trade[] = [];
   let totalFound = 0;
-  let totalProfit = 0;
 
   for (let i = 0; i < rows.length; i++) {
     const tr = rows[i];
     const tds = tr.querySelectorAll("td");
 
-    // Skip technical rows
     if (tr.textContent?.includes("Closed Transactions:")) continue;
     
-    // Detect trade row: typically 14-15 columns, first cell is a numeric ticket
     if (tds.length >= 14 && tds.length <= 15) {
       const ticketText = tds[0].textContent?.trim() || "";
       if (!/^\d+$/.test(ticketText)) continue;
 
-      // Exclude balance operations (found in Type column at index 2)
       const type = tds[2].textContent?.trim().toLowerCase() || "";
       if (type === "balance" || type === "credit") continue;
 
@@ -106,83 +151,46 @@ export function parseHTMLStatement(html: string, params: FilterParams): ParseRes
 
       let comment = "";
 
-      // Check next row for comment
       if (i + 1 < rows.length) {
         const nextTr = rows[i + 1];
         const nextTds = nextTr.querySelectorAll("td");
-        
         let isCommentRow = false;
-        // Comment rows are recognized by having a large colspan in the first cell (usually 9)
         if (nextTds.length > 0 && nextTds.length <= 6) {
           const firstTdColspan = parseInt(nextTds[0].getAttribute("colspan") || "1", 10);
-          if (firstTdColspan >= 7) {
-            isCommentRow = true;
-          }
+          if (firstTdColspan >= 7) isCommentRow = true;
         }
 
         if (isCommentRow) {
-          // The comment text is usually in the last <td> of this row
           const lastTd = nextTds[nextTds.length - 1];
           comment = lastTd.textContent?.trim() || "";
-          
-          // Handle the case where the cell contains just a non-breaking space
           if (comment === "\u00a0") comment = "";
-          
-          i++; // Advance main loop to skip this comment row
+          i++; 
         }
       }
 
-      // 1. Filter by Date
-      const tradeDate = parseMT4Date(closeTime) || parseMT4Date(openTime);
-      let isDateMatch = true;
-      if (tradeDate && params.startDate && params.endDate) {
-         const st = new Date(params.startDate);
-         st.setHours(0, 0, 0, 0);
-         const en = new Date(params.endDate);
-         en.setHours(23, 59, 59, 999);
-         isDateMatch = tradeDate >= st && tradeDate <= en;
-      }
-
-      // 2. Filter by Comment Pattern
-      let similarity = 0;
-      let matched = false;
-      const p = params.commentPattern.toLowerCase().trim();
-      const c = comment.toLowerCase().trim();
-
-      if (isCommentMatch(p, c, params.threshold)) {
-        matched = true;
-        // For display similarity in the table
-        if (c.includes(p)) {
-          similarity = 100;
-        } else {
-          similarity = diceCoefficient(p, c) * 100;
-        }
-      }
-
-      if (isDateMatch && matched) {
-        trades.push({
-          ticket,
-          openTime,
-          type: tds[2].textContent?.trim() || "",
-          size,
-          item,
-          openPrice,
-          closeTime,
-          closePrice,
-          commission,
-          swap,
-          profit,
-          comment,
-          similarity
-        });
-        totalProfit += profit;
-      }
+      allExtractedTrades.push({
+        ticket,
+        openTime,
+        type: tds[2].textContent?.trim() || "",
+        size,
+        item,
+        openPrice,
+        closeTime,
+        closePrice,
+        commission,
+        swap,
+        profit,
+        comment,
+        similarity: 0
+      });
     }
   }
 
+  const { filtered, totalProfit } = filterTrades(allExtractedTrades, params);
+
   return {
     totalProfit,
-    trades,
+    trades: filtered,
     totalFound
   };
 }

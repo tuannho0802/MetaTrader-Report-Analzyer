@@ -26,3 +26,23 @@ export interface ParseResult {
   trades: Trade[];
   totalFound: number;  // tổng số giao dịch trong file trước khi lọc
 }
+
+export interface FilterPreset {
+  id: string;
+  name: string;
+  commentPattern: string;
+  threshold: number;
+  startDate: string;
+  endDate: string;
+}
+
+export interface AnalysisSession {
+  id: string;
+  name: string;
+  filter: FilterParams;
+  history: FilterParams[];
+  historyIndex: number;
+  currentResult: ParseResult | null;
+  multiEaResults: Record<string, { trades: Trade[]; profit: number }>;
+  createdAt: number;
+}

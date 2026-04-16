@@ -13,16 +13,27 @@ import {
   SidebarMenuItem,
   SidebarFooter,
 } from "@/components/ui/sidebar"
-import { LayoutDashboard, BarChart3, Settings, Calculator, HelpCircle, Layers } from "lucide-react"
+import { LayoutDashboard, BarChart3, Settings, Calculator, HelpCircle, Layers, LayoutGrid } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore"
 import { db, getSetting, saveSetting } from "@/lib/db"
+import { translations } from "@/lib/i18n"
 
 export function AppSidebar() {
   const [patterns, setPatterns] = React.useState("")
-  const { file, processMultiEa, isProcessing, allTrades } = useAnalysisStore()
+  const { 
+    sessions, 
+    activeSessionId, 
+    processMultiEa, 
+    isProcessing, 
+    allTrades,
+    language
+  } = useAnalysisStore()
+
+  const activeSession = sessions.find(s => s.id === activeSessionId)
+  const t = translations[language]
 
   // Load saved patterns on mount
   React.useEffect(() => {
@@ -32,22 +43,22 @@ export function AppSidebar() {
   }, [])
 
   const handleCompare = async () => {
-    if (!file || !patterns.trim()) return
+    if (!patterns.trim() || !activeSession) return
     
     // Save to persistence
     await saveSetting("favorite_patterns", patterns)
     
     const patternList = patterns.split(",").map(p => p.trim()).filter(Boolean)
     
-    // For now we use the existing filters or default values for multi-EA
-    // In a real app we'd pull threshold and dates from somewhere
     processMultiEa(
       patternList,
-      80, // Default threshold
-      new Date(0), // Far past
-      new Date(2100, 0, 1) // Far future
+      activeSession.filter.threshold,
+      activeSession.filter.startDate,
+      activeSession.filter.endDate
     )
   }
+
+  const canAnalyze = allTrades.length > 0 && patterns.trim().length > 0
 
   return (
     <Sidebar variant="inset">
@@ -62,30 +73,30 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarGroupLabel>{t.dashboard}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive tooltip="Dashboard">
+                <SidebarMenuButton asChild isActive tooltip={t.dashboard}>
                   <a href="#">
                     <LayoutDashboard className="h-4 w-4" />
-                    <span>Dashboard</span>
+                    <span>{t.dashboard}</span>
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Performance">
+                <SidebarMenuButton asChild tooltip={t.performance}>
                   <a href="#">
                     <BarChart3 className="h-4 w-4" />
-                    <span>Performance</span>
+                    <span>{t.performance}</span>
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="EA Comparison">
+                <SidebarMenuButton asChild tooltip={t.eaComparison}>
                   <a href="#">
                     <Layers className="h-4 w-4" />
-                    <span>EA Comparison</span>
+                    <span>{t.eaComparison}</span>
                   </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -94,11 +105,11 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Multi-EA Analysis</SidebarGroupLabel>
+          <SidebarGroupLabel>{t.multiEaAnalysis}</SidebarGroupLabel>
           <SidebarGroupContent className="px-4 py-2 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="ea-patterns" className="text-xs text-muted-foreground">
-                Enter EA comments (comma separated)
+                {t.enterEaComments}
               </Label>
               <Textarea
                 id="ea-patterns"
@@ -111,14 +122,14 @@ export function AppSidebar() {
             <Button 
               className="w-full h-8 text-xs gap-2" 
               onClick={handleCompare}
-              disabled={!file || !patterns.trim() || isProcessing || allTrades.length === 0}
+              disabled={!canAnalyze || isProcessing}
             >
               <Calculator className="h-3 w-3" />
-              Analyze & Compare
+              {t.analyzeCompare}
             </Button>
-            {allTrades.length === 0 && file && (
+            {allTrades.length === 0 && (
               <p className="text-[10px] text-muted-foreground text-center italic">
-                Wait for initial parse to be complete...
+                {t.uploadToEnable}
               </p>
             )}
           </SidebarGroupContent>

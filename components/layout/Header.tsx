@@ -16,10 +16,27 @@ import {
 import FileUploader from "@/components/FileUploader"
 import FilterForm from "@/components/FilterForm"
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore"
+import { translations } from "@/lib/i18n"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Languages } from "lucide-react"
 
 export function Header() {
   const { toggleSidebar } = useSidebar()
-  const { setFile, processStatement, file, isProcessing } = useAnalysisStore()
+  const { 
+    setFile, 
+    processStatement, 
+    file, 
+    isProcessing,
+    language,
+    setLanguage 
+  } = useAnalysisStore()
+  
+  const t = translations[language]
 
   const handleFilterSubmit = async (data: any) => {
     if (!file) return
@@ -40,33 +57,48 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between py-4">
+      <div className="container flex h-16 items-center justify-between py-4 px-6 md:px-8">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={toggleSidebar} className="md:hidden">
             <SidebarIcon className="h-5 w-5" />
           </Button>
           <div className="flex flex-col">
-            <h1 className="text-xl font-bold tracking-tight text-foreground">
-              MT4 Profit Filter <span className="text-xs font-normal text-muted-foreground ml-2">v2.0</span>
+            <h1 className="text-xl font-extrabold tracking-tight text-foreground flex items-center">
+              MT4 Profit Filter <span className="text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded ml-2 uppercase tracking-wide">v2.0</span>
             </h1>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-full">
+                <Languages className="h-4 w-4" />
+                <span className="sr-only">Switch language</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setLanguage("en")} className={language === "en" ? "bg-accent" : ""}>
+                English
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLanguage("vi")} className={language === "vi" ? "bg-accent" : ""}>
+                Tiếng Việt
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <Sheet>
-            <SheetTrigger
-              render={
-                <Button variant="default" className="gap-2 shadow-sm">
-                  <UploadCloud className="h-4 w-4" />
-                  <span className="hidden sm:inline">Upload & Analyze</span>
-                </Button>
-              }
-            />
+            <SheetTrigger asChild>
+              <Button variant="default" className="gap-2 shadow-sm rounded-lg font-bold text-xs h-9 px-4">
+                <UploadCloud className="h-4 w-4" />
+                <span className="hidden sm:inline">{t.analyzeTransactions}</span>
+              </Button>
+            </SheetTrigger>
             <SheetContent className="sm:max-w-md overflow-y-auto">
               <SheetHeader className="mb-6">
-                <SheetTitle>Analyze Account Statement</SheetTitle>
+                <SheetTitle>{t.savePreset}</SheetTitle>
                 <SheetDescription>
-                  Upload your MT4 HTML report and configure the analysis filters.
+                  {t.uploadMt4}
                 </SheetDescription>
               </SheetHeader>
               <div className="space-y-6 py-4">
