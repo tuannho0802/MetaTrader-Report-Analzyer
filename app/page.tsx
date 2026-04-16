@@ -25,19 +25,25 @@ export default function Home() {
           
           <main className="flex-1 p-4 md:p-6 lg:p-8 space-y-8 max-w-[1600px] mx-auto w-full">
             {!file ? (
-              <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
-                <div className="w-24 h-24 rounded-3xl bg-primary/10 flex items-center justify-center text-primary animate-pulse">
-                  <FileSearch size={48} />
+              <div className="flex flex-col items-center justify-center min-h-[65vh] text-center space-y-8 animate-in fade-in zoom-in duration-700">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 animate-pulse" />
+                  <div className="relative w-32 h-32 rounded-[2.5rem] bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center text-primary shadow-2xl">
+                    <FileSearch size={64} strokeWidth={1.5} />
+                  </div>
                 </div>
-                <div className="space-y-2 max-w-md">
-                  <h2 className="text-2xl font-bold tracking-tight">No Report Uploaded</h2>
-                  <p className="text-muted-foreground text-sm">
-                    Upload an MT4 HTML statement using the <strong>"Upload & Analyze"</strong> button in the header to get started.
+                <div className="space-y-3 max-w-lg">
+                  <h2 className="text-3xl font-extrabold tracking-tight">No Report Uploaded</h2>
+                  <p className="text-muted-foreground text-base leading-relaxed">
+                    Ready to analyze your trading performance? <br />
+                    Upload an <strong>MT4 Detailed Report (.htm)</strong> to get started.
                   </p>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted px-4 py-2 rounded-full">
-                  <Sparkles size={14} className="text-amber-500" />
-                  <span>Privacy-First: Analysis happens entirely in your browser</span>
+                <div className="flex flex-col items-center gap-4">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-muted/50 border border-border/50 px-6 py-3 rounded-2xl">
+                    <Sparkles size={16} className="text-amber-500" />
+                    <span>Privacy-First: Analysis happens entirely in your browser</span>
+                  </div>
                 </div>
               </div>
             ) : (

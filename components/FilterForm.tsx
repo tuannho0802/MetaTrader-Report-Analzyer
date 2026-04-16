@@ -10,12 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 
 const schema = z.object({
-  commentPattern: z.string().min(1, "Nhập comment pattern"),
+  commentPattern: z.string().min(1, "Enter comment pattern"),
   threshold: z.number().min(0).max(100),
-  startDate: z.string().min(1, "Chọn ngày bắt đầu"),
-  endDate: z.string().min(1, "Chọn ngày kết thúc"),
+  startDate: z.string().min(1, "Select start date"),
+  endDate: z.string().min(1, "Select end date"),
 }).refine(d => new Date(d.startDate) <= new Date(d.endDate), {
-  message: "Ngày kết thúc phải sau ngày bắt đầu",
+  message: "End date must be after start date",
   path: ["endDate"],
 });
 
@@ -49,66 +49,81 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-6">
       <div className="space-y-2">
-        <Label htmlFor="commentPattern">Comment Pattern (phân tách bằng phẩy, v.d: BBS41, DCA)</Label>
+        <Label htmlFor="commentPattern" className="text-sm font-semibold">Comment Pattern (comma separated, e.g: BBS41, DCA)</Label>
         <Input
           id="commentPattern"
-          placeholder="VD: BBS41, DCA, 111"
+          placeholder="e.g. BBS41, DCA, 111"
           {...register("commentPattern")}
           disabled={disabled || isLoading}
+          className="rounded-lg h-10"
         />
         {errors.commentPattern && (
-          <p className="text-sm text-red-500">{errors.commentPattern.message}</p>
+          <p className="text-xs text-rose-500 font-medium">{errors.commentPattern.message}</p>
         )}
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <Label>Ngưỡng tương đồng (Độ chính xác text)</Label>
-          <span className="text-sm font-medium">{thresholdValue}%</span>
+          <Label className="text-sm font-semibold">Similarity Threshold (Text Accuracy)</Label>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-md">
+              {thresholdValue}%
+            </span>
+          </div>
         </div>
-        <Slider
-          min={0}
-          max={100}
-          step={1}
-          value={[thresholdValue]}
-          onValueChange={(val) => setValue("threshold", Array.isArray(val) ? val[0] : (val as any)[0] ?? val)}
-          disabled={disabled || isLoading}
-        />
+        <div className="px-1">
+          <Slider
+            min={0}
+            max={100}
+            step={1}
+            value={[thresholdValue]}
+            onValueChange={(val) => setValue("threshold", Array.isArray(val) ? val[0] : (val as any)[0] ?? val)}
+            disabled={disabled || isLoading}
+            className="mb-6"
+          />
+          <div className="flex justify-between px-1 mt-[-12px]">
+            <span className="text-[10px] text-muted-foreground font-medium">0%</span>
+            <span className="text-[10px] text-muted-foreground font-medium">50%</span>
+            <span className="text-[10px] text-muted-foreground font-medium">100%</span>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="startDate">Ngày bắt đầu</Label>
+          <Label htmlFor="startDate" className="text-sm font-semibold">Start Date</Label>
           <Input
             id="startDate"
             type="date"
             {...register("startDate")}
             disabled={disabled || isLoading}
+            className="rounded-lg h-10"
           />
           {errors.startDate && (
-            <p className="text-sm text-red-500">{errors.startDate.message}</p>
+            <p className="text-xs text-rose-500 font-medium">{errors.startDate.message}</p>
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="endDate">Ngày kết thúc</Label>
+          <Label htmlFor="endDate" className="text-sm font-semibold">End Date</Label>
           <Input
             id="endDate"
             type="date"
             {...register("endDate")}
             disabled={disabled || isLoading}
+            className="rounded-lg h-10"
           />
           {errors.endDate && (
-            <p className="text-sm text-red-500">{errors.endDate.message}</p>
+            <p className="text-xs text-rose-500 font-medium">{errors.endDate.message}</p>
           )}
         </div>
       </div>
 
       <Button
         type="submit"
-        className="w-full"
+        className="w-full h-11 rounded-lg text-sm font-bold shadow-md shadow-primary/20 transition-all active:scale-[0.98]"
         disabled={disabled || isLoading}
       >
-        {isLoading ? "Đang phân tích..." : "Phân tích giao dịch"}
+        {isLoading ? "Analyzing..." : "Analyze Transactions"}
       </Button>
     </form>
   );

@@ -5,7 +5,8 @@ import { ParseResult } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, ChevronLeft, ChevronRight, Hash } from "lucide-react";
+import { Download, ChevronLeft, ChevronRight, Hash, BarChart3 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -65,67 +66,77 @@ export default function ResultsTable({ result }: ResultsTableProps) {
         </Button>
       </CardHeader>
       <CardContent className="px-0 pb-0">
-        <div className="rounded-xl border bg-card overflow-hidden">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="w-[100px]">Ticket</TableHead>
-                <TableHead>Open Time</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Size</TableHead>
-                <TableHead>Symbol</TableHead>
-                <TableHead>Close Time</TableHead>
-                <TableHead className="text-right">Net Profit</TableHead>
-                <TableHead>Comment</TableHead>
-                <TableHead className="text-right">Match</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {currentTrades.length > 0 ? (
-                currentTrades.map((t) => (
-                  <TableRow key={t.ticket} className="hover:bg-muted/30 transition-colors">
-                    <TableCell className="font-mono text-xs">{t.ticket}</TableCell>
-                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                      {t.openTime}
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant="secondary" 
-                        className={t.type.toLowerCase().includes("buy") 
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none" 
-                          : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-none"
-                        }
-                      >
-                        {t.type.toUpperCase()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">{t.size}</TableCell>
-                    <TableCell className="font-bold uppercase tracking-wider text-xs">{t.item}</TableCell>
-                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                      {t.closeTime}
-                    </TableCell>
-                    <TableCell className={`text-right font-bold ${t.profit >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                      {t.profit > 0 ? "+" : ""}{t.profit.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="max-w-[150px] truncate italic text-muted-foreground text-xs" title={t.comment}>
-                      {t.comment || "-"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground">
-                        {t.similarity.toFixed(0)}%
+        <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-muted/50 border-b">
+                <TableRow>
+                  <TableHead className="w-[100px] h-10 px-4 text-xs font-bold uppercase tracking-wider">Ticket</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">Open Time</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">Type</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-center">Size</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">Symbol</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">Close Time</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-right">Net Profit</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">Comment</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-right">Match</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {currentTrades.length > 0 ? (
+                  currentTrades.map((t) => (
+                    <TableRow key={t.ticket} className="hover:bg-muted/40 transition-colors even:bg-muted/15 border-b last:border-0">
+                      <TableCell className="font-mono text-[10px] px-4 py-2.5 text-muted-foreground">{t.ticket}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs px-4 py-2.5">
+                        {t.openTime}
+                      </TableCell>
+                      <TableCell className="px-4 py-2.5">
+                        <Badge 
+                          variant="secondary" 
+                          className={cn(
+                            "px-1.5 py-0 text-[10px] uppercase font-bold border-none",
+                            t.type.toLowerCase().includes("buy") 
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
+                              : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                          )}
+                        >
+                          {t.type.toUpperCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-semibold text-center text-xs px-4 py-2.5">{t.size}</TableCell>
+                      <TableCell className="font-bold uppercase tracking-wider text-sm px-4 py-2.5">{t.item}</TableCell>
+                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground px-4 py-2.5">
+                        {t.closeTime}
+                      </TableCell>
+                      <TableCell className={cn(
+                        "text-right font-bold text-sm px-4 py-2.5 tabular-nums",
+                        t.profit >= 0 ? "text-emerald-400" : "text-rose-400"
+                      )}>
+                        {t.profit > 0 ? "+" : ""}{t.profit.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="max-w-[150px] truncate italic text-muted-foreground text-xs px-4 py-2.5" title={t.comment}>
+                        {t.comment || "-"}
+                      </TableCell>
+                      <TableCell className="text-right px-4 py-2.5">
+                        <div className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-muted text-muted-foreground">
+                          {t.similarity.toFixed(0)}%
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-20 text-muted-foreground h-40">
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <BarChart3 className="size-8 opacity-20" />
+                        <p>No transactions matched your filtering criteria.</p>
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center py-12 text-muted-foreground h-40">
-                    No transactions matched your filtering criteria.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
         
         {totalPages > 1 && (

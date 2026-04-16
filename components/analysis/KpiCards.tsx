@@ -52,43 +52,45 @@ export function KpiCards() {
       title: "Total Net Profit",
       value: `${totalProfit.toFixed(2)} USD`,
       icon: totalProfit >= 0 ? TrendingUp : TrendingDown,
-      description: "Lợi nhuận ròng từ các lệnh đã lọc",
-      color: totalProfit >= 0 ? "text-emerald-500" : "text-rose-500"
+      description: "Net profit from matched operations",
+      color: totalProfit >= 0 ? "text-emerald-400" : "text-rose-400"
     },
     {
       title: "Win Rate",
       value: `${winRate.toFixed(1)}%`,
       icon: PieChart,
-      description: `${wins} lệnh thắng trên tổng số ${tradeCount}`,
-      color: "text-blue-500"
+      description: `${wins} wins out of ${tradeCount} trades`,
+      color: "text-blue-400"
     },
     {
       title: "Total Trades",
       value: tradeCount.toString(),
       icon: Activity,
-      description: "Số lượng giao dịch khớp điều kiện",
-      color: "text-amber-500"
+      description: "Total count of matched transactions",
+      color: "text-amber-400"
     },
     {
       title: "Profit Factor",
       value: profitFactor,
       icon: Layers,
       description: "Gross Profit / Gross Loss",
-      color: "text-purple-500"
+      color: "text-purple-400"
     }
   ]
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {kpis.map((kpi, i) => (
-        <Card key={i} className="overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1">
-            <CardTitle className="text-sm font-medium">{kpi.title}</CardTitle>
-            <kpi.icon className={cn("h-4 w-4", kpi.color)} />
+        <Card key={i} className="overflow-hidden border border-border/50 shadow-sm bg-card/50 backdrop-blur-sm transition-all hover:shadow-md hover:border-border">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-5">
+            <CardTitle className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">{kpi.title}</CardTitle>
+            <div className={cn("p-2 rounded-lg bg-muted/30", kpi.color.replace('text-', 'bg-').replace('-400', '-400/10'))}>
+              <kpi.icon className={cn("h-4 w-4", kpi.color)} />
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className={cn("text-2xl font-bold", i === 0 && kpi.color)}>{kpi.value}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+          <CardContent className="p-5 pt-0">
+            <div className={cn("text-3xl font-bold tracking-tight", i === 0 && kpi.color)}>{kpi.value}</div>
+            <p className="text-[11px] text-muted-foreground mt-2 font-medium">
               {kpi.description}
             </p>
           </CardContent>
