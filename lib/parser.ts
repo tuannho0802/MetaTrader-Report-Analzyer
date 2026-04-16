@@ -45,6 +45,7 @@ export function parseHTMLStatement(html: string, params: FilterParams): ParseRes
   const allTables = doc.querySelectorAll("table");
   let targetTable = null;
 
+  // Search for the table containing "Closed Transactions:"
   for (let i = 0; i < allTables.length; i++) {
     const table = allTables[i];
     if (table.textContent?.includes("Closed Transactions:")) {
@@ -53,6 +54,7 @@ export function parseHTMLStatement(html: string, params: FilterParams): ParseRes
     }
   }
 
+  // Fallback to table with Ticket and Item headers
   if (!targetTable) {
     for (let i = 0; i < allTables.length; i++) {
       const table = allTables[i];
@@ -76,18 +78,22 @@ export function parseHTMLStatement(html: string, params: FilterParams): ParseRes
     const tr = rows[i];
     const tds = tr.querySelectorAll("td");
 
+    // Skip technical rows
     if (tr.textContent?.includes("Closed Transactions:")) continue;
-    if (tds.length === 1 && tr.getAttribute("colspan")) continue;
-
-    if (tds.length >= 14) {
+    
+    // Detect trade row: typically 14-15 columns, first cell is a numeric ticket
+    if (tds.length >= 14 && tds.length <= 15) {
       const ticketText = tds[0].textContent?.trim() || "";
       if (!/^\d+$/.test(ticketText)) continue;
+
+      // Exclude balance operations (found in Type column at index 2)
+      const type = tds[2].textContent?.trim().toLowerCase() || "";
+      if (type === "balance" || type === "credit") continue;
 
       totalFound++;
 
       const ticket = ticketText;
       const openTime = tds[1].textContent?.trim() || "";
-      const type = tds[2].textContent?.trim() || "";
       const size = tds[3].textContent?.trim() || "";
       const item = tds[4].textContent?.trim() || "";
       const openPrice = tds[5].textContent?.trim() || "";
@@ -100,31 +106,34 @@ export function parseHTMLStatement(html: string, params: FilterParams): ParseRes
 
       let comment = "";
 
+      // Check next row for comment
       if (i + 1 < rows.length) {
         const nextTr = rows[i + 1];
         const nextTds = nextTr.querySelectorAll("td");
         
         let isCommentRow = false;
-        let commentTd = null;
-        if (nextTds.length > 0 && nextTds.length < 5) {
-          for (let j = 0; j < nextTds.length; j++) {
-            const colSpan = nextTds[j].getAttribute("colspan");
-            if (colSpan && parseInt(colSpan, 10) >= 7) {
-              isCommentRow = true;
-              commentTd = nextTds[j];
-              break;
-            }
+        // Comment rows are recognized by having a large colspan in the first cell (usually 9)
+        if (nextTds.length > 0 && nextTds.length <= 6) {
+          const firstTdColspan = parseInt(nextTds[0].getAttribute("colspan") || "1", 10);
+          if (firstTdColspan >= 7) {
+            isCommentRow = true;
           }
         }
 
-        if (isCommentRow && commentTd) {
-          comment = commentTd.textContent?.trim() || "";
-          i++; 
+        if (isCommentRow) {
+          // The comment text is usually in the last <td> of this row
+          const lastTd = nextTds[nextTds.length - 1];
+          comment = lastTd.textContent?.trim() || "";
+          
+          // Handle the case where the cell contains just a non-breaking space
+          if (comment === "\u00a0") comment = "";
+          
+          i++; // Advance main loop to skip this comment row
         }
       }
 
+      // 1. Filter by Date
       const tradeDate = parseMT4Date(closeTime) || parseMT4Date(openTime);
-
       let isDateMatch = true;
       if (tradeDate && params.startDate && params.endDate) {
          const st = new Date(params.startDate);
@@ -134,24 +143,27 @@ export function parseHTMLStatement(html: string, params: FilterParams): ParseRes
          isDateMatch = tradeDate >= st && tradeDate <= en;
       }
 
+      // 2. Filter by Comment Pattern
       let similarity = 0;
       let matched = false;
       const p = params.commentPattern.toLowerCase().trim();
       const c = comment.toLowerCase().trim();
 
-      if (c.includes(p)) {
+      if (isCommentMatch(p, c, params.threshold)) {
         matched = true;
-        similarity = 100;
-      } else {
-        similarity = diceCoefficient(p, c) * 100;
-        matched = similarity >= params.threshold;
+        // For display similarity in the table
+        if (c.includes(p)) {
+          similarity = 100;
+        } else {
+          similarity = diceCoefficient(p, c) * 100;
+        }
       }
 
       if (isDateMatch && matched) {
         trades.push({
           ticket,
           openTime,
-          type,
+          type: tds[2].textContent?.trim() || "",
           size,
           item,
           openPrice,
@@ -166,11 +178,6 @@ export function parseHTMLStatement(html: string, params: FilterParams): ParseRes
         totalProfit += profit;
       }
     }
-  }
-
-  if (trades.length === 0 && totalFound > 0) {
-     const st = new Date();
-     // If we had no match because of strict conditions, it will naturally return empty
   }
 
   return {
