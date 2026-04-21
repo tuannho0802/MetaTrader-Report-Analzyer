@@ -5,7 +5,6 @@ import { Header } from "@/components/layout/Header";
 import { KpiCards } from "@/components/analysis/KpiCards";
 import { MultiEaChart } from "@/components/analysis/MultiEaChart";
 import ResultsTable from "@/components/ResultsTable";
-import { EAComparator } from "@/components/compare/EAComparator";
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
 import {
   FileSearch,
@@ -35,22 +34,12 @@ export default function Home() {
     clearCache,
     removeSession,
     setActiveSession,
-    view,
     language
   } = useAnalysisStore();
-
-  React.useEffect(() => {
-    loadCachedStatement();
-  }, [loadCachedStatement]);
 
   const hasData = allTrades.length > 0;
   const activeSession = sessions.find(s => s.id === activeSessionId);
   const t = translations[language];
-
-  // If comparator view is active, render it instead of the dashboard
-  if (view === 'comparator') {
-    return <EAComparator />;
-  }
 
   return (
     <>

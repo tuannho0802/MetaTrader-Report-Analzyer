@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils"
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { language, view, setView } = useAnalysisStore()
+  const { language } = useAnalysisStore()
   const t = translations[language]
 
 
@@ -72,14 +72,11 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  isActive={view === 'comparator'}
-                  tooltip={t.eaComparison}
-                  onClick={() => setView(view === 'comparator' ? 'dashboard' : 'comparator')}
-                  className="flex items-center gap-3 w-full"
-                >
-                  <GitCompareArrows className={cn("h-4 w-4 shrink-0", view === 'comparator' ? "text-primary" : "text-muted-foreground")} />
-                  <span className="font-semibold text-foreground opacity-100">{t.eaComparison}</span>
+                <SidebarMenuButton asChild isActive={pathname === '/compare'} tooltip={t.eaComparison}>
+                  <Link href="/compare" className="flex items-center gap-3 w-full">
+                    <GitCompareArrows className={cn("h-4 w-4 shrink-0", pathname === '/compare' ? "text-primary" : "text-muted-foreground")} />
+                    <span className="font-semibold text-foreground opacity-100">{t.eaComparison}</span>
+                  </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -137,9 +134,11 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Settings" className="flex items-center gap-3 w-full">
-              <Settings className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium text-foreground">Settings</span>
+            <SidebarMenuButton asChild tooltip="Settings" className="flex items-center gap-3 w-full">
+              <Link href="/settings" className="flex items-center w-full">
+                <Settings className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium text-foreground">Settings</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

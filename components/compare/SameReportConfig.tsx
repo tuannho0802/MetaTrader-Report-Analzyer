@@ -112,7 +112,9 @@ export function SameReportConfig({ sessions, onAnalyze }: SameReportConfigProps)
         </Label>
         <Select value={selectedSessionId} onValueChange={(v) => setSelectedSessionId(v ?? "")}>
           <SelectTrigger className="h-9">
-            <SelectValue placeholder="Select a report…" />
+            <SelectValue placeholder="Select a report…">
+              {sessions.find((s) => s.id === selectedSessionId)?.name}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {sessions.map((s) => (

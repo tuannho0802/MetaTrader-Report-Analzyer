@@ -7,13 +7,13 @@ import { SameReportConfig } from "./SameReportConfig"
 import { CrossReportConfig } from "./CrossReportConfig"
 import { ComparisonResults } from "./ComparisonResults"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, FileSearch, GitCompareArrows, Layers } from "lucide-react"
+import { FileSearch, GitCompareArrows, Layers } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type Mode = "same" | "cross"
 
 export function EAComparator() {
-  const { sessions, setView } = useAnalysisStore()
+  const { sessions } = useAnalysisStore()
   const [mode, setMode] = useState<Mode>("same")
   const [results, setResults] = useState<ComparisonResult | null>(null)
 
@@ -27,15 +27,7 @@ export function EAComparator() {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setView("dashboard")}
-          className="gap-2 text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft size={15} />
-          Back to Dashboard
-        </Button>
+        <h2 className="text-xl font-bold tracking-tight">Expert Advisor Comparison</h2>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-bold">
           <GitCompareArrows size={14} />
           EA Comparator
@@ -90,10 +82,6 @@ export function EAComparator() {
               Upload at least one MT4 report to start comparing EAs.
             </p>
           </div>
-          <Button variant="outline" onClick={() => setView("dashboard")} className="gap-2">
-            <ArrowLeft size={14} />
-            Go to Dashboard
-          </Button>
         </div>
       ) : (
         <>

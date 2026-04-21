@@ -20,7 +20,7 @@ interface AnalysisState {
   statusMsg: string;
   errorMsg: string;
   cachedStatementInfo: CachedInfo | null;
-  view: 'dashboard' | 'comparator';
+  isHydrated: boolean;
 
   // Actions
   setFile: (file: File | null) => void;
@@ -29,7 +29,6 @@ interface AnalysisState {
   loadCachedStatement: () => Promise<void>;
   clearCache: () => Promise<void>;
   setLanguage: (lang: Language) => void;
-  setView: (view: 'dashboard' | 'comparator') => void;
 
   // Session Actions
   addSession: (filters?: FilterParams) => void;
@@ -60,9 +59,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   statusMsg: '',
   errorMsg: '',
   cachedStatementInfo: null,
-  view: 'dashboard',
-
-  setView: (view) => set({ view }),
+  isHydrated: false,
 
   setLanguage: (lang) => {
     localStorage.setItem('mt4-analyzer-lang', lang);
@@ -183,10 +180,16 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       if (savedLang) set({ language: savedLang });
 
       const savedSessions = localStorage.getItem(STORAGE_KEY_SESSIONS);
-      if (!savedSessions) return;
+      if (!savedSessions) {
+        set({ isHydrated: true });
+        return;
+      }
 
       const parsedSessions = JSON.parse(savedSessions);
-      if (parsedSessions.length === 0) return;
+      if (parsedSessions.length === 0) {
+        set({ isHydrated: true });
+        return;
+      }
 
       // Load trades for each session from IndexedDB
       const sessionsWithTrades: AnalysisSession[] = await Promise.all(parsedSessions.map(async (s: any) => {
@@ -228,9 +231,11 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         sessions: sessionsWithTrades,
         activeSessionId: lastActiveId,
         allTrades: sessionsWithTrades.find(s => s.id === lastActiveId)?.allTrades || [],
+        isHydrated: true
       });
     } catch (err) {
       console.error('Failed to load cached statement', err);
+      set({ isHydrated: true });
     }
   },
 

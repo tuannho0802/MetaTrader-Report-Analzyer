@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Header } from "@/components/layout/Header";
+import { StoreHydrator } from "@/components/StoreHydrator";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -35,7 +36,9 @@ export default function RootLayout({
                 <div className="flex flex-col min-h-screen bg-background text-foreground transition-colors duration-300">
                   <Header />
                   <main className="flex-1 p-4 md:p-6 lg:p-8 space-y-8 max-w-[1600px] mx-auto w-full">
-                    {children}
+                    <StoreHydrator>
+                      {children}
+                    </StoreHydrator>
                   </main>
                   <footer className="border-t py-6 px-8 text-center text-xs text-muted-foreground">
                     <p>&copy; {new Date().getFullYear()} MT4 EA Profit Filter Dashboard. All rights reserved.</p>

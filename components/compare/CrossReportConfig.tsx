@@ -66,7 +66,9 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
             }}
           >
             <SelectTrigger className="h-9">
-              <SelectValue placeholder="Select report A…" />
+              <SelectValue placeholder="Select report A…">
+                {sessionA?.name}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {sessions.map((s) => (
@@ -117,7 +119,9 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
             }}
           >
             <SelectTrigger className="h-9">
-              <SelectValue placeholder="Select report B…" />
+              <SelectValue placeholder="Select report B…">
+                {sessionB?.name}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {sessions.map((s) => (
