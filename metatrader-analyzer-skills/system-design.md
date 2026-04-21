@@ -91,4 +91,24 @@ The `SidebarMenuButton` component, built using **Base UI**, encountered a confli
 ### Verification
 - Sidebar text and icons are clearly visible in both light and dark modes.
 - Clicking "Dashboard" or test items performs correct routing.
-- The active menu item is highlighted with `text-primary`.
+
+## Unified EA Comparison Architecture
+
+### Problem Summary
+Previously, the application had two disjointed comparison systems: a "Multi-EA Analysis" textarea in the sidebar and a separate "EA Comparison" sheet overlay. This led to fragmented data pipelines, inconsistent matching logic, and a confusing user experience.
+
+### Solution: The EA Comparator
+Consolidated all comparison features into a single, unified `EAComparator` component that integrates directly into the main dashboard workspace.
+
+- **View-State Navigation**: Instead of using separate routes or overlays, the application uses a top-level `view` state (`dashboard` | `comparator`). This ensures the shared layout (sidebar, multi-tab system) remains active while switching between analysis and comparison views.
+- **Integrated Tooling**:
+    - **Within Report Mode**: Combines pattern-based filtering with a report selector. It leverages the session's active filters (threshold, mode, date range) for consistency.
+    - **Across Reports Mode**: Allows side-by-side comparison of individual EAs from two different uploaded reports.
+- **Refactored Data Visualization**:
+    - **Shared Charting**: Optimized `ComparisonChart` (Recharts) to handle multi-series equity lines on a shared time axis, regardless of the comparison mode.
+    - **Metrics Aggregation**: A unified table for comparing key performance indicators (Net Profit, Win Rate, Trade Count) across all selected series.
+
+### Technical Implementation
+- **Store Evolution**: Migrated from a singular global `comparisonResult` to component-local results for better encapsulation, while maintaining shared file data in the session store.
+- **EA Auto-Discovery**: Implemented a system that extracts unique EA IDs from trade data to provide clickable "badges" for rapid configuration.
+- **Reliability**: Unified the matching strategy across the app to ensure that a pattern entered in the dashboard yields the exact same results in the comparator.
