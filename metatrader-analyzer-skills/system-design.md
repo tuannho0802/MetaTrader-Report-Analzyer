@@ -100,7 +100,7 @@ Previously, the application had two disjointed comparison systems: a "Multi-EA A
 ### Solution: The EA Comparator
 Consolidated all comparison features into a single, unified `EAComparator` component that integrates directly into the main dashboard workspace.
 
-- **View-State Navigation**: Instead of using separate routes or overlays, the application uses a top-level `view` state (`dashboard` | `comparator`). This ensures the shared layout (sidebar, multi-tab system) remains active while switching between analysis and comparison views.
+- **True Route Navigation**: Instead of using internal view state overlays, the application uses distinct Next.js pages (e.g., `/compare`, `/history`) tied natively into the global layout shell, allowing robust browser navigation while maintaining workspace UI structures.
 - **Integrated Tooling**:
     - **Within Report Mode**: Combines pattern-based filtering with a report selector. It leverages the session's active filters (threshold, mode, date range) for consistency.
     - **Across Reports Mode**: Allows side-by-side comparison of individual EAs from two different uploaded reports.
@@ -112,3 +112,12 @@ Consolidated all comparison features into a single, unified `EAComparator` compo
 - **Store Evolution**: Migrated from a singular global `comparisonResult` to component-local results for better encapsulation, while maintaining shared file data in the session store.
 - **EA Auto-Discovery**: Implemented a system that extracts unique EA IDs from trade data to provide clickable "badges" for rapid configuration.
 - **Reliability**: Unified the matching strategy across the app to ensure that a pattern entered in the dashboard yields the exact same results in the comparator.
+
+## Next.js True Routing & Global Hydration
+During the refactor to strict Next.js routing, a critical race condition was introduced where deep-linking to pages (like `/compare`) would find the global data store completely empty, as the IndexedDB load sequence was exclusively bound to the `page.tsx` (Dashboard) component.
+
+### The Solution: Global Store Hydrator
+Instead of tying IndexedDB parsing functions to individual UI components, the architecture now forces all data loading logic securely through a root-level intersection.
+
+- **`StoreHydrator.tsx` Component**: Integrated natively inside `app/layout.tsx`. On mount, it kicks off `store.loadCachedStatement()` to pull stored metrics from IndexedDB prior to rendering internal tools.
+- **Race Condition Prevention**: Added an `isHydrated` tracker variable onto the Zustand Store. The `StoreHydrator` purposefully blocks nested child rendering (`return <LoadingSpinner />`) up until hydration succeeds or concludes, comprehensively guaranteeing that route changes automatically process against active data pools regardless of deep linking combinations.

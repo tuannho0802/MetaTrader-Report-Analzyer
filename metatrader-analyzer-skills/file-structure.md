@@ -6,8 +6,10 @@ This document outlines the organization of the codebase, describing the purpose 
 
 ### `/app`
 Contains the Next.js App Router structure.
-- `layout.tsx`: Root layout providing the `SidebarProvider`, shared navigation, and persistence providers.
-- `page.tsx`: The main workspace. Uses a conditional view-switcher (`dashboard` | `comparator`) to swap the primary UI without changing routes.
+- `layout.tsx`: Root layout providing the `SidebarProvider`, shared navigation, and persistence providers. Integrates `StoreHydrator` to block rendering until the `IndexedDB` is loaded.
+- `page.tsx`: The primary Dashboard workspace (Analysis & Filtering).
+- `/compare`: Dedicated route for `EAComparator`.
+- `/explore`, `/history`, `/settings`: Standardized routes following the global menu layout.
 
 ### `/components`
 Modular UI components grouped by functional domain.
@@ -41,7 +43,7 @@ The "brain" of the application, containing logic, state, and database interactio
 4. `ComparisonChart` renders multiple `Line` components from a single data source.
 
 ### 3. Navigation & Filtering
-- `AppSidebar` toggles between the Dashboard and Comparator views via `store.setView`.
+- `AppSidebar` handles app-wide navigation using true Next.js `<Link>` components tied to specific routes.
 - `FilterForm` updates the active session's filter parameters, triggering a data recalculation in the store.
 - `AnalysisTabs` coordinates the switching between multiple independent report instances.
 
