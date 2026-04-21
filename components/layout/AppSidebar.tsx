@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label"
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore"
 import { db, getSetting, saveSetting } from "@/lib/db"
 import { translations } from "@/lib/i18n"
+import { CompareSheet } from "@/components/CompareSheet"
 
 export function AppSidebar() {
   const [patterns, setPatterns] = React.useState("")
@@ -31,6 +32,7 @@ export function AppSidebar() {
     allTrades,
     language
   } = useAnalysisStore()
+  const [compareSheetOpen, setCompareSheetOpen] = useState(false)
 
   const activeSession = sessions.find(s => s.id === activeSessionId)
   const t = translations[language]
@@ -93,11 +95,12 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip={t.eaComparison}>
-                  <a href="#">
-                    <Layers className="h-4 w-4" />
-                    <span>{t.eaComparison}</span>
-                  </a>
+                <SidebarMenuButton 
+                  tooltip={t.eaComparison}
+                  onClick={() => setCompareSheetOpen(true)}
+                >
+                  <Layers className="h-4 w-4" />
+                  <span>{t.eaComparison}</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -152,6 +155,7 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <CompareSheet open={compareSheetOpen} onOpenChange={setCompareSheetOpen} />
     </Sidebar>
   )
 }

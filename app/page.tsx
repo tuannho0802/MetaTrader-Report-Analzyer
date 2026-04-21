@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { KpiCards } from "@/components/analysis/KpiCards";
 import { MultiEaChart } from "@/components/analysis/MultiEaChart";
 import ResultsTable from "@/components/ResultsTable";
+import { ComparisonView } from "@/components/ComparisonView";
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
 import { 
   SidebarInset, 
@@ -41,6 +42,8 @@ export default function Home() {
     addSession,
     removeSession,
     setActiveSession,
+    comparisonResult,
+    setComparisonResults,
     language
   } = useAnalysisStore();
 
@@ -107,6 +110,11 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+            ) : comparisonResult ? (
+              <ComparisonView 
+                results={comparisonResult} 
+                onBack={() => setComparisonResults(null)} 
+              />
             ) : (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Session Tabs */}

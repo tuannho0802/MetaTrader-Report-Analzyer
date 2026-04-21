@@ -1,4 +1,4 @@
-import { Trade, FilterParams, ParseResult } from "./types";
+import { Trade, FilterParams, ParseResult, FilterMode } from "./types";
 
 export function parseMT4Date(dateStr: string): Date | null {
   if (!dateStr?.trim()) return null;
@@ -38,11 +38,44 @@ export function isCommentMatch(pattern: string, comment: string, threshold: numb
   return diceCoefficient(p, c) * 100 >= threshold;
 }
 
+function matchesTrade(trade: Trade, params: FilterParams): { matched: boolean, similarity: number } {
+  const pattern = params.commentPattern.toLowerCase().trim();
+  if (!pattern) return { matched: true, similarity: 0 };
+
+  const mode = params.filterMode;
+  const threshold = params.threshold;
+  const comment = (trade.comment || "").toLowerCase().trim();
+  const eaId = (trade.eaId || "").toLowerCase().trim();
+
+  let idMatched = eaId.includes(pattern);
+  
+  let commentMatched = false;
+  let similarity = 0;
+  if (isCommentMatch(params.commentPattern, trade.comment, threshold)) {
+    commentMatched = true;
+    if (comment.includes(pattern)) {
+      similarity = 100;
+    } else {
+      similarity = diceCoefficient(pattern, comment) * 100;
+    }
+  }
+
+  switch (mode) {
+    case 'id':
+      return { matched: idMatched, similarity: idMatched ? 100 : 0 };
+    case 'comment':
+      return { matched: commentMatched, similarity };
+    case 'both':
+      return { matched: idMatched && commentMatched, similarity };
+    default:
+      return { matched: false, similarity: 0 };
+  }
+}
+
 export function filterTrades(trades: Trade[], params: FilterParams): { filtered: Trade[], totalProfit: number } {
   const filtered: Trade[] = [];
   let totalProfit = 0;
 
-  const p = params.commentPattern.toLowerCase().trim();
   const st = params.startDate ? new Date(params.startDate) : null;
   const en = params.endDate ? new Date(params.endDate) : null;
   
@@ -57,19 +90,8 @@ export function filterTrades(trades: Trade[], params: FilterParams): { filtered:
        isDateMatch = tradeDate >= st && tradeDate <= en;
     }
 
-    // 2. Filter by Comment Pattern
-    let similarity = 0;
-    let matched = false;
-    const c = t.comment.toLowerCase().trim();
-
-    if (isCommentMatch(p, c, params.threshold)) {
-      matched = true;
-      if (c.includes(p)) {
-        similarity = 100;
-      } else {
-        similarity = diceCoefficient(p, c) * 100;
-      }
-    }
+    // 2. Filter by Mode (ID, Comment, Both)
+    const { matched, similarity } = matchesTrade(t, params);
 
     if (isDateMatch && matched) {
       filtered.push({ ...t, similarity });
@@ -138,6 +160,11 @@ export function parseHTMLStatement(html: string, params: FilterParams): ParseRes
       totalFound++;
 
       const ticket = ticketText;
+      const ticketCell = tds[0];
+      const titleAttr = ticketCell.getAttribute('title') || '';
+      const idMatch = titleAttr.match(/^#(\S+)/);
+      const eaId = idMatch ? idMatch[1] : '';
+
       const openTime = tds[1].textContent?.trim() || "";
       const size = tds[3].textContent?.trim() || "";
       const item = tds[4].textContent?.trim() || "";
@@ -170,6 +197,7 @@ export function parseHTMLStatement(html: string, params: FilterParams): ParseRes
 
       allExtractedTrades.push({
         ticket,
+        eaId,
         openTime,
         type: tds[2].textContent?.trim() || "",
         size,

@@ -11,14 +11,18 @@ export interface Trade {
   swap: string;
   profit: number;
   comment: string;
+  eaId: string;  // Extracted from title attribute
   similarity: number; // % khớp để debug
 }
+
+export type FilterMode = 'id' | 'comment' | 'both';
 
 export interface FilterParams {
   commentPattern: string;
   threshold: number;   // 0-100
   startDate: Date;
   endDate: Date;
+  filterMode: FilterMode;
 }
 
 export interface ParseResult {
@@ -34,15 +38,36 @@ export interface FilterPreset {
   threshold: number;
   startDate: string;
   endDate: string;
+  filterMode?: FilterMode; // Optional for backward compatibility
 }
 
 export interface AnalysisSession {
   id: string;
   name: string;
+  fileName?: string;
+  allTrades?: Trade[];
   filter: FilterParams;
   history: FilterParams[];
   historyIndex: number;
   currentResult: ParseResult | null;
   multiEaResults: Record<string, { trades: Trade[]; profit: number }>;
   createdAt: number;
+}
+export interface ComparisonResult {
+  mode: 'same' | 'cross';
+  series: EquitySeries[];
+  metrics: MetricsRow[];
+}
+
+export interface EquitySeries {
+  name: string;
+  data: { date: string; equity: number }[];
+  color: string;
+}
+
+export interface MetricsRow {
+  name: string;
+  totalProfit: number;
+  winRate: number;
+  tradeCount: number;
 }

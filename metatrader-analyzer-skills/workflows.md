@@ -8,11 +8,14 @@ This document maps the end-to-end user journey and the underlying data pipeline 
 2. **Selection**: The user launches the web app and drags the `.htm` file onto the drop zone.
 3. **Configuration**:
    - The user enters a specific EA identifier (e.g., "BBS41").
+   - Selects the **Filter Mode** (EA ID, Comment, or Both).
    - Adjusts the **Similarity Threshold** (typically 80%) to catch minor comment variations.
-   - Selects a specific **date range** to analyze performance for a week, month, or customized period.
+   - Selects a specific **date range** for performance analysis.
 4. **Execution**: Clicks the "Analyze" button.
 5. **Review**: Analyzes the generated dashboard showing **Total Profit**, **Win/Loss Counts**, and the full list of matched trades.
-6. **Export**: Optionally clicks "Export CSV" to move the filtered data to Excel or Google Sheets for advanced charting.
+6. **Export**: 
+   - **CSV**: Download data for Excel/Google Sheets.
+   - **Clipboard**: Copy data in TSV format for instant pasting into spreadsheets.
 
 ## Internal Data Pipeline (Technical Sequence)
 
@@ -25,13 +28,16 @@ The `DOMParser` instantiation converts the string into a navigable document. The
 ### 3. Trade Extraction Loop
 The loop traverses `<tr>` nodes. For each valid trade row:
 - It extracts the primary data (Price, Profit, Time).
-- It looks ahead at the next row for EA Metadata.
+- It reads the `title` attribute from the Ticket cell to extract the **EA ID**.
+- It looks ahead at the next row for **Comment** row metadata.
 - If a comment row is found, it extracts the last non-empty cell.
 
 ### 4. Filtering & Aggregation
-A filtering pass is performed on the array of extracted trades:
+A filtering pass is performed based on the selected **Filter Mode**:
 - **Date Check**: Comparison against the selected inclusive range.
-- **Match Check**: Pattern matching using bigram-based Dice Coefficients.
+- **Match Check**: 
+  - IDs are checked for substring/prefix existence.
+  - Comments are checked using bigram-based Dice Coefficients.
 - **Aggregation**: Total profit is summed globally from the filtered result set.
 
 ### 5. UI Reconciliation
@@ -68,3 +74,13 @@ const Trigger = React.forwardRef<HTMLButtonElement, TriggerProps>(
   }
 );
 ```
+
+## Custom Component vs. Dependency Strategy
+
+When a common UI primitive (like Radix `RadioGroup`) is missing from the project dependencies and cannot be easily installed, follow the **Custom Implementation Strategy**:
+
+1. **Self-Contained Logic**: Implement the component using standard React `useState` or `useContext` for state management and Tailwind for styling.
+2. **Context for Nesting**: Specifically for groups (like Radio Groups), use **React Context** to allow nesting items inside sub-layouts (e.g., within `div` wrappers or cards) without breaking the link between the group root and its items.
+3. **Accessibility**: Ensure the custom component maintains ARIA roles (`role="radiogroup"`, `role="radio"`, `aria-checked`) to simulate the missing primitive's behavior accurately.
+4. **Consistency**: Match the styling exactly with the project's existing design system to ensure a seamless "premium" feel.
+

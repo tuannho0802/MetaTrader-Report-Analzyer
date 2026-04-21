@@ -5,7 +5,7 @@ import { ParseResult } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, ChevronLeft, ChevronRight, Hash, BarChart3 } from "lucide-react";
+import { Download, ChevronLeft, ChevronRight, Hash, BarChart3, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -40,11 +40,11 @@ export default function ResultsTable({ result }: ResultsTableProps) {
     if (trades.length === 0) return;
     
     // CSV headers also translated or kept standard? Let's keep keys standard for data processing compatibility
-    const headers = ["Ticket", "Open Time", "Type", "Size", "Symbol", "Close Time", "Profit", "Comment", "Match %"];
+    const headers = ["Ticket", "EA ID", "Open Time", "Type", "Size", "Symbol", "Close Time", "Profit", "Comment", "Match %"];
     const csvContent = [
       headers.join(","),
       ...trades.map(t => 
-        `"${t.ticket}","${t.openTime}","${t.type}","${t.size}","${t.item}","${t.closeTime}","${t.profit.toFixed(2)}","${t.comment}","${t.similarity.toFixed(1)}%"`
+        `"${t.ticket}","${t.eaId || ''}","${t.openTime}","${t.type}","${t.size}","${t.item}","${t.closeTime}","${t.profit.toFixed(2)}","${t.comment}","${t.similarity.toFixed(1)}%"`
       )
     ].join("\n");
 
@@ -58,6 +58,22 @@ export default function ResultsTable({ result }: ResultsTableProps) {
     document.body.removeChild(link);
   };
 
+  const [copied, setCopied] = useState(false);
+  const copyToClipboard = () => {
+    if (trades.length === 0) return;
+    
+    const headers = ["Ticket", "EA ID", "Open Time", "Type", "Size", "Symbol", "Close Time", "Profit", "Comment", "Match %"];
+    const rows = trades.map(t => 
+      [t.ticket, t.eaId || '', t.openTime, t.type, t.size, t.item, t.closeTime, t.profit.toFixed(2), t.comment, `${t.similarity.toFixed(1)}%`].join("\t")
+    );
+    
+    const text = [headers.join("\t"), ...rows].join("\n");
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   return (
     <Card className="border-none shadow-none bg-transparent">
       <CardHeader className="flex flex-row items-center justify-between px-0 pt-0 pb-4">
@@ -67,17 +83,46 @@ export default function ResultsTable({ result }: ResultsTableProps) {
             {t.transactionDetails}
           </CardTitle>
         </div>
-        <Button variant="outline" size="sm" onClick={exportCSV} disabled={trades.length === 0} className="gap-2 rounded-lg font-semibold text-xs h-8">
-          <Download className="w-4 h-4" /> CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={copyToClipboard} 
+            disabled={trades.length === 0} 
+            className="gap-2 rounded-lg font-semibold text-xs h-8"
+          >
+            {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+            {copied ? "Copied" : "Copy"}
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={exportCSV} 
+            disabled={trades.length === 0} 
+            className="gap-2 rounded-lg font-semibold text-xs h-8"
+          >
+            <Download className="w-3 h-3" /> CSV
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="px-0 pb-0">
+        {/* Warning for missing EA IDs */}
+        {useAnalysisStore.getState().sessions.find(s => s.id === useAnalysisStore.getState().activeSessionId)?.filter.filterMode === 'id' && 
+         useAnalysisStore.getState().sessions.find(s => s.id === useAnalysisStore.getState().activeSessionId)?.filter.commentPattern &&
+         trades.length === 0 && 
+         useAnalysisStore.getState().allTrades.every(t => !t.eaId) && (
+          <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-3 text-amber-600 dark:text-amber-400 text-xs font-medium animate-in fade-in slide-in-from-top-2">
+            <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            No EA IDs found in this statement. Try switching to Comment mode.
+          </div>
+        )}
         <div className="rounded-xl border bg-card/30 backdrop-blur-sm overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-muted/50 border-b">
                 <TableRow>
                   <TableHead className="w-[100px] h-10 px-4 text-xs font-bold uppercase tracking-wider">TICKET</TableHead>
+                  <TableHead className="w-[80px] h-10 px-4 text-xs font-bold uppercase tracking-wider">EA ID</TableHead>
                   <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">{t.startDate.toUpperCase()}</TableHead>
                   <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">TYPE</TableHead>
                   <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-center">SIZE</TableHead>
@@ -93,6 +138,7 @@ export default function ResultsTable({ result }: ResultsTableProps) {
                   currentTrades.map((t) => (
                     <TableRow key={t.ticket} className="hover:bg-muted/40 transition-colors even:bg-muted/15 border-b last:border-0">
                       <TableCell className="font-mono text-[10px] px-4 py-2.5 text-muted-foreground">{t.ticket}</TableCell>
+                      <TableCell className="font-mono text-[10px] px-4 py-2.5 text-primary font-bold">{t.eaId || "-"}</TableCell>
                       <TableCell className="whitespace-nowrap text-xs px-4 py-2.5">
                         {t.openTime}
                       </TableCell>
@@ -132,7 +178,7 @@ export default function ResultsTable({ result }: ResultsTableProps) {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-20 text-muted-foreground h-40">
+                    <TableCell colSpan={10} className="text-center py-20 text-muted-foreground h-40">
                       <div className="flex flex-col items-center justify-center space-y-2">
                         <BarChart3 className="size-8 opacity-20" />
                         <p>{t.noPresets}</p>

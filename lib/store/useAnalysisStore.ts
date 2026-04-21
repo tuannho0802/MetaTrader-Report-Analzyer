@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Trade, ParseResult, FilterParams, AnalysisSession } from '@/lib/types';
+import { Trade, ParseResult, FilterParams, AnalysisSession, ComparisonResult } from '@/lib/types';
 import { parseHTMLStatement, isCommentMatch, parseMT4Date, recalculateResult } from '@/lib/parser';
 import { db } from '@/lib/db';
 import { Language } from '@/lib/i18n';
@@ -20,6 +20,8 @@ interface AnalysisState {
   statusMsg: string;
   errorMsg: string;
   cachedStatementInfo: CachedInfo | null;
+  comparisonResult: ComparisonResult | null;
+  setComparisonResults: (results: ComparisonResult | null) => void;
   
   // Actions
   setFile: (file: File | null) => void;
@@ -43,6 +45,7 @@ const DEFAULT_FILTERS: FilterParams = {
   threshold: 80,
   startDate: new Date(new Date().setDate(new Date().getDate() - 30)),
   endDate: new Date(),
+  filterMode: 'id',
 };
 
 const createInitialSession = (): AnalysisSession => ({
@@ -68,6 +71,9 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   statusMsg: '',
   errorMsg: '',
   cachedStatementInfo: null,
+  comparisonResult: null,
+
+  setComparisonResults: (results) => set({ comparisonResult: results }),
 
   setLanguage: (lang) => {
     localStorage.setItem('mt4-analyzer-lang', lang);
@@ -88,6 +94,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         threshold: 0,
         startDate: new Date(0),
         endDate: new Date(2100, 0, 1),
+        filterMode: 'comment',
       });
 
       const fileName = get().file?.name || 'Uploaded Statement';
@@ -110,6 +117,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
           
           return { 
             ...s, 
+            fileName,
+            allTrades: allTradesResult.trades,
             currentResult: result, 
             filter: params,
             history: newHistory,
@@ -175,7 +184,11 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
 
       const latest = await db.statements.get('latest');
       if (latest) {
-        const trades = JSON.parse(latest.tradesJson);
+        const trades = JSON.parse(latest.tradesJson).map((t: any) => ({
+          ...t,
+          eaId: t.eaId || "",
+          comment: t.comment || ""
+        }));
         
         // Recalculate results for active session on load
         const nextActiveId = sessions[0].id;
@@ -184,7 +197,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         if (active) {
             // Recalculate result from cached trades instead of re-parsing HTML
             const result = recalculateResult(trades, active.filter);
-            sessions = sessions.map(s => s.id === nextActiveId ? { ...s, currentResult: result } : s);
+            sessions = sessions.map(s => s.id === nextActiveId ? { ...s, currentResult: result, allTrades: trades, fileName: latest.fileName } : s);
         }
 
         set({ 
@@ -298,11 +311,36 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       if (!trimmed) return;
 
       const filtered = allTrades.filter(t => {
-        const match = isCommentMatch(trimmed, t.comment, threshold);
-        if (!match) return false;
+        // Multi-EA comparison currently uses BOTH logic or specifically Comment logic?
+        // Let's stick to Comment logic for comparison for now as it's the most flexible for names,
+        // unless we want to support ID here too. For now let's use the session's mode if possible.
+        const session = sessions.find(s => s.id === activeSessionId);
+        const mode = session?.filter.filterMode || 'comment';
+        
+        // Mock a FilterParams for matchesTrade logic
+        const mockParams: FilterParams = {
+          commentPattern: trimmed,
+          threshold,
+          startDate,
+          endDate,
+          filterMode: mode
+        };
+
         const tDate = parseMT4Date(t.closeTime) || parseMT4Date(t.openTime);
-        if (!tDate) return true;
-        return tDate >= st && tDate <= en;
+        const isDateMatch = !tDate || (tDate >= st && tDate <= en);
+        
+        if (!isDateMatch) return false;
+
+        // Since we don't have matchesTrade exported, we can just use the logic here or export it.
+        // I will export it in parser.ts if I need it, but for now I'll just check both depending on mode.
+        if (mode === 'id') {
+          return (t.eaId || "").toLowerCase().includes(trimmed.toLowerCase());
+        } else if (mode === 'comment') {
+          return isCommentMatch(trimmed, t.comment || "", threshold);
+        } else {
+          return (t.eaId || "").toLowerCase().includes(trimmed.toLowerCase()) && 
+                 isCommentMatch(trimmed, t.comment || "", threshold);
+        }
       });
 
       results[trimmed] = {

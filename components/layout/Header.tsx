@@ -50,6 +50,7 @@ export function Header() {
         threshold: data.threshold,
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
+        filterMode: data.filterMode,
       })
     }
     reader.readAsText(file)

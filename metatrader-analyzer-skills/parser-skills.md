@@ -32,6 +32,17 @@ Most EA-managed trades in MT4 statements are represented by two consecutive rows
 </tr>
 ```
 
+### 2. The Ticket Title Attribute (EA ID)
+MT4 statements often hide a shorter EA identifier within the `title` attribute of the Ticket cell. 
+
+**HTML Example:**
+```html
+<td title="#BBS41 scalp">12265899</td>
+```
+- **Attribute**: `title="#BBS41 scalp"`
+- **Pattern**: `#(\S+)` matches the ID after the hash.
+- **Extracted EA ID**: `BBS41`
+
 ## Parsing Algorithm
 
 ### Identifying a Trade Row
@@ -46,11 +57,29 @@ When a trade row is detected, the parser looks at the **immediate next row**:
 2. If confirmed, it skips purely technical numeric cells (like the Magic Number) and extracts text from the **last `<td>`** of that row.
 3. If no such row follows, the comment is treated as an empty string.
 
-### Fuzzy Matching & Filtering
-To provide flexibility for variations in EA comments (e.g., `111 BUY` vs `BUY - 111`), the system uses a dual-matching strategy:
-- **Substring Match**: If the user's pattern is found exactly within the comment, it counts as a 100% match.
-- **Dice Coefficient**: A similarity algorithm that breaks strings into bigrams to calculate an overlap percentage (0-100%).
-- **Date Matching**: Converts MT4 date strings (`YYYY.MM.DD HH:MM:SS`) to JS Date objects and performs inclusive range comparison.
+### Filtering Mode Logic
+The system supports three distinct filtering modes to accommodate different MetaTrader statement styles:
+
+1.  **EA ID Only (Recommended)**: Matches the `eaId` extracted from the Ticket cell's `title` attribute. Highly reliable as it targets the specific identifier set by the EA.
+2.  **Comment (Fuzzy Match)**: Uses the lookup-ahead strategy to find the comment row. Employs a **Dice Coefficient** similarity algorithm (bigram-based overlap) to catch variations.
+3.  **Both (AND Logic)**: Requires both the EA ID and the Comment to match the pattern.
+
+### Defensive Parsing & Backward Compatibility
+To prevent errors when loading cached data (e.g., from IndexDB) that may not contain the newer `eaId` field, the parser and store must:
+- Default `eaId` and `comment` to empty strings if missing.
+- Perform null checks before calling methods like `.toLowerCase()` or `.trim()`.
+- Re-hydrate older trade objects during the state initialization phase.
+
+### Extraction Implementation Reference:
+```typescript
+const ticketCell = tds[0];
+const titleAttr = ticketCell.getAttribute('title') || '';
+const idMatch = titleAttr.match(/^#(\S+)/);
+const eaId = idMatch ? idMatch[1] : '';
+```
+
+### Date Matching
+Converts MT4 date strings (`YYYY.MM.DD HH:MM:SS`) to JS Date objects and performs inclusive range comparison.
 
 ## Future MetaTrader 5 (MT5) Handling
 MetaTrader 5 statements differ significantly:

@@ -8,12 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const schema = z.object({
   commentPattern: z.string().min(1, "Enter comment pattern"),
   threshold: z.number().min(0).max(100),
   startDate: z.string().min(1, "Select start date"),
   endDate: z.string().min(1, "Select end date"),
+  filterMode: z.enum(['id', 'comment', 'both']),
 }).refine(d => new Date(d.startDate) <= new Date(d.endDate), {
   message: "End date must be after start date",
   path: ["endDate"],
@@ -105,6 +111,7 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
       threshold: activeSession?.filter.threshold || 80,
       startDate: (activeSession?.filter.startDate instanceof Date ? activeSession.filter.startDate : new Date()).toISOString().split('T')[0],
       endDate: (activeSession?.filter.endDate instanceof Date ? activeSession.filter.endDate : new Date()).toISOString().split('T')[0],
+      filterMode: activeSession?.filter.filterMode || 'id',
     },
   });
 
@@ -116,6 +123,7 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
         threshold: activeSession.filter.threshold,
         startDate: new Date(activeSession.filter.startDate).toISOString().split('T')[0],
         endDate: new Date(activeSession.filter.endDate).toISOString().split('T')[0],
+        filterMode: activeSession.filter.filterMode,
       });
     }
   }, [activeSessionId, reset, activeSession]);
@@ -130,6 +138,7 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
       threshold: currentValues.threshold,
       startDate: currentValues.startDate,
       endDate: currentValues.endDate,
+      filterMode: currentValues.filterMode,
     });
     setPresetName("");
     setIsSaveOpen(false);
@@ -140,6 +149,7 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
     setValue("threshold", preset.threshold);
     setValue("startDate", preset.startDate);
     setValue("endDate", preset.endDate);
+    if (preset.filterMode) setValue("filterMode", preset.filterMode);
   };
 
   return (
@@ -270,6 +280,34 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
         {errors.commentPattern && (
           <p className="text-xs text-rose-500 font-medium">{errors.commentPattern.message}</p>
         )}
+      </div>
+
+      <div className="space-y-3">
+        <Label className="text-sm font-semibold">{(t as any).filterMode}</Label>
+        <RadioGroup 
+          value={watch("filterMode")} 
+          onValueChange={(v) => setValue("filterMode", v as any)}
+          className="flex flex-col gap-2.5 p-1"
+        >
+          <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setValue("filterMode", "id")}>
+            <RadioGroupItem value="id" id="mode-id" />
+            <div className="grid gap-0.5 cursor-pointer">
+              <Label htmlFor="mode-id" className="text-sm font-bold cursor-pointer">{(t as any).modeId}</Label>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setValue("filterMode", "comment")}>
+            <RadioGroupItem value="comment" id="mode-comment" />
+            <div className="grid gap-0.5 cursor-pointer">
+              <Label htmlFor="mode-comment" className="text-sm font-bold cursor-pointer">{(t as any).modeComment}</Label>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setValue("filterMode", "both")}>
+            <RadioGroupItem value="both" id="mode-both" />
+            <div className="grid gap-0.5 cursor-pointer">
+              <Label htmlFor="mode-both" className="text-sm font-bold cursor-pointer">{(t as any).modeBoth}</Label>
+            </div>
+          </div>
+        </RadioGroup>
       </div>
 
       <div className="space-y-4">

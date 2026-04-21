@@ -29,11 +29,13 @@ graph TD
     A[MT4 .htm File] --> B[FileReader API]
     B --> C[DOMParser - Browser Native]
     C --> D[Trade Extraction Logic]
-    D --> E[Look-ahead Comment Pairing]
-    E --> F[Fuzzy Matching & Date Filter]
+    D --> E1[Look-ahead Comment Pairing]
+    D --> E2[Ticket title EA ID Extraction]
+    E1 --> F[Dual-Mode Match & Date Filter]
+    E2 --> F
     F --> G[React State Update]
     G --> H[Results Table & Total Profit]
-    H --> I[CSV Export]
+    H --> I[CSV & Clipboard Export]
 ```
 
 ## Directory Structure
