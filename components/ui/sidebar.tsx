@@ -523,22 +523,49 @@ const SidebarMenuButton = React.forwardRef<
   ) => {
     const { isMobile, state } = useSidebar()
 
-    const finalRender = asChild
-      ? (renderProps: any) =>
+    const finalRender = React.useCallback(
+      (renderProps: any) => {
+        const comp = asChild ? (
           React.cloneElement(children as React.ReactElement, renderProps)
-      : render
+        ) : (
+          <button {...renderProps}>{children}</button>
+        )
 
-    const comp = useRender({
+        if (!tooltip) {
+          return comp
+        }
+
+        if (typeof tooltip === "string") {
+          tooltip = {
+            children: tooltip,
+          }
+        }
+
+        return (
+          <Tooltip>
+            <TooltipTrigger render={() => comp} />
+            <TooltipContent
+              side="right"
+              align="center"
+              hidden={state !== "collapsed" || isMobile}
+              {...(tooltip as any)}
+            />
+          </Tooltip>
+        )
+      },
+      [asChild, children, tooltip, isMobile, state]
+    )
+
+    return useRender({
       defaultTagName: "button",
       props: mergeProps<"button">(
         {
           className: cn(sidebarMenuButtonVariants({ variant, size }), className),
           ref,
-          children: asChild ? undefined : children,
         },
         props
       ),
-      render: !tooltip ? finalRender : <TooltipTrigger render={finalRender} />,
+      render: finalRender,
       state: {
         slot: "sidebar-menu-button",
         sidebar: "menu-button",
@@ -546,28 +573,6 @@ const SidebarMenuButton = React.forwardRef<
         active: isActive,
       },
     })
-
-    if (!tooltip) {
-      return comp
-    }
-
-    if (typeof tooltip === "string") {
-      tooltip = {
-        children: tooltip,
-      }
-    }
-
-    return (
-      <Tooltip>
-        {comp}
-        <TooltipContent
-          side="right"
-          align="center"
-          hidden={state !== "collapsed" || isMobile}
-          {...tooltip}
-        />
-      </Tooltip>
-    )
   }
 )
 SidebarMenuButton.displayName = "SidebarMenuButton"
