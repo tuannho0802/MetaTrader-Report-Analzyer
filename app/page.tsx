@@ -1,48 +1,41 @@
 "use client";
 
 import React from "react";
-import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Header } from "@/components/layout/Header";
 import { KpiCards } from "@/components/analysis/KpiCards";
 import { MultiEaChart } from "@/components/analysis/MultiEaChart";
 import ResultsTable from "@/components/ResultsTable";
-import { ComparisonView } from "@/components/ComparisonView";
+import { EAComparator } from "@/components/compare/EAComparator";
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
-import { 
-  SidebarInset, 
-  SidebarProvider 
-} from "@/components/ui/sidebar";
-import { 
-  FileSearch, 
-  Sparkles, 
-  Trash2, 
-  History, 
-  Plus, 
-  X, 
+import {
+  FileSearch,
+  Sparkles,
+  Trash2,
+  History,
+  X,
   LayoutGrid
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
 } from "@/components/ui/tabs";
 
 import { translations } from "@/lib/i18n";
 
 export default function Home() {
-  const { 
+  const {
     sessions,
     activeSessionId,
-    allTrades, 
-    cachedStatementInfo, 
-    loadCachedStatement, 
+    allTrades,
+    cachedStatementInfo,
+    loadCachedStatement,
     clearCache,
     removeSession,
     setActiveSession,
-    comparisonResult,
-    setComparisonResults,
+    view,
     language
   } = useAnalysisStore();
 
@@ -53,6 +46,11 @@ export default function Home() {
   const hasData = allTrades.length > 0;
   const activeSession = sessions.find(s => s.id === activeSessionId);
   const t = translations[language];
+
+  // If comparator view is active, render it instead of the dashboard
+  if (view === 'comparator') {
+    return <EAComparator />;
+  }
 
   return (
     <>
@@ -102,13 +100,6 @@ export default function Home() {
               <span>{t.privacyFirst}</span>
             </div>
           </div>
-        </div>
-      ) : comparisonResult ? (
-        <div className="animate-in fade-in duration-500">
-          <ComparisonView 
-            results={comparisonResult} 
-            onBack={() => setComparisonResults(null)} 
-          />
         </div>
       ) : activeSession ? (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">

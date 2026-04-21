@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Trade, ParseResult, FilterParams, AnalysisSession, ComparisonResult } from '@/lib/types';
+import { Trade, ParseResult, FilterParams, AnalysisSession } from '@/lib/types';
 import { parseHTMLStatement, isCommentMatch, parseMT4Date, recalculateResult } from '@/lib/parser';
 import { db } from '@/lib/db';
 import { Language } from '@/lib/i18n';
@@ -20,9 +20,8 @@ interface AnalysisState {
   statusMsg: string;
   errorMsg: string;
   cachedStatementInfo: CachedInfo | null;
-  comparisonResult: ComparisonResult | null;
-  setComparisonResults: (results: ComparisonResult | null) => void;
-  
+  view: 'dashboard' | 'comparator';
+
   // Actions
   setFile: (file: File | null) => void;
   processStatement: (html: string, params: FilterParams) => void;
@@ -30,7 +29,8 @@ interface AnalysisState {
   loadCachedStatement: () => Promise<void>;
   clearCache: () => Promise<void>;
   setLanguage: (lang: Language) => void;
-  
+  setView: (view: 'dashboard' | 'comparator') => void;
+
   // Session Actions
   addSession: (filters?: FilterParams) => void;
   removeSession: (id: string) => void;
@@ -54,15 +54,15 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   file: null,
   allTrades: [],
   sessions: [],
-  activeSessionId: "", 
+  activeSessionId: "",
   language: "en",
   isProcessing: false,
   statusMsg: '',
   errorMsg: '',
   cachedStatementInfo: null,
-  comparisonResult: null,
+  view: 'dashboard',
 
-  setComparisonResults: (results) => set({ comparisonResult: results }),
+  setView: (view) => set({ view }),
 
   setLanguage: (lang) => {
     localStorage.setItem('mt4-analyzer-lang', lang);
