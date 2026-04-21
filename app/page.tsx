@@ -52,7 +52,7 @@ export default function Home() {
   }, [loadCachedStatement]);
 
   const hasData = allTrades.length > 0;
-  const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
+  const activeSession = sessions.find(s => s.id === activeSessionId);
   const t = translations[language];
 
   return (
@@ -111,26 +111,28 @@ export default function Home() {
                 </div>
               </div>
             ) : comparisonResult ? (
-              <ComparisonView 
-                results={comparisonResult} 
-                onBack={() => setComparisonResults(null)} 
-              />
-            ) : (
+              <div className="animate-in fade-in duration-500">
+                <ComparisonView 
+                  results={comparisonResult} 
+                  onBack={() => setComparisonResults(null)} 
+                />
+              </div>
+            ) : activeSession ? (
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Session Tabs */}
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col gap-6">
                   <Tabs value={activeSessionId} onValueChange={setActiveSession} className="w-full">
-                    <div className="flex items-center gap-2 mb-2 overflow-x-auto pb-2 scrollbar-none">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
                       <TabsList className="h-10 bg-muted/50 p-1 gap-1">
                         {sessions.map((session) => (
                           <TabsTrigger 
                             key={session.id} 
                             value={session.id}
-                            className="h-8 gap-2 px-4 rounded-md data-active:shadow-sm"
+                            className="h-8 gap-2 px-4 rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"
                           >
                             <LayoutGrid size={14} className="opacity-50" />
-                            {session.name}
-                            {sessions.length > 1 && (
+                            <span className="max-w-[150px] truncate">{session.name}</span>
+                            {sessions.length > 0 && (
                               <div 
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -144,14 +146,6 @@ export default function Home() {
                           </TabsTrigger>
                         ))}
                       </TabsList>
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
-                        className="h-9 w-9 rounded-lg border-dashed border-2 hover:border-primary hover:text-primary transition-all"
-                        onClick={() => addSession()}
-                      >
-                        <Plus size={18} />
-                      </Button>
                     </div>
 
                     {sessions.map((session) => (
@@ -187,7 +181,7 @@ export default function Home() {
                   </Tabs>
                 </div>
               </div>
-            )}
+            ) : null}
           </main>
 
           <footer className="border-t py-6 px-8 text-center text-xs text-muted-foreground">

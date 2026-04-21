@@ -72,7 +72,8 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
     activeSessionId, 
     undo, 
     redo,
-    language 
+    language,
+    errorMsg
   } = useAnalysisStore();
   const activeSession = sessions.find(s => s.id === activeSessionId);
   const t = translations[language];
@@ -154,6 +155,11 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-6">
+      {errorMsg && (
+        <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg animate-in fade-in slide-in-from-top-2 duration-300">
+          <p className="text-xs font-semibold text-rose-500 text-center">{errorMsg}</p>
+        </div>
+      )}
       {/* Preset & History Section */}
       <div className="flex flex-col gap-3 p-3 bg-muted/30 rounded-xl border border-border/50">
         <div className="flex items-center justify-between">

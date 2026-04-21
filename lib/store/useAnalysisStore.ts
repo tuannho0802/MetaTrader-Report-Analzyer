@@ -12,7 +12,7 @@ interface CachedInfo {
 
 interface AnalysisState {
   file: File | null;
-  allTrades: Trade[]; // Unfiltered trades from the statement
+  allTrades: Trade[]; // Unfiltered trades from the active session
   sessions: AnalysisSession[];
   activeSessionId: string;
   language: Language;
@@ -48,24 +48,13 @@ const DEFAULT_FILTERS: FilterParams = {
   filterMode: 'id',
 };
 
-const createInitialSession = (): AnalysisSession => ({
-  id: crypto.randomUUID(),
-  name: "Analysis 1",
-  filter: DEFAULT_FILTERS,
-  history: [DEFAULT_FILTERS],
-  historyIndex: 0,
-  currentResult: null,
-  multiEaResults: {},
-  createdAt: Date.now(),
-});
-
 const STORAGE_KEY_SESSIONS = 'mt4-analyzer-sessions';
 
 export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   file: null,
   allTrades: [],
-  sessions: [createInitialSession()],
-  activeSessionId: "", // Will be set in init
+  sessions: [],
+  activeSessionId: "", 
   language: "en",
   isProcessing: false,
   statusMsg: '',
@@ -80,15 +69,26 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
     set({ language: lang });
   },
 
-  setFile: (file) => set({ file, allTrades: [], errorMsg: '' }),
+  setFile: (file) => set({ file, errorMsg: '' }),
 
   processStatement: async (html, params) => {
-    const { activeSessionId, sessions } = get();
+    const { activeSessionId, sessions, file } = get();
+    
+    // If it's a new file upload, check limit
+    if (file && sessions.length >= 5) {
+      set({ errorMsg: 'Maximum 5 reports allowed. Please close a tab before uploading a new one.' });
+      return;
+    }
+
     set({ isProcessing: true, statusMsg: 'Analyzing statement...' });
     
     try {
       const result = parseHTMLStatement(html, params);
       
+      if (result.trades.length === 0 && result.totalFound === 0) {
+        throw new Error("No trades found in the statement.");
+      }
+
       const allTradesResult = parseHTMLStatement(html, {
         commentPattern: '',
         threshold: 0,
@@ -97,53 +97,75 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         filterMode: 'comment',
       });
 
-      const fileName = get().file?.name || 'Uploaded Statement';
+      const fileName = file?.name || (sessions.find(s => s.id === activeSessionId)?.fileName) || 'Uploaded Statement';
       const uploadedAt = Date.now();
       
-      await db.statements.put({
-        id: 'latest',
-        fileName,
-        uploadedAt,
-        totalTrades: allTradesResult.trades.length,
-        tradesJson: JSON.stringify(allTradesResult.trades)
-      });
+      let updatedSessions = [...sessions];
+      let newActiveId = activeSessionId;
 
-      const updatedSessions = sessions.map(s => {
-        if (s.id === activeSessionId) {
-          // Push to history
-          const newHistory = s.history.slice(0, s.historyIndex + 1);
-          newHistory.push(params);
-          if (newHistory.length > 20) newHistory.shift();
-          
-          return { 
-            ...s, 
-            fileName,
-            allTrades: allTradesResult.trades,
-            currentResult: result, 
-            filter: params,
-            history: newHistory,
-            historyIndex: newHistory.length - 1
-          };
-        }
-        return s;
-      });
+      if (file) {
+        // Create NEW session
+        const sessionId = crypto.randomUUID();
+        const sessionName = fileName.replace(/\.html?$/i, '');
+        
+        const newSession: AnalysisSession = {
+          id: sessionId,
+          name: sessionName,
+          fileName: fileName,
+          filter: params,
+          history: [params],
+          historyIndex: 0,
+          currentResult: result,
+          allTrades: allTradesResult.trades,
+          multiEaResults: {},
+          createdAt: uploadedAt,
+        };
+
+        updatedSessions.push(newSession);
+        newActiveId = sessionId;
+
+        // Save trades to IndexedDB for THIS session
+        await db.statements.put({
+          id: sessionId,
+          fileName,
+          uploadedAt,
+          totalTrades: allTradesResult.trades.length,
+          tradesJson: JSON.stringify(allTradesResult.trades)
+        });
+      } else {
+        // Update existing session
+        updatedSessions = sessions.map(s => {
+          if (s.id === activeSessionId) {
+            const newHistory = s.history.slice(0, s.historyIndex + 1);
+            newHistory.push(params);
+            if (newHistory.length > 20) newHistory.shift();
+            
+            return { 
+              ...s, 
+              currentResult: result, 
+              filter: params,
+              history: newHistory,
+              historyIndex: newHistory.length - 1
+            };
+          }
+          return s;
+        });
+      }
 
       set({ 
         sessions: updatedSessions,
-        allTrades: allTradesResult.trades,
-        cachedStatementInfo: {
-          fileName,
-          uploadedAt,
-          totalTrades: allTradesResult.trades.length
-        },
+        activeSessionId: newActiveId,
+        allTrades: updatedSessions.find(s => s.id === newActiveId)?.allTrades || [],
+        file: null, // Clear file after processing
         isProcessing: false, 
         statusMsg: '' 
       });
 
-      // Persist session filters
+      // Persist session metadata
       localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updatedSessions.map(s => ({
         id: s.id,
         name: s.name,
+        fileName: s.fileName,
         filter: s.filter,
         createdAt: s.createdAt,
         history: s.history,
@@ -160,79 +182,82 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       const savedLang = localStorage.getItem('mt4-analyzer-lang') as Language;
       if (savedLang) set({ language: savedLang });
 
-      // Load sessions first
       const savedSessions = localStorage.getItem(STORAGE_KEY_SESSIONS);
-      let sessions = get().sessions;
-      if (savedSessions) {
-        const parsed = JSON.parse(savedSessions);
-        sessions = parsed.map((s: any) => ({
+      if (!savedSessions) return;
+
+      const parsedSessions = JSON.parse(savedSessions);
+      if (parsedSessions.length === 0) return;
+
+      // Load trades for each session from IndexedDB
+      const sessionsWithTrades: AnalysisSession[] = await Promise.all(parsedSessions.map(async (s: any) => {
+        const record = await db.statements.get(s.id);
+        let trades: Trade[] = [];
+        if (record) {
+          trades = JSON.parse(record.tradesJson).map((t: any) => ({
+            ...t,
+            eaId: t.eaId || "",
+            comment: t.comment || ""
+          }));
+        }
+
+        const filter = {
+          ...s.filter,
+          startDate: new Date(s.filter.startDate),
+          endDate: new Date(s.filter.endDate)
+        };
+
+        const result = trades.length > 0 ? recalculateResult(trades, filter) : null;
+
+        return {
           ...s,
-          filter: {
-            ...s.filter,
-            startDate: new Date(s.filter.startDate),
-            endDate: new Date(s.filter.endDate)
-          },
+          filter,
           history: s.history.map((h: any) => ({
             ...h,
             startDate: new Date(h.startDate),
             endDate: new Date(h.endDate)
           })),
-          currentResult: null,
-          multiEaResults: {}
-        }));
-      }
-
-      const latest = await db.statements.get('latest');
-      if (latest) {
-        const trades = JSON.parse(latest.tradesJson).map((t: any) => ({
-          ...t,
-          eaId: t.eaId || "",
-          comment: t.comment || ""
-        }));
-        
-        // Recalculate results for active session on load
-        const nextActiveId = sessions[0].id;
-        const active = sessions.find(s => s.id === nextActiveId);
-        
-        if (active) {
-            // Recalculate result from cached trades instead of re-parsing HTML
-            const result = recalculateResult(trades, active.filter);
-            sessions = sessions.map(s => s.id === nextActiveId ? { ...s, currentResult: result, allTrades: trades, fileName: latest.fileName } : s);
-        }
-
-        set({ 
           allTrades: trades,
-          sessions,
-          activeSessionId: nextActiveId,
-          cachedStatementInfo: {
-            fileName: latest.fileName,
-            uploadedAt: latest.uploadedAt,
-            totalTrades: latest.totalTrades
-          }
-        });
-      } else {
-        set({ sessions, activeSessionId: sessions[0].id });
-      }
+          currentResult: result,
+          multiEaResults: {}
+        };
+      }));
+
+      const lastActiveId = sessionsWithTrades[0]?.id || "";
+
+      set({ 
+        sessions: sessionsWithTrades,
+        activeSessionId: lastActiveId,
+        allTrades: sessionsWithTrades.find(s => s.id === lastActiveId)?.allTrades || [],
+      });
     } catch (err) {
       console.error('Failed to load cached statement', err);
     }
   },
 
   clearCache: async () => {
-    await db.statements.delete('latest');
+    const { sessions } = get();
+    for (const s of sessions) {
+      await db.statements.delete(s.id);
+    }
     localStorage.removeItem(STORAGE_KEY_SESSIONS);
-    const initialSession = createInitialSession();
     set({ 
       allTrades: [], 
-      sessions: [initialSession], 
-      activeSessionId: initialSession.id, 
+      sessions: [], 
+      activeSessionId: "", 
       cachedStatementInfo: null, 
       file: null 
     });
   },
 
   addSession: (filters) => {
+    // This is now purely for "empty" sessions if needed, 
+    // but the requirement says NO placeholder tabs.
+    // So I'll keep it for future use but it might not be reachable.
     const { sessions } = get();
+    if (sessions.length >= 5) {
+      set({ errorMsg: 'Maximum 5 reports allowed.' });
+      return;
+    }
     const f = filters || DEFAULT_FILTERS;
     const newSession: AnalysisSession = {
       id: crypto.randomUUID(),
@@ -245,31 +270,58 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       createdAt: Date.now(),
     };
     const updated = [...sessions, newSession];
-    set({ sessions: updated, activeSessionId: newSession.id });
+    set({ sessions: updated, activeSessionId: newSession.id, allTrades: [] });
   },
 
-  removeSession: (id) => {
+  removeSession: async (id) => {
     const { sessions, activeSessionId } = get();
-    if (sessions.length <= 1) return;
     
+    // Delete from IndexedDB
+    await db.statements.delete(id);
+
     const updated = sessions.filter(s => s.id !== id);
     let nextActive = activeSessionId;
     if (activeSessionId === id) {
-      nextActive = updated[0].id;
+      nextActive = updated.length > 0 ? updated[0].id : "";
     }
-    set({ sessions: updated, activeSessionId: nextActive });
+    
+    const nextTrades = updated.find(s => s.id === nextActive)?.allTrades || [];
+
+    set({ 
+      sessions: updated, 
+      activeSessionId: nextActive,
+      allTrades: nextTrades
+    });
+
+    // Update metadata persistence
+    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updated.map(s => ({
+      id: s.id,
+      name: s.name,
+      fileName: s.fileName,
+      filter: s.filter,
+      createdAt: s.createdAt,
+      history: s.history,
+      historyIndex: s.historyIndex
+    }))));
   },
 
-  setActiveSession: (id) => set({ activeSessionId: id }),
+  setActiveSession: (id) => {
+    const { sessions } = get();
+    const session = sessions.find(s => s.id === id);
+    set({ 
+      activeSessionId: id,
+      allTrades: session?.allTrades || []
+    });
+  },
 
   undo: () => {
-    const { sessions, activeSessionId, allTrades } = get();
+    const { sessions, activeSessionId } = get();
     const session = sessions.find(s => s.id === activeSessionId);
     if (!session || session.historyIndex <= 0) return;
 
     const newIndex = session.historyIndex - 1;
     const newFilter = session.history[newIndex];
-    const newResult = recalculateResult(allTrades, newFilter);
+    const newResult = recalculateResult(session.allTrades || [], newFilter);
 
     const updatedSessions = sessions.map(s => 
       s.id === activeSessionId ? { ...s, filter: newFilter, historyIndex: newIndex, currentResult: newResult } : s
@@ -279,13 +331,13 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   },
 
   redo: () => {
-    const { sessions, activeSessionId, allTrades } = get();
+    const { sessions, activeSessionId } = get();
     const session = sessions.find(s => s.id === activeSessionId);
     if (!session || session.historyIndex >= session.history.length - 1) return;
 
     const newIndex = session.historyIndex + 1;
     const newFilter = session.history[newIndex];
-    const newResult = recalculateResult(allTrades, newFilter);
+    const newResult = recalculateResult(session.allTrades || [], newFilter);
 
     const updatedSessions = sessions.map(s => 
       s.id === activeSessionId ? { ...s, filter: newFilter, historyIndex: newIndex, currentResult: newResult } : s
@@ -311,28 +363,14 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       if (!trimmed) return;
 
       const filtered = allTrades.filter(t => {
-        // Multi-EA comparison currently uses BOTH logic or specifically Comment logic?
-        // Let's stick to Comment logic for comparison for now as it's the most flexible for names,
-        // unless we want to support ID here too. For now let's use the session's mode if possible.
         const session = sessions.find(s => s.id === activeSessionId);
         const mode = session?.filter.filterMode || 'comment';
         
-        // Mock a FilterParams for matchesTrade logic
-        const mockParams: FilterParams = {
-          commentPattern: trimmed,
-          threshold,
-          startDate,
-          endDate,
-          filterMode: mode
-        };
-
         const tDate = parseMT4Date(t.closeTime) || parseMT4Date(t.openTime);
         const isDateMatch = !tDate || (tDate >= st && tDate <= en);
         
         if (!isDateMatch) return false;
 
-        // Since we don't have matchesTrade exported, we can just use the logic here or export it.
-        // I will export it in parser.ts if I need it, but for now I'll just check both depending on mode.
         if (mode === 'id') {
           return (t.eaId || "").toLowerCase().includes(trimmed.toLowerCase());
         } else if (mode === 'comment') {
@@ -357,12 +395,11 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   },
 
   reset: () => {
-    const initialSession = createInitialSession();
     set({ 
       file: null, 
       allTrades: [], 
-      sessions: [initialSession], 
-      activeSessionId: initialSession.id, 
+      sessions: [], 
+      activeSessionId: "", 
       errorMsg: '', 
       statusMsg: '' 
     })
