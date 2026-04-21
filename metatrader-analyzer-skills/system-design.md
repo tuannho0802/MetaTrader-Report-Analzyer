@@ -65,3 +65,30 @@ Unlike Radix UI, Base UI utilizes a **`render` prop** or **Function-as-Child** p
 
 ### 3. Ref Management
 Always use `mergeProps` from `@base-ui/react/merge-props` when cloning children in a `render` prop to ensure both Base UI's internal logic and external `forwardRef` function correctly.
+
+## Sidebar Implementation & Fixes
+
+### Problem Summary
+Sidebar menu items (text and icons) were invisible. Group labels had poor contrast. Navigation clicks did nothing (items were static placeholders with `href="#"`).
+
+### Root Cause
+The `SidebarMenuButton` component, built using **Base UI**, encountered a conflict between the `asChild` prop, the `useRender` hook, and the `TooltipTrigger`. Specifically:
+- **State Conflict**: When `asChild` was `true`, the `children` were set to `undefined` in the component props to prevent duplicate rendering, but this caused the `Link` component (the child) to lose its content and styles during the cloning process.
+- **Tooltip Wrapping**: Wrapping the `useRender` result in a `TooltipTrigger` after the fact interfered with Base UI's ability to correctly merge attributes and handle the component lifecycle.
+
+### Solution
+- **Refactored `SidebarMenuButton`**: Switched to a single, stable `render` function pattern. This function manually handles the cloning of `asChild` elements (like `Link`) and ensures all classes, active states, and event handlers are passed down in a single pass.
+- **Integrated Tooltip**: Moved the `TooltipTrigger` *inside* the `useRender` lifecycle. This allows the trigger to participate in the prop-merging process, ensuring that navigation and accessibility attributes reach the final DOM element.
+- **Visibility Optimization**:
+  - Applied `opacity-100` and `font-semibold` to all menu text spans.
+  - Enhanced group labels using `text-foreground/60` with bold uppercase styling for better hierarchy.
+- **Standard Navigation**: Replaced placeholder links with Next.js `Link` components and used the `usePathname` hook to drive the `isActive` state for real-time visual feedback.
+
+### Code References
+- `components/ui/sidebar.tsx`: Refactored `SidebarMenuButton` rendering logic.
+- `components/layout/AppSidebar.tsx`: Updated menu structure, navigation links, and group label styling.
+
+### Verification
+- Sidebar text and icons are clearly visible in both light and dark modes.
+- Clicking "Dashboard" or test items performs correct routing.
+- The active menu item is highlighted with `text-primary`.
