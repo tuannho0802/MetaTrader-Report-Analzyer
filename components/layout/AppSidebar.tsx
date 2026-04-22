@@ -21,12 +21,12 @@ import {
   BarChart3,
   Settings,
   HelpCircle,
-  Layers,
   Compass,
   History,
   Bookmark,
   BarChart,
   GitCompareArrows,
+  Info,
 } from "lucide-react"
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore"
 import { translations } from "@/lib/i18n"
@@ -131,6 +131,14 @@ export function AppSidebar() {
             <SidebarMenuButton tooltip="Help & Support" className="flex items-center gap-3 w-full">
               <HelpCircle className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium text-foreground">Help & Support</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname === "/AboutMT5"} tooltip="About MT5 Format">
+              <Link href="/AboutMT5" className="flex items-center gap-3 w-full">
+                <Info className={cn("h-4 w-4", pathname === "/AboutMT5" ? "text-primary" : "text-muted-foreground")} />
+                <span className="font-medium text-foreground">About MT5</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>

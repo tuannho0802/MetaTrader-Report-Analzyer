@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
-import { UploadCloud, X } from "lucide-react";
+import Link from "next/link";
+import { UploadCloud, X, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface FileUploaderProps {
@@ -76,6 +77,14 @@ export default function FileUploader({ onFileSelect }: FileUploaderProps) {
               <span className="font-semibold text-primary">Click để chọn</span> hoặc kéo thả file vào đây
             </p>
             <p className="text-xs text-slate-400">Nhận file .htm/.html (MT4 Statement) hoặc .csv (MT5 Export)</p>
+            <Link
+              href="/AboutMT5"
+              onClick={(e) => e.stopPropagation()}
+              className="mt-2 inline-flex items-center gap-1 text-xs text-primary/70 hover:text-primary underline underline-offset-2 transition-colors"
+            >
+              <Info className="h-3 w-3" />
+              About MT5 Report Format
+            </Link>
           </div>
           <input
             type="file"
