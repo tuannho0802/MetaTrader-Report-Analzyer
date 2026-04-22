@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Trade, ParseResult, FilterParams, AnalysisSession } from '@/lib/types';
 import { parseHTMLStatement, isCommentMatch, parseMT4Date, recalculateResult } from '@/lib/parser';
+import { parseMT5Csv, adaptMT5ToParseResult } from '@/lib/mt5Parser';
 import { db } from '@/lib/db';
 import { Language } from '@/lib/i18n';
 import {
@@ -57,6 +58,7 @@ interface AnalysisState {
   // Actions
   setFile: (file: File | null) => void;
   processStatement: (html: string, params: FilterParams) => void;
+  processMT5Statement: (csvContent: string, fileName: string, params: FilterParams) => Promise<void>;
   processMultiEa: (patterns: string[], threshold: number, startDate: Date, endDate: Date) => void;
   loadCachedStatement: () => Promise<void>;
   clearCache: () => Promise<void>;
@@ -202,6 +204,89 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
 
     } catch (err: any) {
       set({ errorMsg: err.message || 'Error parsing file', isProcessing: false, statusMsg: '' });
+    }
+  },
+
+  processMT5Statement: async (csvContent, fileName, params) => {
+    const { sessions } = get();
+
+    if (sessions.length >= 5) {
+      set({ errorMsg: 'Maximum 5 reports allowed. Please close a tab before uploading a new one.' });
+      return;
+    }
+
+    set({ isProcessing: true, statusMsg: 'Parsing MT5 CSV...' });
+
+    try {
+      // Step 1: Parse raw CSV → MT5Report
+      const mt5Report = parseMT5Csv(csvContent);
+
+      // Step 2: Convert MT5Report → ParseResult (all trades, unfiltered)
+      const parseResult = adaptMT5ToParseResult(mt5Report);
+
+      if (parseResult.trades.length === 0) {
+        throw new Error('No trades found in the MT5 CSV file.');
+      }
+
+      // Step 3: Apply filter params so the first render shows filtered view
+      const { filterTrades } = await import('@/lib/parser');
+      const { filtered } = filterTrades(parseResult.trades, params);
+      const filteredResult = {
+        ...parseResult,
+        trades: filtered,
+        totalProfit: filtered.reduce((s, t) => s + t.profit, 0),
+        totalFound: parseResult.trades.length,
+      };
+
+      const sessionId = crypto.randomUUID();
+      const sessionName = fileName.replace(/\.csv$/i, '');
+      const uploadedAt = Date.now();
+
+      const newSession: AnalysisSession = {
+        id: sessionId,
+        name: sessionName,
+        fileName,
+        filter: params,
+        history: [params],
+        historyIndex: 0,
+        currentResult: filteredResult,
+        allTrades: parseResult.trades, // unfiltered – needed for comparator
+        multiEaResults: {},
+        createdAt: uploadedAt,
+      };
+
+      const updatedSessions = [...sessions, newSession];
+
+      // Step 4: Persist trades to IndexedDB
+      await db.statements.put({
+        id: sessionId,
+        fileName,
+        uploadedAt,
+        totalTrades: parseResult.trades.length,
+        tradesJson: JSON.stringify(parseResult.trades),
+      });
+
+      // Step 5: Persist session metadata to localStorage
+      localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updatedSessions.map(s => ({
+        id: s.id,
+        name: s.name,
+        fileName: s.fileName,
+        filter: s.filter,
+        createdAt: s.createdAt,
+        history: s.history,
+        historyIndex: s.historyIndex,
+      }))));
+
+      set({
+        sessions: updatedSessions,
+        activeSessionId: sessionId,
+        allTrades: parseResult.trades,
+        isProcessing: false,
+        statusMsg: '',
+        file: null,
+      });
+    } catch (err: any) {
+      set({ errorMsg: err.message || 'Error parsing MT5 CSV', isProcessing: false, statusMsg: '' });
     }
   },
 

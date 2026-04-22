@@ -29,7 +29,8 @@ export function Header() {
   const { toggleSidebar } = useSidebar()
   const { 
     setFile, 
-    processStatement, 
+    processStatement,
+    processMT5Statement,
     file, 
     isProcessing,
     language,
@@ -40,20 +41,32 @@ export function Header() {
 
   const handleFilterSubmit = async (data: any) => {
     if (!file) return
-    
-    // We need to read the file content as it's not stored in the store as a string
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const html = e.target?.result as string
-      processStatement(html, {
-        commentPattern: data.commentPattern,
-        threshold: data.threshold,
-        startDate: new Date(data.startDate),
-        endDate: new Date(data.endDate),
-        filterMode: data.filterMode,
-      })
+
+    const params = {
+      commentPattern: data.commentPattern,
+      threshold: data.threshold,
+      startDate: new Date(data.startDate),
+      endDate: new Date(data.endDate),
+      filterMode: data.filterMode,
     }
-    reader.readAsText(file)
+
+    const reader = new FileReader()
+
+    if (file.name.toLowerCase().endsWith('.csv')) {
+      // MT5 CSV path
+      reader.onload = (e) => {
+        const csv = e.target?.result as string
+        processMT5Statement(csv, file.name, params)
+      }
+      reader.readAsText(file, 'utf-8')
+    } else {
+      // MT4 HTML path (original behaviour)
+      reader.onload = (e) => {
+        const html = e.target?.result as string
+        processStatement(html, params)
+      }
+      reader.readAsText(file)
+    }
   }
 
   return (

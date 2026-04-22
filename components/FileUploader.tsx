@@ -29,11 +29,12 @@ export default function FileUploader({ onFileSelect }: FileUploaderProps) {
     
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-      if (file.name.endsWith(".htm") || file.name.endsWith(".html")) {
+      const name = file.name.toLowerCase();
+      if (name.endsWith(".htm") || name.endsWith(".html") || name.endsWith(".csv")) {
         setSelectedFile(file);
         onFileSelect(file);
       } else {
-        alert("Chỉ chấp nhận file .htm hoặc .html từ MT4");
+        alert("Chỉ chấp nhận file .htm/.html (MT4) hoặc .csv (MT5)");
       }
     }
   }, [onFileSelect]);
@@ -42,11 +43,12 @@ export default function FileUploader({ onFileSelect }: FileUploaderProps) {
     e.preventDefault();
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      if (file.name.endsWith(".htm") || file.name.endsWith(".html")) {
+      const name = file.name.toLowerCase();
+      if (name.endsWith(".htm") || name.endsWith(".html") || name.endsWith(".csv")) {
         setSelectedFile(file);
         onFileSelect(file);
       } else {
-        alert("Chỉ chấp nhận file .htm hoặc .html từ MT4");
+        alert("Chỉ chấp nhận file .htm/.html (MT4) hoặc .csv (MT5)");
       }
     }
   }, [onFileSelect]);
@@ -73,12 +75,12 @@ export default function FileUploader({ onFileSelect }: FileUploaderProps) {
             <p className="mb-2 text-sm text-slate-500 font-medium">
               <span className="font-semibold text-primary">Click để chọn</span> hoặc kéo thả file vào đây
             </p>
-            <p className="text-xs text-slate-400">Chỉ nhận file định dạng .htm, .html (MT4 Statement)</p>
+            <p className="text-xs text-slate-400">Nhận file .htm/.html (MT4 Statement) hoặc .csv (MT5 Export)</p>
           </div>
           <input
             type="file"
             className="hidden"
-            accept=".htm,.html"
+            accept=".htm,.html,.csv"
             onChange={handleChange}
           />
         </label>
