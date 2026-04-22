@@ -3,7 +3,39 @@ import { Trade, ParseResult, FilterParams, AnalysisSession } from '@/lib/types';
 import { parseHTMLStatement, isCommentMatch, parseMT4Date, recalculateResult } from '@/lib/parser';
 import { db } from '@/lib/db';
 import { Language } from '@/lib/i18n';
+import {
+  STORAGE_VERSION,
+  STORAGE_VERSION_KEY,
+  STORAGE_KEY_SESSIONS,
+  STORAGE_KEY_LANG,
+  INDEXEDDB_NAME
+} from '@/lib/constants';
 
+// ─── Version Gate ────────────────────────────────────────────────
+// Runs once on module load (client-side only).
+// If the stored version doesn't match the current STORAGE_VERSION,
+// we wipe localStorage + IndexedDB to prevent stale/corrupt data.
+if (typeof window !== 'undefined') {
+  const storedVersion = localStorage.getItem(STORAGE_VERSION_KEY);
+
+  if (storedVersion !== String(STORAGE_VERSION)) {
+    console.log('[Storage] Version mismatch, clearing old data');
+
+    // Preserve theme preference
+    const theme = localStorage.getItem('theme');
+
+    localStorage.clear();
+    indexedDB.deleteDatabase(INDEXEDDB_NAME);
+
+    // Restore theme
+    if (theme) localStorage.setItem('theme', theme);
+
+    // Stamp current version
+    localStorage.setItem(STORAGE_VERSION_KEY, String(STORAGE_VERSION));
+  }
+}
+
+// ─── Types ───────────────────────────────────────────────────────
 interface CachedInfo {
   fileName: string;
   uploadedAt: number;
@@ -47,8 +79,7 @@ const DEFAULT_FILTERS: FilterParams = {
   filterMode: 'id',
 };
 
-const STORAGE_KEY_SESSIONS = 'mt4-analyzer-sessions';
-
+// ─── Store ───────────────────────────────────────────────────────
 export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   file: null,
   allTrades: [],
@@ -62,7 +93,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   isHydrated: false,
 
   setLanguage: (lang) => {
-    localStorage.setItem('mt4-analyzer-lang', lang);
+    localStorage.setItem(STORAGE_KEY_LANG, lang);
     set({ language: lang });
   },
 
@@ -176,9 +207,11 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
 
   loadCachedStatement: async () => {
     try {
-      const savedLang = localStorage.getItem('mt4-analyzer-lang') as Language;
+      // 1. Restore language preference
+      const savedLang = localStorage.getItem(STORAGE_KEY_LANG) as Language;
       if (savedLang) set({ language: savedLang });
 
+      // 2. Read session metadata from localStorage
       const savedSessions = localStorage.getItem(STORAGE_KEY_SESSIONS);
       if (!savedSessions) {
         set({ isHydrated: true });
@@ -191,16 +224,25 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         return;
       }
 
-      // Load trades for each session from IndexedDB
+      // 3. Ensure IndexedDB is open before querying
+      if (!db.isOpen()) {
+        await db.open();
+      }
+
+      // 4. Load trades for each session from IndexedDB
       const sessionsWithTrades: AnalysisSession[] = await Promise.all(parsedSessions.map(async (s: any) => {
-        const record = await db.statements.get(s.id);
         let trades: Trade[] = [];
-        if (record) {
-          trades = JSON.parse(record.tradesJson).map((t: any) => ({
-            ...t,
-            eaId: t.eaId || "",
-            comment: t.comment || ""
-          }));
+        try {
+          const record = await db.statements.get(s.id);
+          if (record) {
+            trades = JSON.parse(record.tradesJson).map((t: any) => ({
+              ...t,
+              eaId: t.eaId || "",
+              comment: t.comment || ""
+            }));
+          }
+        } catch (dbErr) {
+          console.error(`[Store] Failed to load trades for session ${s.id}:`, dbErr);
         }
 
         const filter = {
@@ -234,7 +276,17 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         isHydrated: true
       });
     } catch (err) {
-      console.error('Failed to load cached statement', err);
+      console.error('[Store] Failed to load cached statement:', err);
+
+      // Auto-clear corrupted storage
+      try {
+        localStorage.removeItem(STORAGE_KEY_SESSIONS);
+        await db.delete();
+        await db.open();
+      } catch (cleanupErr) {
+        console.error('[Store] Failed to clean up corrupted storage:', cleanupErr);
+      }
+
       set({ isHydrated: true });
     }
   },
