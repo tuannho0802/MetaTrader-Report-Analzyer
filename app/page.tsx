@@ -21,8 +21,7 @@ import {
   TabsList,
   TabsTrigger
 } from "@/components/ui/tabs";
-
-import { translations } from "@/lib/i18n";
+import { useTranslation } from "@/lib/i18n";
 
 export default function Home() {
   const {
@@ -34,12 +33,11 @@ export default function Home() {
     clearCache,
     removeSession,
     setActiveSession,
-    language
   } = useAnalysisStore();
 
+  const { t } = useTranslation();
   const hasData = allTrades.length > 0;
   const activeSession = sessions.find(s => s.id === activeSessionId);
-  const t = translations[language];
 
   return (
     <>
@@ -50,9 +48,9 @@ export default function Home() {
               <History size={18} />
             </div>
             <div>
-              <p className="text-sm font-semibold">{t.loadedPrevious} <span className="text-primary">{cachedStatementInfo.fileName}</span></p>
+              <p className="text-sm font-semibold">{t('dashboard.loadedPrevious')} <span className="text-primary">{cachedStatementInfo.fileName}</span></p>
               <p className="text-[10px] text-muted-foreground">
-                {new Date(cachedStatementInfo.uploadedAt).toLocaleString()} • {cachedStatementInfo.totalTrades} trades
+                {new Date(cachedStatementInfo.uploadedAt).toLocaleString()} • {cachedStatementInfo.totalTrades} {t('dashboard.trades')}
               </p>
             </div>
           </div>
@@ -63,7 +61,7 @@ export default function Home() {
             className="text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 gap-2"
           >
             <Trash2 size={14} />
-            {t.clearCache}
+            {t('dashboard.clearCache')}
           </Button>
         </div>
       )}
@@ -77,16 +75,16 @@ export default function Home() {
             </div>
           </div>
           <div className="space-y-3 max-w-lg">
-            <h2 className="text-3xl font-extrabold tracking-tight">{t.noReportUploaded}</h2>
+            <h2 className="text-3xl font-extrabold tracking-tight">{t('dashboard.noReport')}</h2>
             <p className="text-muted-foreground text-base leading-relaxed">
-              {t.readyToAnalyze} <br />
-              {language === 'en' ? 'Upload an' : 'Tải lên'} <strong>MT4 Detailed Report (.htm)</strong> {language === 'en' ? 'to get started' : 'để bắt đầu'}.
+              {t('dashboard.ready')} <br />
+              {t('dashboard.uploadHint')}
             </p>
           </div>
           <div className="flex flex-col items-center gap-4">
             <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground bg-muted/50 border border-border/50 px-6 py-3 rounded-2xl">
               <Sparkles size={16} className="text-amber-500" />
-              <span>{t.privacyFirst}</span>
+              <span>{t('dashboard.privacy')}</span>
             </div>
           </div>
         </div>
@@ -141,9 +139,9 @@ export default function Home() {
                   <section className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h2 className="text-lg font-semibold">{t.transactionDetails}</h2>
+                        <h2 className="text-lg font-semibold">{t('analysis.transactionDetails')}</h2>
                         <p className="text-xs text-muted-foreground">
-                          {t.breakdownOf} <span className="text-primary font-medium">{session.name}</span>
+                          {t('analysis.breakdown')} <span className="text-primary font-medium">{session.name}</span>
                         </p>
                       </div>
                     </div>

@@ -29,13 +29,12 @@ import {
   Info,
 } from "lucide-react"
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore"
-import { translations } from "@/lib/i18n"
+import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { language } = useAnalysisStore()
-  const t = translations[language]
+  const { t } = useTranslation()
 
 
   return (
@@ -52,30 +51,30 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="px-2 text-foreground/60 font-bold uppercase tracking-wider text-[10px]">{t.dashboard}</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-2 text-foreground/60 font-bold uppercase tracking-wider text-[10px]">{t('common.dashboard')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/"} tooltip={t.dashboard}>
+                <SidebarMenuButton asChild isActive={pathname === "/"} tooltip={t('common.dashboard')}>
                   <Link href="/" className="flex items-center gap-3 w-full">
                     <LayoutDashboard className={cn("h-4 w-4 shrink-0", pathname === "/" ? "text-primary" : "text-muted-foreground")} />
-                    <span className="font-semibold text-foreground opacity-100">{t.dashboard}</span>
+                    <span className="font-semibold text-foreground opacity-100">{t('common.dashboard')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/performance"} tooltip={t.performance}>
+                <SidebarMenuButton asChild isActive={pathname === "/performance"} tooltip={t('analysis.performance')}>
                   <Link href="/performance" className="flex items-center gap-3 w-full">
                     <BarChart3 className={cn("h-4 w-4 shrink-0", pathname === "/performance" ? "text-primary" : "text-muted-foreground")} />
-                    <span className="font-semibold text-foreground opacity-100">{t.performance}</span>
+                    <span className="font-semibold text-foreground opacity-100">{t('analysis.performance')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/compare'} tooltip={t.eaComparison}>
+                <SidebarMenuButton asChild isActive={pathname === '/compare'} tooltip={t('analysis.comparison')}>
                   <Link href="/compare" className="flex items-center gap-3 w-full">
                     <GitCompareArrows className={cn("h-4 w-4 shrink-0", pathname === '/compare' ? "text-primary" : "text-muted-foreground")} />
-                    <span className="font-semibold text-foreground opacity-100">{t.eaComparison}</span>
+                    <span className="font-semibold text-foreground opacity-100">{t('analysis.comparison')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -84,38 +83,38 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="px-2 text-foreground/60 font-bold uppercase tracking-wider text-[10px]">Verification Tests</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-2 text-foreground/60 font-bold uppercase tracking-wider text-[10px]">{t('common.verificationTests')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/explore"} tooltip="Explore">
+                <SidebarMenuButton asChild isActive={pathname === "/explore"} tooltip={t('common.explore')}>
                   <Link href="/explore" className="flex items-center gap-3 w-full">
                     <Compass className={cn("h-4 w-4 shrink-0", pathname === "/explore" ? "text-primary" : "text-muted-foreground")} />
-                    <span className="font-semibold text-foreground opacity-100">Explore</span>
+                    <span className="font-semibold text-foreground opacity-100">{t('common.explore')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/statistics"} tooltip="Statistics">
+                <SidebarMenuButton asChild isActive={pathname === "/statistics"} tooltip={t('common.statistics')}>
                   <Link href="/statistics" className="flex items-center gap-3 w-full">
                     <BarChart className={cn("h-4 w-4 shrink-0", pathname === "/statistics" ? "text-primary" : "text-muted-foreground")} />
-                    <span className="font-semibold text-foreground opacity-100">Statistics</span>
+                    <span className="font-semibold text-foreground opacity-100">{t('common.statistics')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/history"} tooltip="History">
+                <SidebarMenuButton asChild isActive={pathname === "/history"} tooltip={t('common.history')}>
                   <Link href="/history" className="flex items-center gap-3 w-full">
                     <History className={cn("h-4 w-4 shrink-0", pathname === "/history" ? "text-primary" : "text-muted-foreground")} />
-                    <span className="font-semibold text-foreground opacity-100">History</span>
+                    <span className="font-semibold text-foreground opacity-100">{t('common.history')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/bookmarks"} tooltip="Bookmarks">
+                <SidebarMenuButton asChild isActive={pathname === "/bookmarks"} tooltip={t('common.bookmarks')}>
                   <Link href="/bookmarks" className="flex items-center gap-3 w-full">
                     <Bookmark className={cn("h-4 w-4 shrink-0", pathname === "/bookmarks" ? "text-primary" : "text-muted-foreground")} />
-                    <span className="font-semibold text-foreground opacity-100">Bookmarks</span>
+                    <span className="font-semibold text-foreground opacity-100">{t('common.bookmarks')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -128,24 +127,24 @@ export function AppSidebar() {
       <SidebarFooter className="border-t p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Help & Support" className="flex items-center gap-3 w-full">
+            <SidebarMenuButton tooltip={t('common.help')} className="flex items-center gap-3 w-full">
               <HelpCircle className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium text-foreground">Help & Support</span>
+              <span className="font-medium text-foreground">{t('common.help')}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === "/AboutMT5"} tooltip="About MT5 Format">
+            <SidebarMenuButton asChild isActive={pathname === "/AboutMT5"} tooltip={t('uploader.aboutMt5')}>
               <Link href="/AboutMT5" className="flex items-center gap-3 w-full">
                 <Info className={cn("h-4 w-4", pathname === "/AboutMT5" ? "text-primary" : "text-muted-foreground")} />
-                <span className="font-medium text-foreground">About MT5</span>
+                <span className="font-medium text-foreground">{t('common.aboutMT5')}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Settings" className="flex items-center gap-3 w-full">
+            <SidebarMenuButton asChild tooltip={t('common.settings')} className="flex items-center gap-3 w-full">
               <Link href="/settings" className="flex items-center w-full">
                 <Settings className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium text-foreground">Settings</span>
+                <span className="font-medium text-foreground">{t('common.settings')}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

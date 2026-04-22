@@ -4,6 +4,7 @@ import React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, TrendingDown, Layers, PieChart, Activity, ArrowDownCircle, Info } from "lucide-react"
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore"
+import { useTranslation } from "@/lib/i18n"
 import { cn, calculateDrawdown } from "@/lib/utils"
 import {
   Tooltip,
@@ -11,13 +12,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-import { translations } from "@/lib/i18n"
-
 export function KpiCards() {
-  const { sessions, activeSessionId, language } = useAnalysisStore()
+  const { sessions, activeSessionId } = useAnalysisStore()
   const activeSession = sessions.find(s => s.id === activeSessionId)
   const currentResult = activeSession?.currentResult || null
-  const t = translations[language]
+  const { t } = useTranslation()
 
   if (!currentResult) {
     return (
@@ -62,37 +61,37 @@ export function KpiCards() {
 
   const kpis = [
     {
-      title: t.netProfit,
+      title: t('analysis.netProfit'),
       value: `${totalProfit.toFixed(2)} USD`,
       icon: totalProfit >= 0 ? TrendingUp : TrendingDown,
-      description: t.netProfit,
+      description: t('analysis.netProfit'),
       color: totalProfit >= 0 ? "text-emerald-400" : "text-rose-400"
     },
     {
-      title: t.winRate,
+      title: t('analysis.winRate'),
       value: `${winRate.toFixed(1)}%`,
       icon: PieChart,
       description: `${wins} wins / ${tradeCount} trades`,
       color: "text-blue-400"
     },
     {
-      title: t.maxDrawdown,
+      title: t('analysis.maxDrawdown'),
       value: `-${drawdown.percent.toFixed(1)}%`,
       subValue: `-${drawdown.amount.toFixed(2)} USD`,
       icon: ArrowDownCircle,
-      description: t.maxDrawdown,
+      description: t('analysis.maxDrawdown'),
       color: "text-rose-400",
-      tooltip: t.maxDrawdown
+      tooltip: t('analysis.maxDrawdown')
     },
     {
-      title: t.totalTrades,
+      title: t('analysis.totalTrades'),
       value: tradeCount.toString(),
       icon: Activity,
-      description: t.totalTrades,
+      description: t('analysis.totalTrades'),
       color: "text-amber-400"
     },
     {
-      title: t.profitFactor,
+      title: t('analysis.profitFactor'),
       value: profitFactor,
       icon: Layers,
       description: "Profit / Loss Ratio",

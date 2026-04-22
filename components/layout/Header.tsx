@@ -16,7 +16,8 @@ import {
 import FileUploader from "@/components/FileUploader"
 import FilterForm from "@/components/FilterForm"
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore"
-import { translations } from "@/lib/i18n"
+import { useTranslation } from "@/lib/i18n"
+import { useSettingsStore } from "@/lib/store/useSettingsStore"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,11 +34,10 @@ export function Header() {
     processMT5Statement,
     file, 
     isProcessing,
-    language,
-    setLanguage 
   } = useAnalysisStore()
   
-  const t = translations[language]
+  const { t, language } = useTranslation()
+  const { setLanguage } = useSettingsStore()
 
   const handleFilterSubmit = async (data: any) => {
     if (!file) return
@@ -105,14 +105,14 @@ export function Header() {
             <SheetTrigger asChild>
               <Button variant="default" className="gap-2 shadow-sm rounded-lg font-bold text-xs h-9 px-4">
                 <UploadCloud className="h-4 w-4" />
-                <span className="hidden sm:inline">{t.analyzeTransactions}</span>
+                <span className="hidden sm:inline">{t('filter.analyze')}</span>
               </Button>
             </SheetTrigger>
             <SheetContent className="sm:max-w-md overflow-y-auto">
               <SheetHeader className="mb-6">
-                <SheetTitle>{t.savePreset}</SheetTitle>
+                <SheetTitle>{t('filter.panelTitle')}</SheetTitle>
                 <SheetDescription>
-                  {t.uploadMt4}
+                  {t('dashboard.uploadHint')}
                 </SheetDescription>
               </SheetHeader>
               <div className="space-y-6 py-4">

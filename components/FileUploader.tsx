@@ -4,6 +4,7 @@ import React, { useCallback, useState } from "react";
 import Link from "next/link";
 import { UploadCloud, X, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/lib/i18n";
 
 interface FileUploaderProps {
   onFileSelect: (file: File | null) => void;
@@ -12,6 +13,7 @@ interface FileUploaderProps {
 export default function FileUploader({ onFileSelect }: FileUploaderProps) {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const { t } = useTranslation();
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -35,10 +37,10 @@ export default function FileUploader({ onFileSelect }: FileUploaderProps) {
         setSelectedFile(file);
         onFileSelect(file);
       } else {
-        alert("Chỉ chấp nhận file .htm/.html (MT4) hoặc .csv (MT5)");
+        alert(t('uploader.invalidFile'));
       }
     }
-  }, [onFileSelect]);
+  }, [onFileSelect, t]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -49,10 +51,10 @@ export default function FileUploader({ onFileSelect }: FileUploaderProps) {
         setSelectedFile(file);
         onFileSelect(file);
       } else {
-        alert("Chỉ chấp nhận file .htm/.html (MT4) hoặc .csv (MT5)");
+        alert(t('uploader.invalidFile'));
       }
     }
-  }, [onFileSelect]);
+  }, [onFileSelect, t]);
 
   const clearFile = useCallback(() => {
     setSelectedFile(null);
@@ -74,16 +76,16 @@ export default function FileUploader({ onFileSelect }: FileUploaderProps) {
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
             <UploadCloud className="w-10 h-10 mb-3 text-slate-400" />
             <p className="mb-2 text-sm text-slate-500 font-medium">
-              <span className="font-semibold text-primary">Click để chọn</span> hoặc kéo thả file vào đây
+              <span className="font-semibold text-primary">{t('uploader.clickToSelect')}</span> {t('uploader.orDrag')}
             </p>
-            <p className="text-xs text-slate-400">Nhận file .htm/.html (MT4 Statement) hoặc .csv (MT5 Export)</p>
+            <p className="text-xs text-slate-400">{t('uploader.formatHint')}</p>
             <Link
               href="/AboutMT5"
               onClick={(e) => e.stopPropagation()}
               className="mt-2 inline-flex items-center gap-1 text-xs text-primary/70 hover:text-primary underline underline-offset-2 transition-colors"
             >
               <Info className="h-3 w-3" />
-              About MT5 Report Format
+              {t('uploader.aboutMt5')}
             </Link>
           </div>
           <input

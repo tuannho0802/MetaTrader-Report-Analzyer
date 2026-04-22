@@ -3,7 +3,6 @@ import { Trade, ParseResult, FilterParams, AnalysisSession } from '@/lib/types';
 import { parseHTMLStatement, isCommentMatch, parseMT4Date, recalculateResult } from '@/lib/parser';
 import { parseMT5Csv, adaptMT5ToParseResult } from '@/lib/mt5Parser';
 import { db } from '@/lib/db';
-import { Language } from '@/lib/i18n';
 import {
   STORAGE_VERSION,
   STORAGE_VERSION_KEY,
@@ -48,7 +47,6 @@ interface AnalysisState {
   allTrades: Trade[]; // Unfiltered trades from the active session
   sessions: AnalysisSession[];
   activeSessionId: string;
-  language: Language;
   isProcessing: boolean;
   statusMsg: string;
   errorMsg: string;
@@ -62,7 +60,6 @@ interface AnalysisState {
   processMultiEa: (patterns: string[], threshold: number, startDate: Date, endDate: Date) => void;
   loadCachedStatement: () => Promise<void>;
   clearCache: () => Promise<void>;
-  setLanguage: (lang: Language) => void;
 
   // Session Actions
   addSession: (filters?: FilterParams) => void;
@@ -87,17 +84,13 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   allTrades: [],
   sessions: [],
   activeSessionId: "",
-  language: "en",
   isProcessing: false,
   statusMsg: '',
   errorMsg: '',
   cachedStatementInfo: null,
   isHydrated: false,
 
-  setLanguage: (lang) => {
-    localStorage.setItem(STORAGE_KEY_LANG, lang);
-    set({ language: lang });
-  },
+
 
   setFile: (file) => set({ file, errorMsg: '' }),
 
@@ -292,11 +285,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
 
   loadCachedStatement: async () => {
     try {
-      // 1. Restore language preference
-      const savedLang = localStorage.getItem(STORAGE_KEY_LANG) as Language;
-      if (savedLang) set({ language: savedLang });
-
-      // 2. Read session metadata from localStorage
+      // 1. Read session metadata from localStorage
       const savedSessions = localStorage.getItem(STORAGE_KEY_SESSIONS);
       if (!savedSessions) {
         set({ isHydrated: true });

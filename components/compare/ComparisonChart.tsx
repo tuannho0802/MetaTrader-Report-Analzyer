@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { EquitySeries } from "@/lib/types"
 import { LayoutGrid } from "lucide-react"
+import { useTranslation } from "@/lib/i18n"
 
 interface ComparisonChartProps {
   series: EquitySeries[]
@@ -25,9 +26,13 @@ interface ComparisonChartProps {
 export function ComparisonChart({
   series,
   height = 400,
-  title = "Comparative Equity Curve",
-  description = "Cumulative profit comparison over time",
+  title,
+  description,
 }: ComparisonChartProps) {
+  const { t } = useTranslation()
+  const displayTitle = title || t('chart.equityTitle')
+  const displayDescription = description || t('chart.equityDesc')
+
   const chartData = useMemo(() => {
     if (series.length === 0) return []
 
@@ -77,8 +82,8 @@ export function ComparisonChart({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-xl">{title}</CardTitle>
-            <CardDescription className="text-xs">{description}</CardDescription>
+            <CardTitle className="text-xl">{displayTitle}</CardTitle>
+            <CardDescription className="text-xs">{displayDescription}</CardDescription>
           </div>
           <div className="p-2 bg-primary/5 rounded-lg border border-primary/10">
             <LayoutGrid size={18} className="text-primary" />

@@ -14,12 +14,15 @@ import { ComparisonResult } from "@/lib/types"
 import { ComparisonChart } from "./ComparisonChart"
 import { Table as TableIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 interface ComparisonResultsProps {
   data: ComparisonResult
 }
 
 export function ComparisonResults({ data }: ComparisonResultsProps) {
+  const { t } = useTranslation()
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <ComparisonChart series={data.series} height={380} />
@@ -28,7 +31,7 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <TableIcon size={18} className="text-primary" />
-            Comparative Metrics
+            {t('comparison.metrics')}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -36,16 +39,16 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
             <TableHeader className="bg-muted/50">
               <TableRow>
                 <TableHead className="px-6 py-3 text-xs font-bold uppercase">
-                  EA Identifier
+                  {t('comparison.eaIdentifier')}
                 </TableHead>
                 <TableHead className="px-6 py-3 text-xs font-bold uppercase text-right">
-                  Net Profit
+                  {t('analysis.netProfit')}
                 </TableHead>
                 <TableHead className="px-6 py-3 text-xs font-bold uppercase text-right">
-                  Win Rate
+                  {t('analysis.winRate')}
                 </TableHead>
                 <TableHead className="px-6 py-3 text-xs font-bold uppercase text-right">
-                  Trades
+                  {t('analysis.totalTrades')}
                 </TableHead>
               </TableRow>
             </TableHeader>

@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { AnalysisSession, ComparisonResult, Trade } from "@/lib/types"
 import { compareCrossReport } from "@/lib/comparison"
 import { Play } from "lucide-react"
+import { useTranslation } from "@/lib/i18n"
 
 interface CrossReportConfigProps {
   sessions: AnalysisSession[]
@@ -32,6 +33,7 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
   const [eaA, setEaA] = useState("")
   const [sessionBId, setSessionBId] = useState(sessions[1]?.id || sessions[0]?.id || "")
   const [eaB, setEaB] = useState("")
+  const { t } = useTranslation()
 
   const sessionA = useMemo(() => sessions.find((s) => s.id === sessionAId), [sessions, sessionAId])
   const sessionB = useMemo(() => sessions.find((s) => s.id === sessionBId), [sessions, sessionBId])
@@ -54,10 +56,10 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Report A */}
       <div className="space-y-4 p-4 border border-border/50 rounded-xl bg-muted/20">
-        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Report A</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('comparison.report')} A</p>
 
         <div className="space-y-2">
-          <Label className="text-xs">Select Report</Label>
+          <Label className="text-xs">{t('comparison.selectReport')}</Label>
           <Select
             value={sessionAId}
             onValueChange={(v) => {
@@ -66,7 +68,7 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
             }}
           >
             <SelectTrigger className="h-9">
-              <SelectValue placeholder="Select report A…">
+              <SelectValue placeholder={t('comparison.selectReport') + " A…"}>
                 {sessionA?.name}
               </SelectValue>
             </SelectTrigger>
@@ -82,11 +84,11 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
 
         {sessionA && (
           <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-            <Label className="text-xs">EA Identifier in A</Label>
+            <Label className="text-xs">{t('comparison.eaIdentifier')} in A</Label>
             {easA.length > 0 ? (
               <Select value={eaA} onValueChange={(v) => setEaA(v ?? "")}>
                 <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Select EA…" />
+                  <SelectValue placeholder={t('comparison.selectEa') + "…"} />
                 </SelectTrigger>
                 <SelectContent>
                   {easA.map((ea) => (
@@ -98,7 +100,7 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
               </Select>
             ) : (
               <p className="text-xs text-muted-foreground italic">
-                No EA IDs detected in this report.
+                {t('comparison.noEaDetected')}
               </p>
             )}
           </div>
@@ -107,10 +109,10 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
 
       {/* Report B */}
       <div className="space-y-4 p-4 border border-border/50 rounded-xl bg-muted/20">
-        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Report B</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('comparison.report')} B</p>
 
         <div className="space-y-2">
-          <Label className="text-xs">Select Report</Label>
+          <Label className="text-xs">{t('comparison.selectReport')}</Label>
           <Select
             value={sessionBId}
             onValueChange={(v) => {
@@ -119,7 +121,7 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
             }}
           >
             <SelectTrigger className="h-9">
-              <SelectValue placeholder="Select report B…">
+              <SelectValue placeholder={t('comparison.selectReport') + " B…"}>
                 {sessionB?.name}
               </SelectValue>
             </SelectTrigger>
@@ -135,11 +137,11 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
 
         {sessionB && (
           <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-            <Label className="text-xs">EA Identifier in B</Label>
+            <Label className="text-xs">{t('comparison.eaIdentifier')} in B</Label>
             {easB.length > 0 ? (
               <Select value={eaB} onValueChange={(v) => setEaB(v ?? "")}>
                 <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Select EA…" />
+                  <SelectValue placeholder={t('comparison.selectEa') + "…"} />
                 </SelectTrigger>
                 <SelectContent>
                   {easB.map((ea) => (
@@ -151,7 +153,7 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
               </Select>
             ) : (
               <p className="text-xs text-muted-foreground italic">
-                No EA IDs detected in this report.
+                {t('comparison.noEaDetected')}
               </p>
             )}
           </div>
@@ -166,11 +168,11 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
           onClick={handleAnalyze}
         >
           <Play size={14} />
-          Run Cross-Report Comparison
+          {t('comparison.runComparison')}
         </Button>
         {sessions.length < 2 && (
           <p className="text-xs text-amber-500 text-center mt-2 italic">
-            Upload at least 2 reports to use cross-report mode.
+            {t('comparison.crossModeRequirement')}
           </p>
         )}
       </div>

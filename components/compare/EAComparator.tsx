@@ -9,6 +9,7 @@ import { ComparisonResults } from "./ComparisonResults"
 import { Button } from "@/components/ui/button"
 import { FileSearch, GitCompareArrows, Layers } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/lib/i18n"
 
 type Mode = "same" | "cross"
 
@@ -16,6 +17,7 @@ export function EAComparator() {
   const { sessions } = useAnalysisStore()
   const [mode, setMode] = useState<Mode>("same")
   const [results, setResults] = useState<ComparisonResult | null>(null)
+  const { t } = useTranslation()
 
   // Reset results when mode changes
   const handleModeChange = (m: Mode) => {
@@ -27,17 +29,17 @@ export function EAComparator() {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold tracking-tight">Expert Advisor Comparison</h2>
+        <h2 className="text-xl font-bold tracking-tight">{t('comparison.title')}</h2>
         <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-xs font-bold">
           <GitCompareArrows size={14} />
-          EA Comparator
+          {t('comparison.title')}
         </div>
       </div>
 
       {/* Mode Segmented Control */}
       <div className="space-y-1">
         <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-          Comparison Mode
+          {t('comparison.mode')}
         </p>
         <div className="flex gap-1 p-1 bg-muted/50 rounded-xl border border-border/50 w-fit">
           <button
@@ -50,7 +52,7 @@ export function EAComparator() {
             )}
           >
             <Layers size={14} />
-            Within Report
+            {t('comparison.withinReport')}
           </button>
           <button
             onClick={() => handleModeChange("cross")}
@@ -62,7 +64,7 @@ export function EAComparator() {
             )}
           >
             <GitCompareArrows size={14} />
-            Across Reports
+            {t('comparison.acrossReports')}
           </button>
         </div>
       </div>
@@ -77,9 +79,9 @@ export function EAComparator() {
             </div>
           </div>
           <div className="space-y-2 max-w-sm">
-            <h3 className="text-xl font-bold">No Reports Uploaded</h3>
+            <h3 className="text-xl font-bold">{t('comparison.noReports')}</h3>
             <p className="text-muted-foreground text-sm">
-              Upload at least one MT4 report to start comparing EAs.
+              {t('comparison.uploadPrompt')}
             </p>
           </div>
         </div>
@@ -108,8 +110,8 @@ export function EAComparator() {
               <GitCompareArrows size={40} strokeWidth={1} className="opacity-30" />
               <p className="text-sm font-medium">
                 {mode === "same"
-                  ? "Enter EA patterns above and click Compare to see results."
-                  : "Select two reports and their EAs, then click Run Comparison."}
+                  ? t('comparison.enterPatterns')
+                  : t('comparison.selectReports')}
               </p>
             </div>
           )}

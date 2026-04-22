@@ -14,18 +14,24 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
-const schema = z.object({
-  commentPattern: z.string().min(1, "Enter comment pattern"),
+const createSchema = (t: any) => z.object({
+  commentPattern: z.string().min(1, t('filter.errors.patternRequired')),
   threshold: z.number().min(0).max(100),
-  startDate: z.string().min(1, "Select start date"),
-  endDate: z.string().min(1, "Select end date"),
+  startDate: z.string().min(1, t('filter.errors.startDateRequired')),
+  endDate: z.string().min(1, t('filter.errors.endDateRequired')),
   filterMode: z.enum(['id', 'comment', 'both']),
 }).refine(d => new Date(d.startDate) <= new Date(d.endDate), {
-  message: "End date must be after start date",
+  message: t('filter.errors.dateOrder'),
   path: ["endDate"],
 });
 
-export type FilterFormData = z.infer<typeof schema>;
+export type FilterFormData = {
+  commentPattern: string;
+  threshold: number;
+  startDate: string;
+  endDate: string;
+  filterMode: 'id' | 'comment' | 'both';
+};
 
 interface FilterFormProps {
   onSubmit: (data: FilterFormData) => void;
@@ -49,7 +55,7 @@ import {
   TooltipContent, 
   TooltipTrigger 
 } from "@/components/ui/tooltip";
-import { translations } from "@/lib/i18n";
+import { useTranslation } from "@/lib/i18n";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -69,17 +75,18 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
   const { presets, savePreset, deletePreset } = usePresets();
   const { 
     sessions, 
-    activeSessionId, 
-    undo, 
+    activeSessionId,
+    undo,
     redo,
-    language,
     errorMsg
   } = useAnalysisStore();
+  const { t } = useTranslation();
   const activeSession = sessions.find(s => s.id === activeSessionId);
-  const t = translations[language];
 
   const canUndo = (activeSession?.historyIndex ?? 0) > 0;
   const canRedo = (activeSession?.historyIndex ?? 0) < (activeSession?.history.length ?? 0) - 1;
+
+  const schema = React.useMemo(() => createSchema(t), [t]);
 
   // Keyboard Shortcuts
   React.useEffect(() => {
@@ -165,7 +172,7 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Settings2 size={16} className="text-muted-foreground" />
-            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t.shortcuts}</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{t('filter.shortcuts')}</span>
           </div>
           
           <div className="flex items-center gap-1">
@@ -182,7 +189,7 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
                   <RotateCcw size={14} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{t.undo} (Ctrl+Z)</TooltipContent>
+              <TooltipContent>{t('common.undo')} (Ctrl+Z)</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -197,7 +204,7 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
                   <RotateCw size={14} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{t.redo} (Ctrl+Y)</TooltipContent>
+              <TooltipContent>{t('common.redo')} (Ctrl+Y)</TooltipContent>
             </Tooltip>
           </div>
         </div>
@@ -207,7 +214,7 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="h-8 flex-1 gap-2 rounded-lg text-xs font-semibold" disabled={presets.length === 0}>
                 <Bookmark size={14} />
-                {presets.length > 0 ? `${t.presets} (${presets.length})` : t.noPresets}
+                {presets.length > 0 ? `${t('filter.presets')} (${presets.length})` : t('filter.noPresets')}
                 <ChevronDown size={12} className="opacity-50" />
               </Button>
             </DropdownMenuTrigger>
@@ -235,7 +242,7 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
               ))}
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-[10px] text-muted-foreground justify-center pointer-events-none">
-                {presets.length} {t.presets.toLowerCase()}
+                {presets.length} {t('filter.presets').toLowerCase()}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -244,17 +251,17 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
             <PopoverTrigger asChild>
               <Button variant="secondary" size="sm" className="h-8 gap-2 rounded-lg text-xs font-semibold px-4">
                 <Save size={14} />
-                {t.saveNew}
+                {t('common.save')}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-64 p-3" align="end">
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <h4 className="text-xs font-bold uppercase text-muted-foreground">{t.savePreset}</h4>
-                  <p className="text-[10px] text-muted-foreground">{t.storeCurrent}</p>
+                  <h4 className="text-xs font-bold uppercase text-muted-foreground">{t('filter.savePreset')}</h4>
+                  <p className="text-[10px] text-muted-foreground">{t('filter.storeCurrent')}</p>
                 </div>
                 <Input 
-                  placeholder="Preset name..." 
+                  placeholder={t('filter.presetName')} 
                   value={presetName}
                   onChange={(e) => setPresetName(e.target.value)}
                   className="h-8 text-xs"
@@ -266,7 +273,7 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
                   onClick={handleSavePreset}
                   disabled={!presetName}
                 >
-                  {t.confirmSave}
+                  {t('common.confirm')}
                 </Button>
               </div>
             </PopoverContent>
@@ -275,10 +282,10 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="commentPattern" className="text-sm font-semibold">{t.commentPattern}</Label>
+        <Label htmlFor="commentPattern" className="text-sm font-semibold">{t('filter.pattern')}</Label>
         <Input
           id="commentPattern"
-          placeholder="e.g. BBS41, DCA, 111"
+          placeholder={t('filter.patternPlaceholder')}
           {...register("commentPattern")}
           disabled={disabled || isLoading}
           className="rounded-lg h-10"
@@ -289,7 +296,7 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
       </div>
 
       <div className="space-y-3">
-        <Label className="text-sm font-semibold">{(t as any).filterMode}</Label>
+        <Label className="text-sm font-semibold">{t('filter.mode')}</Label>
         <RadioGroup 
           value={watch("filterMode")} 
           onValueChange={(v) => setValue("filterMode", v as any)}
@@ -298,19 +305,19 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
           <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setValue("filterMode", "id")}>
             <RadioGroupItem value="id" id="mode-id" />
             <div className="grid gap-0.5 cursor-pointer">
-              <Label htmlFor="mode-id" className="text-sm font-bold cursor-pointer">{(t as any).modeId}</Label>
+              <Label htmlFor="mode-id" className="text-sm font-bold cursor-pointer">{t('filter.modeId')}</Label>
             </div>
           </div>
           <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setValue("filterMode", "comment")}>
             <RadioGroupItem value="comment" id="mode-comment" />
             <div className="grid gap-0.5 cursor-pointer">
-              <Label htmlFor="mode-comment" className="text-sm font-bold cursor-pointer">{(t as any).modeComment}</Label>
+              <Label htmlFor="mode-comment" className="text-sm font-bold cursor-pointer">{t('filter.modeComment')}</Label>
             </div>
           </div>
           <div className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => setValue("filterMode", "both")}>
             <RadioGroupItem value="both" id="mode-both" />
             <div className="grid gap-0.5 cursor-pointer">
-              <Label htmlFor="mode-both" className="text-sm font-bold cursor-pointer">{(t as any).modeBoth}</Label>
+              <Label htmlFor="mode-both" className="text-sm font-bold cursor-pointer">{t('filter.modeBoth')}</Label>
             </div>
           </div>
         </RadioGroup>
@@ -318,7 +325,7 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-semibold">{t.threshold}</Label>
+          <Label className="text-sm font-semibold">{t('filter.threshold')}</Label>
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-md">
               {thresholdValue}%
@@ -345,7 +352,7 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="startDate" className="text-sm font-semibold">{t.startDate}</Label>
+          <Label htmlFor="startDate" className="text-sm font-semibold">{t('filter.startDate')}</Label>
           <Input
             id="startDate"
             type="date"
@@ -358,7 +365,7 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="endDate" className="text-sm font-semibold">{t.endDate}</Label>
+          <Label htmlFor="endDate" className="text-sm font-semibold">{t('filter.endDate')}</Label>
           <Input
             id="endDate"
             type="date"
@@ -377,7 +384,7 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
         className="w-full h-11 rounded-lg text-sm font-bold shadow-md shadow-primary/20 transition-all active:scale-[0.98]"
         disabled={disabled || isLoading}
       >
-        {isLoading ? t.analyzing : t.analyzeTransactions}
+        {isLoading ? t('filter.analyzing') : t('filter.analyze')}
       </Button>
     </form>
   );

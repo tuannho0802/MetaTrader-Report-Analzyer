@@ -5,7 +5,7 @@ import { ParseResult } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, ChevronLeft, ChevronRight, Hash, BarChart3, Copy, Check } from "lucide-react";
+import { Download, ChevronLeft, ChevronRight, Hash, BarChart3, Copy, Check, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
-import { translations } from "@/lib/i18n";
+import { useTranslation } from "@/lib/i18n";
 
 interface ResultsTableProps {
   result: ParseResult | null;
@@ -26,8 +26,7 @@ interface ResultsTableProps {
 export default function ResultsTable({ result }: ResultsTableProps) {
   const [page, setPage] = useState(1);
   const itemsPerPage = 50;
-  const { language } = useAnalysisStore();
-  const t = translations[language];
+  const { t, language } = useTranslation();
 
   if (!result) return null;
 
@@ -80,10 +79,13 @@ export default function ResultsTable({ result }: ResultsTableProps) {
         <div className="space-y-1">
           <CardTitle className="text-xl font-bold flex items-center gap-2">
             <Hash className="h-5 w-5 text-primary" />
-            {t.transactionDetails}
+            {t('analysis.transactionDetails')}
           </CardTitle>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 text-primary rounded-lg">
+            <History size={18} />
+          </div>
           <Button 
             variant="outline" 
             size="sm" 
@@ -92,7 +94,7 @@ export default function ResultsTable({ result }: ResultsTableProps) {
             className="gap-2 rounded-lg font-semibold text-xs h-8"
           >
             {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-            {copied ? "Copied" : "Copy"}
+            {copied ? t('common.copied') : t('common.copy')}
           </Button>
           <Button 
             variant="outline" 
@@ -113,7 +115,7 @@ export default function ResultsTable({ result }: ResultsTableProps) {
          useAnalysisStore.getState().allTrades.every(t => !t.eaId) && (
           <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-3 text-amber-600 dark:text-amber-400 text-xs font-medium animate-in fade-in slide-in-from-top-2">
             <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-            No EA IDs found in this statement. Try switching to Comment mode.
+            {t('filter.errors.noEaIds')}
           </div>
         )}
         <div className="rounded-xl border bg-card/30 backdrop-blur-sm overflow-hidden shadow-sm">
@@ -123,12 +125,12 @@ export default function ResultsTable({ result }: ResultsTableProps) {
                 <TableRow>
                   <TableHead className="w-[100px] h-10 px-4 text-xs font-bold uppercase tracking-wider">TICKET</TableHead>
                   <TableHead className="w-[80px] h-10 px-4 text-xs font-bold uppercase tracking-wider">EA ID</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">{t.startDate.toUpperCase()}</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">{t('filter.startDate').toUpperCase()}</TableHead>
                   <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">TYPE</TableHead>
                   <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-center">SIZE</TableHead>
                   <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">SYMBOL</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">{t.endDate.toUpperCase()}</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-right">{t.netProfit.toUpperCase()}</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">{t('filter.endDate').toUpperCase()}</TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-right">{t('analysis.netProfit').toUpperCase()}</TableHead>
                   <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">COMMENT</TableHead>
                   <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-right">MATCH</TableHead>
                 </TableRow>
@@ -181,7 +183,7 @@ export default function ResultsTable({ result }: ResultsTableProps) {
                     <TableCell colSpan={10} className="text-center py-20 text-muted-foreground h-40">
                       <div className="flex flex-col items-center justify-center space-y-2">
                         <BarChart3 className="size-8 opacity-20" />
-                        <p>{t.noPresets}</p>
+                        <p>{t('filter.noPresets')}</p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -194,7 +196,7 @@ export default function ResultsTable({ result }: ResultsTableProps) {
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-6 px-2">
             <span className="text-xs text-muted-foreground">
-              {language === 'en' ? 'Showing' : 'Hiển thị'} <span className="font-medium text-foreground">{(page - 1) * itemsPerPage + 1}</span> - <span className="font-medium text-foreground">{Math.min(page * itemsPerPage, trades.length)}</span> {language === 'en' ? 'of' : 'trong'} <span className="font-medium text-foreground">{trades.length}</span> {language === 'en' ? 'results' : 'kết quả'}
+              {t('common.showing')} <span className="font-medium text-foreground">{(page - 1) * itemsPerPage + 1}</span> - <span className="font-medium text-foreground">{Math.min(page * itemsPerPage, trades.length)}</span> {t('common.of')} <span className="font-medium text-foreground">{trades.length}</span> {t('common.results')}
             </span>
             <div className="flex gap-2">
               <Button 
@@ -208,7 +210,7 @@ export default function ResultsTable({ result }: ResultsTableProps) {
                 <span className="sr-only">Previous page</span>
               </Button>
               <div className="flex items-center text-xs font-medium px-2">
-                {language === 'en' ? 'Page' : 'Trang'} {page} {language === 'en' ? 'of' : '/'} {totalPages}
+                {t('common.page')} {page} {t('common.of')} {totalPages}
               </div>
               <Button 
                 variant="outline" 

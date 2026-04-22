@@ -13,14 +13,14 @@ import {
 } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore"
-import { translations } from "@/lib/i18n"
+import { useTranslation } from "@/lib/i18n"
 import { LayoutGrid } from "lucide-react"
 
 export function MultiEaChart() {
-  const { sessions, activeSessionId, language } = useAnalysisStore()
+  const { sessions, activeSessionId } = useAnalysisStore()
   const activeSession = sessions.find(s => s.id === activeSessionId)
   const multiEaResults = activeSession?.multiEaResults || {}
-  const t = translations[language]
+  const { t } = useTranslation()
 
   const chartData = useMemo(() => {
     const patterns = Object.keys(multiEaResults)
@@ -93,9 +93,9 @@ export function MultiEaChart() {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-xl">{t.equityCurve}</CardTitle>
+            <CardTitle className="text-xl">{t('analysis.equityCurve')}</CardTitle>
             <CardDescription className="text-xs">
-              {t.cumulativeProfit}
+              {t('analysis.cumulativeProfit')}
             </CardDescription>
           </div>
           <div className="p-2 bg-primary/5 rounded-lg border border-primary/10">

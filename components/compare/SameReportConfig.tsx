@@ -17,6 +17,7 @@ import { compareSameReport } from "@/lib/comparison"
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore"
 import { isCommentMatch, parseMT4Date } from "@/lib/parser"
 import { Play, Sparkles } from "lucide-react"
+import { useTranslation } from "@/lib/i18n"
 
 interface SameReportConfigProps {
   sessions: AnalysisSession[]
@@ -35,6 +36,7 @@ export function SameReportConfig({ sessions, onAnalyze }: SameReportConfigProps)
   const { activeSessionId } = useAnalysisStore()
   const [selectedSessionId, setSelectedSessionId] = useState(activeSessionId || sessions[0]?.id || "")
   const [patterns, setPatterns] = useState("")
+  const { t } = useTranslation()
 
   const selectedSession = useMemo(
     () => sessions.find((s) => s.id === selectedSessionId),
@@ -89,10 +91,6 @@ export function SameReportConfig({ sessions, onAnalyze }: SameReportConfigProps)
       })
     })
 
-    // Build a synthetic trade set keyed by pattern, matching the compareSameReport signature
-    // We pass already-filtered trades as-is since compareSameReport would subset again — instead
-    // we build result directly via compareSameReport's eaId fallback
-    // Use filtered trades mapped to patterns via the eaId match path
     const result = compareSameReport(selectedSession.allTrades || [], patternList)
     onAnalyze(result)
   }
@@ -108,11 +106,11 @@ export function SameReportConfig({ sessions, onAnalyze }: SameReportConfigProps)
       {/* Session Picker */}
       <div className="space-y-2">
         <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">
-          Report
+          {t('comparison.report')}
         </Label>
         <Select value={selectedSessionId} onValueChange={(v) => setSelectedSessionId(v ?? "")}>
           <SelectTrigger className="h-9">
-            <SelectValue placeholder="Select a report…">
+            <SelectValue placeholder={t('comparison.selectReport')}>
               {sessions.find((s) => s.id === selectedSessionId)?.name}
             </SelectValue>
           </SelectTrigger>
@@ -131,7 +129,7 @@ export function SameReportConfig({ sessions, onAnalyze }: SameReportConfigProps)
         <div className="space-y-2">
           <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-1.5">
             <Sparkles size={12} className="text-amber-500" />
-            Detected EAs — click to add
+            {t('comparison.detectedEas')}
           </Label>
           <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto">
             {uniqueEas.map((ea) => {
@@ -154,17 +152,17 @@ export function SameReportConfig({ sessions, onAnalyze }: SameReportConfigProps)
       {/* Pattern Textarea */}
       <div className="space-y-2">
         <Label htmlFor="comp-patterns" className="text-xs font-bold uppercase text-muted-foreground tracking-wider">
-          EA Patterns (comma-separated)
+          {t('comparison.patterns')}
         </Label>
         <Textarea
           id="comp-patterns"
-          placeholder="e.g. 111, BBS41, DCA"
+          placeholder={t('filter.patternPlaceholder')}
           className="min-h-[72px] resize-none text-xs bg-muted/40 border-border/50 focus:bg-background transition-colors"
           value={patterns}
           onChange={(e) => setPatterns(e.target.value)}
         />
         <p className="text-[10px] text-muted-foreground italic">
-          Uses session filter mode ({selectedSession?.filter.filterMode || "comment"}) and date range. Fuzzy threshold: {selectedSession?.filter.threshold ?? 80}%.
+          {t('comparison.modeHint')} ({selectedSession?.filter.filterMode || "comment"}) {t('common.of').toLowerCase()} {t('filter.mode').toLowerCase()}. {t('comparison.thresholdHint')}: {selectedSession?.filter.threshold ?? 80}%.
         </p>
       </div>
 
@@ -174,7 +172,7 @@ export function SameReportConfig({ sessions, onAnalyze }: SameReportConfigProps)
         onClick={handleAnalyze}
       >
         <Play size={14} />
-        Compare {patternList.length > 0 ? `(${patternList.length} EAs)` : ""}
+        {t('comparison.compare')} {patternList.length > 0 ? `(${patternList.length} EAs)` : ""}
       </Button>
     </div>
   )
