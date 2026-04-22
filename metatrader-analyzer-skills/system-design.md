@@ -121,3 +121,19 @@ Instead of tying IndexedDB parsing functions to individual UI components, the ar
 
 - **`StoreHydrator.tsx` Component**: Integrated natively inside `app/layout.tsx`. On mount, it kicks off `store.loadCachedStatement()` to pull stored metrics from IndexedDB prior to rendering internal tools.
 - **Race Condition Prevention**: Added an `isHydrated` tracker variable onto the Zustand Store. The `StoreHydrator` purposefully blocks nested child rendering (`return <LoadingSpinner />`) up until hydration succeeds or concludes, comprehensively guaranteeing that route changes automatically process against active data pools regardless of deep linking combinations.
+
+## Persistent i18n Architecture
+
+The application implements a decoupled internationalization strategy to maintain high performance and state separation.
+
+### 1. Settings vs. Analysis State
+To prevent UI settings from triggering heavy data re-calculations, language preference is moved into a standalone `useSettingsStore`.
+- **`useSettingsStore`**: Manages the `language` ('en' | 'vi') and persists to `localStorage`.
+- **Reactivity**: The `TranslationProvider` wraps the application root, observing the settings store and providing a fresh translation context to all `useTranslation` hooks.
+
+### 2. Recursive Path Resolution
+The `t(path)` function uses a recursive lookup algorithm to resolve nested keys in the dictionary (e.g., `filter.errors.dateOrder`), ensuring that the dictionary can scale without becoming a flat, unmanageable file.
+
+### 3. Static Export Support
+By avoiding server-side translation libraries (like `next-intl`), the system remains fully compatible with `next export`, fulfilling the privacy-first architecture requirement.
+

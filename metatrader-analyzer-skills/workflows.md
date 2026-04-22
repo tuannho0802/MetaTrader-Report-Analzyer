@@ -84,3 +84,23 @@ When a common UI primitive (like Radix `RadioGroup`) is missing from the project
 3. **Accessibility**: Ensure the custom component maintains ARIA roles (`role="radiogroup"`, `role="radio"`, `aria-checked`) to simulate the missing primitive's behavior accurately.
 4. **Consistency**: Match the styling exactly with the project's existing design system to ensure a seamless "premium" feel.
 
+## MT5 Report Generation Workflow
+
+MT5 reports require a custom script because the default HTML export lacks specific metadata (like Magic Numbers in the ticket title) needed for granular analysis.
+
+1. **Script Activation**: Drag the `MT5_Report_Script.ex5` from the Navigator onto a chart.
+2. **Data Extraction**: The script iterates through the `HistoryDeals` and `HistoryOrders` collections.
+3. **Column Mapping**: It maps 21 specific fields into a standardized CSV structure.
+4. **Local Save**: The user saves the file locally via the standard Windows/macOS file dialog.
+5. **Ingestion**: The app's `mt5Parser` module identifies the CSV headers and maps them to the `Trade` interface.
+
+## i18n Development Workflow
+
+To add or update UI text, follow this reactive pipeline:
+
+1. **Key Registration**: Add the new key to `lib/i18n.tsx` in both `en` and `vi` sections.
+2. **Hook Consumption**: In your component, call `const { t } = useTranslation()`.
+3. **UI Implementation**: Use `{t('your.key.path')}` in the JSX.
+4. **Persistence Verification**: Change the language in the UI settings; verify the setting persists after a page reload via `useSettingsStore`.
+
+

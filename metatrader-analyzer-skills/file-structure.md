@@ -26,7 +26,9 @@ The "brain" of the application, containing logic, state, and database interactio
 - `parser.ts`: The complex extraction logic for MT4 HTML statements.
 - `comparison.ts`: Mathematical utilities for calculating equity series and performance metrics.
 - `types.ts`: Central source of truth for all data interfaces (Trade, Session, Filter).
-- `i18n.ts`: JSON-based translation dictionary for multi-language support.
+- `i18n.tsx`: Central translation engine providing the `useTranslation` hook and bilingual dictionary.
+- `mt5Parser/`: Specialized module for parsing MT5 CSV exports.
+- `store/useSettingsStore.ts`: Persistent store for application-wide settings (Language, Theme).
 
 ## Key File Interactions
 

@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MetaTrader Report Analyzer
 
-## Getting Started
+A professional, privacy-first trading journal and analytics tool for MetaTrader 4 (MT4) and MetaTrader 5 (MT5).
 
-First, run the development server:
+🌐 **Bilingual Support** – Fully localized in **English** and **Tiếng Việt** with persistent language settings across sessions.
 
+## 🚀 Overview
+
+MetaTrader Report Analyzer allows traders to deep-dive into their performance by parsing standard MetaTrader reports. Unlike generic tools, it offers advanced filtering by **EA ID (Magic Number)**, comment fuzzy matching, and multi-session analysis, all processed entirely within your browser for maximum privacy.
+
+## ✨ Key Features
+
+- **Multi-Platform Support**: Parse MT4 `.htm` Detailed Reports and MT5 `.csv` exports (via custom script).
+- **EA Comparator**: Compare performance across different Expert Advisors or different reports side-by-side with shared equity curves.
+- **Advanced Filtering**: 
+  - Filter by Magic Number (EA ID) extracted from trade ticket metadata.
+  - Fuzzy matching for trade comments with adjustable similarity thresholds.
+  - Precise date range filtering.
+- **Multi-Session Workspace**: Analyze multiple reports simultaneously in a tabbed interface.
+- **Persistent Data**: Uses **IndexedDB** (Dexie) and **Zustand Persistence** to save your analysis sessions and settings locally.
+- **Privacy-First**: No data is ever sent to a server. All parsing and calculations happen on the client side.
+- **Bilingual Interface**: Seamlessly switch between English and Vietnamese.
+
+## 🛠️ Getting Started
+
+### 1. Installation
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Usage
+1. Open the application.
+2. Upload an MT4 Detailed Report (`.htm`) or an MT5 CSV export.
+3. Use the **Language Switcher** in the header to select your preferred language.
+4. Enter EA identifiers in the **Filter Form** to isolate specific strategies.
+5. Explore results in the **KpiCards**, **Equity Chart**, and **Results Table**.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. MT5 Export Instructions
+To analyze MT5 reports, you need to use our custom export script. 
+👉 [See MT5 Export Guide](docs/MT5_EXPORT_GUIDE.md) or visit the `/AboutMT5` page within the app.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📂 Documentation
 
-## Learn More
+- [MT5 Export Guide](docs/MT5_EXPORT_GUIDE.md) - How to generate compatible MT5 files.
+- [i18n System](docs/i18n.md) - Documentation for the translation architecture.
+- [System Design](metatrader-analyzer-skills/system-design.md) - Technical architecture and decisions.
 
-To learn more about Next.js, take a look at the following resources:
+## 📄 License
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is open-source and available under the MIT License.
