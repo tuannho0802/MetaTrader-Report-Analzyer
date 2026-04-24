@@ -5,7 +5,7 @@ import { ParseResult } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, ChevronLeft, ChevronRight, Hash, BarChart3, Copy, Check, History } from "lucide-react";
+import { Hash, BarChart3, Copy, Check, History, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Table,
@@ -19,31 +19,44 @@ import {
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
 import { useTranslation } from "@/lib/i18n";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { useTableState, SortableColumn } from "@/hooks/useTableState";
+import { TableToolbar } from "./TableToolbar";
+import { SmartPagination } from "./SmartPagination";
 
 interface ResultsTableProps {
   result: ParseResult | null;
 }
 
 export default function ResultsTable({ result }: ResultsTableProps) {
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 50;
   const { t, language } = useTranslation();
+  const [copied, setCopied] = useState(false);
+
+  const {
+    paginatedTrades,
+    totalTrades,
+    totalPages,
+    sortColumn,
+    sortDirection,
+    handleSort,
+    searchQuery,
+    setSearchQuery,
+    dateFilter,
+    setDateFilter,
+    currentPage,
+    setCurrentPage,
+    pageSize,
+    setPageSize,
+  } = useTableState(result?.trades || []);
 
   if (!result) return null;
 
-  const { trades } = result;
-  
-  const totalPages = Math.ceil(trades.length / itemsPerPage);
-  const currentTrades = trades.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-
   const exportCSV = () => {
-    if (trades.length === 0) return;
+    if (result.trades.length === 0) return;
     
-    // CSV headers also translated or kept standard? Let's keep keys standard for data processing compatibility
     const headers = ["Ticket", "EA ID", "Open Time", "Type", "Size", "Symbol", "Close Time", "Profit", "Comment", "Match %"];
     const csvContent = [
       headers.join(","),
-      ...trades.map(t => 
+      ...result.trades.map(t => 
         `"${t.ticket}","${t.eaId || ''}","${t.openTime}","${t.type}","${t.size}","${t.item}","${t.closeTime}","${t.profit.toFixed(2)}","${t.comment}","${t.similarity.toFixed(1)}%"`
       )
     ].join("\n");
@@ -58,12 +71,11 @@ export default function ResultsTable({ result }: ResultsTableProps) {
     document.body.removeChild(link);
   };
 
-  const [copied, setCopied] = useState(false);
   const copyToClipboard = () => {
-    if (trades.length === 0) return;
+    if (result.trades.length === 0) return;
     
     const headers = ["Ticket", "EA ID", "Open Time", "Type", "Size", "Symbol", "Close Time", "Profit", "Comment", "Match %"];
-    const rows = trades.map(t => 
+    const rows = result.trades.map(t => 
       [t.ticket, t.eaId || '', t.openTime, t.type, t.size, t.item, t.closeTime, t.profit.toFixed(2), t.comment, `${t.similarity.toFixed(1)}%`].join("\t")
     );
     
@@ -72,6 +84,16 @@ export default function ResultsTable({ result }: ResultsTableProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+  };
+
+  const getSortIcon = (column: SortableColumn) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="h-3 w-3 opacity-30 ml-1 inline" />;
+    }
+    if (sortDirection === 'asc') {
+      return <ArrowUp className="h-3 w-3 ml-1 inline" />;
+    }
+    return <ArrowDown className="h-3 w-3 ml-1 inline" />;
   };
 
   return (
@@ -84,61 +106,84 @@ export default function ResultsTable({ result }: ResultsTableProps) {
           </CardTitle>
         </div>
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 text-primary rounded-lg">
+          <div className="p-2 bg-primary/10 text-primary rounded-lg hidden sm:block">
             <History size={18} />
           </div>
           <Button 
             variant="outline" 
             size="sm" 
             onClick={copyToClipboard} 
-            disabled={trades.length === 0} 
+            disabled={result.trades.length === 0} 
             className="gap-2 rounded-lg font-semibold text-xs h-8"
           >
             {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-            {copied ? t('common.copied') : t('common.copy')}
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={exportCSV} 
-            disabled={trades.length === 0} 
-            className="gap-2 rounded-lg font-semibold text-xs h-8"
-          >
-            <Download className="w-3 h-3" /> CSV
+            <span className="hidden sm:inline">{copied ? t('common.copied') : t('common.copy')}</span>
           </Button>
         </div>
       </CardHeader>
       <CardContent className="px-0 pb-0">
+        
+        <TableToolbar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          dateFilter={dateFilter}
+          onDateFilterChange={setDateFilter}
+          onExport={exportCSV}
+          totalResults={totalTrades}
+          totalTrades={result.trades.length}
+        />
+
         {/* Warning for missing EA IDs */}
         {useAnalysisStore.getState().sessions.find(s => s.id === useAnalysisStore.getState().activeSessionId)?.filter.filterMode === 'id' && 
          useAnalysisStore.getState().sessions.find(s => s.id === useAnalysisStore.getState().activeSessionId)?.filter.commentPattern &&
-         trades.length === 0 && 
+         result.trades.length === 0 && 
          useAnalysisStore.getState().allTrades.every(t => !t.eaId) && (
           <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-3 text-amber-600 dark:text-amber-400 text-xs font-medium animate-in fade-in slide-in-from-top-2">
             <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
             {t('filter.errors.noEaIds')}
           </div>
         )}
+
         <div className="rounded-xl border bg-card/30 backdrop-blur-sm overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader className="bg-muted/50 border-b">
                 <TableRow>
-                  <TableHead className="w-[100px] h-10 px-4 text-xs font-bold uppercase tracking-wider">TICKET</TableHead>
-                  <TableHead className="w-[80px] h-10 px-4 text-xs font-bold uppercase tracking-wider">EA ID</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">{t('filter.startDate').toUpperCase()}</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">TYPE</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-center">SIZE</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">SYMBOL</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">{t('filter.endDate').toUpperCase()}</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-right">{t('analysis.netProfit').toUpperCase()}</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider">COMMENT</TableHead>
-                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-right">MATCH</TableHead>
+                  <TableHead className="w-[100px] h-10 px-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('ticket')}>
+                    <div className="flex items-center whitespace-nowrap">TICKET {getSortIcon('ticket')}</div>
+                  </TableHead>
+                  <TableHead className="w-[80px] h-10 px-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('eaId')}>
+                    <div className="flex items-center whitespace-nowrap">EA ID {getSortIcon('eaId')}</div>
+                  </TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('openTime')}>
+                    <div className="flex items-center whitespace-nowrap">{t('filter.startDate').toUpperCase()} {getSortIcon('openTime')}</div>
+                  </TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('type')}>
+                    <div className="flex items-center whitespace-nowrap">TYPE {getSortIcon('type')}</div>
+                  </TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-center cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('size')}>
+                    <div className="flex items-center justify-center whitespace-nowrap">SIZE {getSortIcon('size')}</div>
+                  </TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('item')}>
+                    <div className="flex items-center whitespace-nowrap">SYMBOL {getSortIcon('item')}</div>
+                  </TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('closeTime')}>
+                    <div className="flex items-center whitespace-nowrap">{t('filter.endDate').toUpperCase()} {getSortIcon('closeTime')}</div>
+                  </TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-right cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('profit')}>
+                    <div className="flex items-center justify-end whitespace-nowrap">{t('analysis.netProfit').toUpperCase()} {getSortIcon('profit')}</div>
+                  </TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('comment')}>
+                    <div className="flex items-center whitespace-nowrap">COMMENT {getSortIcon('comment')}</div>
+                  </TableHead>
+                  <TableHead className="h-10 px-4 text-xs font-bold uppercase tracking-wider text-right cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleSort('similarity')}>
+                    <div className="flex items-center justify-end whitespace-nowrap">MATCH {getSortIcon('similarity')}</div>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentTrades.length > 0 ? (
-                  currentTrades.map((t) => (
+                {paginatedTrades.length > 0 ? (
+                  paginatedTrades.map((t) => (
                     <TableRow key={t.ticket} className="hover:bg-muted/40 transition-colors even:bg-muted/15 border-b last:border-0">
                       <TableCell className="font-mono text-[10px] px-4 py-2.5 text-muted-foreground">{t.ticket}</TableCell>
                       <TableCell className="font-mono text-[10px] px-4 py-2.5 text-primary font-bold">{t.eaId || "-"}</TableCell>
@@ -184,7 +229,7 @@ export default function ResultsTable({ result }: ResultsTableProps) {
                     <TableCell colSpan={10} className="text-center py-20 text-muted-foreground h-40">
                       <div className="flex flex-col items-center justify-center space-y-2">
                         <BarChart3 className="size-8 opacity-20" />
-                        <p>{t('filter.noPresets')}</p>
+                        <p>{searchQuery || dateFilter ? 'Không tìm thấy kết quả phù hợp' : t('filter.noPresets')}</p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -194,38 +239,14 @@ export default function ResultsTable({ result }: ResultsTableProps) {
           </div>
         </div>
         
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-6 px-2">
-            <span className="text-xs text-muted-foreground">
-              {t('common.showing')} <span className="font-medium text-foreground">{(page - 1) * itemsPerPage + 1}</span> - <span className="font-medium text-foreground">{Math.min(page * itemsPerPage, trades.length)}</span> {t('common.of')} <span className="font-medium text-foreground">{trades.length}</span> {t('common.results')}
-            </span>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-8 w-8 p-0"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                <span className="sr-only">Previous page</span>
-              </Button>
-              <div className="flex items-center text-xs font-medium px-2">
-                {t('common.page')} {page} {t('common.of')} {totalPages}
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-8 w-8 p-0"
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-                <span className="sr-only">Next page</span>
-              </Button>
-            </div>
-          </div>
-        )}
+        <SmartPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={totalTrades}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+        />
       </CardContent>
     </Card>
   );
