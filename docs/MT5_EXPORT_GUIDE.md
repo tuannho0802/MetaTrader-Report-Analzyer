@@ -30,8 +30,8 @@ The CSV file must contain all 21 columns in the exact order shown below. Our scr
 
 ## 📥 Download Export Script
 
-1. Download the compiled script: [MT5_Report_Script.ex5](/public/script-for-mt5/MT5_Report_Script.ex5)
-2. (Optional) Download the source code: [MT5_Report_Script.mq5](/public/script-for-mt5/MT5_Report_Script.mq5)
+1. Download the compiled script: [MT5_Report_Script.ex5](../public/script-for-mt5/MT5_Report_Script.ex5)
+2. (Optional) Download the source code: [MT5_Report_Script.mq5](../public/script-for-mt5/MT5_Report_Script.mq5)
 
 ## 🛠️ Installation & Usage
 

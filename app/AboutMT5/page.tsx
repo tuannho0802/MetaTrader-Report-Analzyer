@@ -13,6 +13,8 @@ import {
   Code2,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
+import { BASE_PATH } from "@/lib/constants";
+
 
 export default function AboutMT5Page() {
   const { t } = useTranslation();
@@ -104,7 +106,7 @@ export default function AboutMT5Page() {
             </p>
 
             <a
-              href="/script-for-mt5/MT5_Report_Script.ex5"
+              href={`${BASE_PATH}/script-for-mt5/MT5_Report_Script.ex5`}
               download
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold shadow-sm hover:bg-primary/90 transition-colors"
             >
@@ -156,7 +158,7 @@ export default function AboutMT5Page() {
             </p>
 
             <a
-              href="/script-for-mt5/MT5_Report_Script.mq5"
+              href={`${BASE_PATH}/script-for-mt5/MT5_Report_Script.mq5`}
               download
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold shadow-sm hover:bg-primary/90 transition-colors"
             >
