@@ -132,10 +132,8 @@
 /* 
  * Language Hydration Guard 
  * Prevents EN text flicker when VI is the stored preference.
+ * We hide the body if lang-vi is detected but React hasn't hydrated yet.
  */
-html:not(.lang-vi) [data-lang="vi"] {
-  display: none;
-}
-html.lang-vi [data-lang="en"] {
-  display: none;
+html.lang-vi body:not([data-hydrated="true"]) {
+  visibility: hidden;
 }
