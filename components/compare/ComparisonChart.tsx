@@ -22,6 +22,8 @@ interface ComparisonChartProps {
   height?: number
   title?: string
   description?: string
+  hiddenSeries?: Set<string>
+  onLegendClick?: (name: string) => void
 }
 
 export function ComparisonChart({
@@ -29,6 +31,8 @@ export function ComparisonChart({
   height = 400,
   title,
   description,
+  hiddenSeries = new Set(),
+  onLegendClick,
 }: ComparisonChartProps) {
   const { t } = useTranslation()
   const displayTitle = title || t('chart.equityTitle')
@@ -129,16 +133,31 @@ export function ComparisonChart({
             <Legend
               verticalAlign="top"
               align="right"
-              iconType="circle"
-              iconSize={8}
-              wrapperStyle={{
-                fontSize: "12px",
-                fontWeight: "bold",
-                color: "hsl(var(--foreground))",
-                paddingBottom: "20px",
+              content={(props) => {
+                const { payload } = props;
+                return (
+                  <ul className="flex flex-wrap justify-end gap-4 pb-5">
+                    {payload?.map((entry: any, index: number) => {
+                      const isHidden = hiddenSeries.has(entry.value);
+                      return (
+                        <li 
+                          key={`item-${index}`} 
+                          className={`flex items-center gap-2 text-xs font-bold cursor-pointer transition-opacity ${isHidden ? 'opacity-40 line-through' : 'opacity-100 hover:opacity-80'}`}
+                          onClick={() => onLegendClick?.(entry.value)}
+                        >
+                          <div 
+                            className="w-2 h-2 rounded-full" 
+                            style={{ backgroundColor: entry.color }} 
+                          />
+                          <span className="text-foreground">{entry.value}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                );
               }}
             />
-            {series.map((s) => (
+            {series.map((s) => !hiddenSeries.has(s.name) && (
               <Line
                 key={s.name}
                 type="monotone"

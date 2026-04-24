@@ -79,4 +79,10 @@ export interface MetricsRow {
   winRate: number;
   tradeCount: number;
   currency: string;
+  profitFactor: number;
+  maxDrawdown: number;
+  avgProfitPerTrade: number;
+  bestTrade: number;
+  worstTrade: number;
+  sharpeRatio: number | null;
 }

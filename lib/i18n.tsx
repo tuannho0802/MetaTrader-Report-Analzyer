@@ -58,7 +58,15 @@ export const translations = {
       selectReport: "Select Report",
       selectEa: "Select EA",
       noEaDetected: "No EA IDs detected in this report.",
-      crossModeRequirement: "Upload at least 2 reports to use cross-report mode."
+      crossModeRequirement: "Upload at least 2 reports to use cross-report mode.",
+      columns: {
+        profitFactor: "Profit Factor",
+        maxDrawdown: "Max Drawdown",
+        avgProfit: "Avg Profit/Trade",
+        bestTrade: "Best Trade",
+        worstTrade: "Worst Trade",
+        sharpeRatio: "Sharpe Ratio"
+      }
     },
     chart: {
       equityTitle: "Comparative Equity Curve",
@@ -235,7 +243,15 @@ export const translations = {
       selectReport: "Chọn báo cáo",
       selectEa: "Chọn EA",
       noEaDetected: "Không tìm thấy ID EA trong báo cáo này.",
-      crossModeRequirement: "Tải lên ít nhất 2 báo cáo để dùng chế độ so sánh chéo."
+      crossModeRequirement: "Tải lên ít nhất 2 báo cáo để dùng chế độ so sánh chéo.",
+      columns: {
+        profitFactor: "Profit Factor",
+        maxDrawdown: "Max Drawdown (%)",
+        avgProfit: "Trung bình lệnh",
+        bestTrade: "Lệnh tốt nhất",
+        worstTrade: "Lệnh tệ nhất",
+        sharpeRatio: "Sharpe Ratio"
+      }
     },
     chart: {
       equityTitle: "Biểu đồ tăng trưởng so sánh",
