@@ -30,7 +30,7 @@ export function ComparisonHistogram({ series, trades, height = 300, hiddenSeries
   const { theme } = useTheme()
 
   const chartData = useMemo(() => {
-    if (!trades || Object.keys(trades).length === 0 || series.length === 0) return [];
+    if (!trades || Object.keys(trades).length === 0 || series.length === 0) return null;
 
     let minProfit = Infinity;
     let maxProfit = -Infinity;
@@ -43,17 +43,17 @@ export function ComparisonHistogram({ series, trades, height = 300, hiddenSeries
       });
     });
 
-    if (minProfit === Infinity || maxProfit === -Infinity) return [];
+    if (minProfit === Infinity || maxProfit === -Infinity) return null;
 
-    // Calculate bin size and ranges (around 25 bins)
-    const binCount = 25;
+    // Calculate bin size and ranges (around 18 bins for clarity)
+    const binCount = 18;
     let binSize = (maxProfit - minProfit) / binCount;
     if (binSize === 0) binSize = 1;
 
     const currency = series[0]?.currency || "";
 
     const bins: any[] = [];
-    for (let i = 0; i <= binCount; i++) {
+    for (let i = 0; i < binCount; i++) {
       const binStart = minProfit + (i * binSize);
       const binEnd = binStart + binSize;
       
@@ -63,7 +63,7 @@ export function ComparisonHistogram({ series, trades, height = 300, hiddenSeries
       };
 
       const binObj: any = {
-        name: `${formatVal(binStart)} to ${formatVal(binEnd)}`,
+        name: `${formatVal(binStart)} .. ${formatVal(binEnd)}`,
         rangeLabel: formatVal(binStart),
         binStart,
         binEnd
@@ -91,11 +91,17 @@ export function ComparisonHistogram({ series, trades, height = 300, hiddenSeries
       });
     });
 
-    // Remove empty bins at the beginning and end for cleaner look (optional, but let's keep all to show distribution shape)
-    return bins;
+    const totalTradesMap: Record<string, number> = {};
+    Object.entries(trades).forEach(([eaName, eaTrades]) => {
+      totalTradesMap[eaName] = eaTrades.length;
+    });
+
+    return { bins, totalTradesMap };
   }, [trades, series]);
 
-  if (chartData.length === 0) return null;
+  if (!chartData || chartData.bins.length === 0) return null;
+
+  const { bins, totalTradesMap } = chartData;
 
   const isDark = theme === "dark"
   const gridColor = isDark ? "#333" : "#e5e7eb"
@@ -106,7 +112,7 @@ export function ComparisonHistogram({ series, trades, height = 300, hiddenSeries
     const { payload } = props;
     return (
       <ul className="flex flex-wrap justify-center gap-4 mt-2">
-        {payload.map((entry: any, index: number) => {
+        {payload.filter((entry: any) => entry.type !== 'none').map((entry: any, index: number) => {
           const isHidden = hiddenSeries.has(entry.value);
           return (
             <li 
@@ -129,13 +135,13 @@ export function ComparisonHistogram({ series, trades, height = 300, hiddenSeries
   return (
     <Card className="border-border/50 shadow-lg mt-6">
       <CardHeader className="pb-4">
-        <CardTitle className="text-base font-bold">{t('comparison.profitDistribution') || "Phân phối lợi nhuận"}</CardTitle>
-        <CardDescription>Số lượng lệnh theo từng mức lợi nhuận / thua lỗ</CardDescription>
+        <CardTitle className="text-base font-bold">{t('comparison.profitDistribution')}</CardTitle>
+        <CardDescription>{t('comparison.profitDistributionDesc')}</CardDescription>
       </CardHeader>
       <CardContent>
         <div style={{ height: height, width: '100%' }}>
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }} barGap={2} barCategoryGap="15%">
+            <ComposedChart data={bins} margin={{ top: 10, right: 10, left: 0, bottom: 20 }} barGap={2} barCategoryGap="15%">
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
               <XAxis 
                 dataKey="rangeLabel" 
@@ -163,11 +169,16 @@ export function ComparisonHistogram({ series, trades, height = 300, hiddenSeries
                 }}
                 labelFormatter={(label, payload) => {
                   if (payload && payload.length > 0) {
-                    return `Range: ${payload[0].payload.name}`;
+                    return `${t('comparison.histogram.rangeLabel')}: ${payload[0].payload.name}`;
                   }
                   return label;
                 }}
-                formatter={(value: any, name: any) => [`${value} trades`, name]}
+                formatter={(value: any, name: any) => {
+                  const count = Number(value);
+                  const total = totalTradesMap[name as string] || 1;
+                  const pct = ((count / total) * 100).toFixed(1);
+                  return [`${count} ${t('dashboard.trades')} (${pct}%)`, name];
+                }}
                 labelStyle={{ fontWeight: 'bold', marginBottom: '0.5rem' }}
                 cursor={{ fill: isDark ? '#374151' : '#f3f4f6' }}
               />
@@ -189,12 +200,16 @@ export function ComparisonHistogram({ series, trades, height = 300, hiddenSeries
                     activeDot={false}
                     isAnimationActive={false}
                     opacity={0.5}
+                    legendType="none"
                   />
                 </React.Fragment>
               ))}
             </ComposedChart>
           </ResponsiveContainer>
         </div>
+        <p className="text-xs text-muted-foreground mt-4 text-center px-4 max-w-4xl mx-auto">
+          {t('comparison.profitDistributionNote')}
+        </p>
       </CardContent>
     </Card>
   )

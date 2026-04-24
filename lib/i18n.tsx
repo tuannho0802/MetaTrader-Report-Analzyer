@@ -26,6 +26,7 @@ export const translations = {
       csv: "CSV",
       results: "results",
       of: "of",
+      in: "in",
       showing: "Showing",
       page: "Page",
       language: "Language",
@@ -60,7 +61,12 @@ export const translations = {
       noEaDetected: "No EA IDs detected in this report.",
       crossModeRequirement: "Upload at least 2 reports to use cross-report mode.",
       profitDistribution: "Profit Distribution",
+      profitDistributionDesc: "Number of trades by profit/loss range",
+      profitDistributionNote: "This chart shows the profit distribution of trades. Taller bars on the right indicate more large winning trades, while taller bars on the left indicate more losing trades. This helps evaluate the stability and risk profile of each EA.",
       monthlyReturns: "Monthly Returns",
+      monthlyReturnsDesc: "Trading performance distributed by month",
+      drawdown: "Drawdown",
+      drawdownDesc: "Account drawdown percentage over time",
       exportCsv: "Export CSV",
       columns: {
         profitFactor: "Profit Factor",
@@ -68,7 +74,15 @@ export const translations = {
         avgProfit: "Avg Profit/Trade",
         bestTrade: "Best Trade",
         worstTrade: "Worst Trade",
-        sharpeRatio: "Sharpe Ratio"
+        sharpeRatio: "Sharpe Ratio",
+        sharpeRatioDesc: "Risk-adjusted return. Higher is better."
+      },
+      histogram: {
+        title: "Profit Distribution",
+        rangeLabel: "Profit/Loss Range",
+        tradesCount: "Trades",
+        percentage: "Percentage",
+        eaName: "EA Name",
       }
     },
     chart: {
@@ -214,6 +228,7 @@ export const translations = {
       csv: "CSV",
       results: "kết quả",
       of: "trong",
+      in: "ở",
       showing: "Hiển thị",
       page: "Trang",
       language: "Ngôn ngữ",
@@ -248,7 +263,12 @@ export const translations = {
       noEaDetected: "Không tìm thấy ID EA trong báo cáo này.",
       crossModeRequirement: "Tải lên ít nhất 2 báo cáo để dùng chế độ so sánh chéo.",
       profitDistribution: "Phân phối lợi nhuận",
+      profitDistributionDesc: "Số lượng lệnh theo từng mức lợi nhuận / thua lỗ",
+      profitDistributionNote: "Biểu đồ này cho thấy sự phân bố lợi nhuận của từng lệnh giao dịch. Các cột càng cao ở bên phải thể hiện EA có nhiều lệnh thắng lớn, trong khi cột cao bên trái cho thấy nhiều lệnh thua. Đây là công cụ giúp bạn đánh giá độ ổn định và mức độ rủi ro của từng EA.",
       monthlyReturns: "Lợi nhuận theo tháng",
+      monthlyReturnsDesc: "Hiệu suất giao dịch phân bổ theo từng tháng",
+      drawdown: "Sụt giảm (Drawdown)",
+      drawdownDesc: "So sánh mức sụt giảm tài khoản theo thời gian",
       exportCsv: "Xuất CSV",
       columns: {
         profitFactor: "Profit Factor",
@@ -256,7 +276,15 @@ export const translations = {
         avgProfit: "Trung bình lệnh",
         bestTrade: "Lệnh tốt nhất",
         worstTrade: "Lệnh tệ nhất",
-        sharpeRatio: "Sharpe Ratio"
+        sharpeRatio: "Sharpe Ratio",
+        sharpeRatioDesc: "Lợi nhuận điều chỉnh theo rủi ro. Càng cao càng tốt."
+      },
+      histogram: {
+        title: "Phân phối lợi nhuận",
+        rangeLabel: "Khoảng lợi nhuận/thua lỗ",
+        tradesCount: "Số lệnh",
+        percentage: "Tỷ lệ",
+        eaName: "Tên EA",
       }
     },
     chart: {

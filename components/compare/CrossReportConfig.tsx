@@ -68,7 +68,7 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
             }}
           >
             <SelectTrigger className="h-9">
-              <SelectValue placeholder={t('comparison.selectReport') + " A…"}>
+              <SelectValue placeholder={`${t('comparison.selectReport')} A…`}>
                 {sessionA?.name}
               </SelectValue>
             </SelectTrigger>
@@ -84,7 +84,7 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
 
         {sessionA && (
           <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-            <Label className="text-xs">{t('comparison.eaIdentifier')} in A</Label>
+            <Label className="text-xs">{t('comparison.eaIdentifier')} {t('common.in')} A</Label>
             {easA.length > 0 ? (
               <Select value={eaA} onValueChange={(v) => setEaA(v ?? "")}>
                 <SelectTrigger className="h-9">
@@ -121,7 +121,7 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
             }}
           >
             <SelectTrigger className="h-9">
-              <SelectValue placeholder={t('comparison.selectReport') + " B…"}>
+              <SelectValue placeholder={`${t('comparison.selectReport')} B…`}>
                 {sessionB?.name}
               </SelectValue>
             </SelectTrigger>
@@ -137,7 +137,7 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
 
         {sessionB && (
           <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-            <Label className="text-xs">{t('comparison.eaIdentifier')} in B</Label>
+            <Label className="text-xs">{t('comparison.eaIdentifier')} {t('common.in')} B</Label>
             {easB.length > 0 ? (
               <Select value={eaB} onValueChange={(v) => setEaB(v ?? "")}>
                 <SelectTrigger className="h-9">

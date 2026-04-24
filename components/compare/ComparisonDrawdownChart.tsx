@@ -151,8 +151,8 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
   return (
     <Card className="border-border/50 shadow-lg mt-6">
       <CardHeader className="pb-4">
-        <CardTitle className="text-base font-bold">Drawdown</CardTitle>
-        <CardDescription>So sánh mức sụt giảm tài khoản theo thời gian</CardDescription>
+        <CardTitle className="text-base font-bold">{t('comparison.drawdown') || "Drawdown"}</CardTitle>
+        <CardDescription>{t('comparison.drawdownDesc')}</CardDescription>
       </CardHeader>
       <CardContent>
         <div style={{ height: height, width: '100%' }}>

@@ -150,7 +150,7 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger className="cursor-help"><Info className="w-3 h-3" /></TooltipTrigger>
-                        <TooltipContent><p>Risk-adjusted return. Higher is better.</p></TooltipContent>
+                        <TooltipContent><p>{t('comparison.columns.sharpeRatioDesc')}</p></TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   </div>
@@ -179,10 +179,10 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
       <Tabs defaultValue="equity" className="w-full">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <TabsList className="flex-wrap h-auto">
-            <TabsTrigger value="equity">{t('chart.equityTitle') || "Tăng trưởng (Equity)"}</TabsTrigger>
-            <TabsTrigger value="drawdown">Sụt giảm (Drawdown)</TabsTrigger>
-            <TabsTrigger value="distribution">{t('comparison.profitDistribution') || "Phân phối"}</TabsTrigger>
-            <TabsTrigger value="monthly">{t('comparison.monthlyReturns') || "Theo tháng"}</TabsTrigger>
+            <TabsTrigger value="equity">{t('chart.equityTitle')}</TabsTrigger>
+            <TabsTrigger value="drawdown">{t('comparison.drawdown')}</TabsTrigger>
+            <TabsTrigger value="distribution">{t('comparison.profitDistribution')}</TabsTrigger>
+            <TabsTrigger value="monthly">{t('comparison.monthlyReturns')}</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="equity" className="mt-0">

@@ -172,7 +172,7 @@ export function SameReportConfig({ sessions, onAnalyze }: SameReportConfigProps)
         onClick={handleAnalyze}
       >
         <Play size={14} />
-        {t('comparison.compare')} {patternList.length > 0 ? `(${patternList.length} EAs)` : ""}
+        {t('comparison.compare')} {patternList.length > 0 ? `(${patternList.length} ${t('common.results').toLowerCase()})` : ""}
       </Button>
     </div>
   )

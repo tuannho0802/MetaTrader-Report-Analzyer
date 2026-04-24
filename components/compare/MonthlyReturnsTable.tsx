@@ -83,8 +83,8 @@ export function MonthlyReturnsTable({ tradesByEa, currency }: MonthlyReturnsTabl
   return (
     <Card className="border-border/50 shadow-lg mt-6">
       <CardHeader className="pb-4">
-        <CardTitle className="text-base font-bold">{t('comparison.monthlyReturns') || "Lợi nhuận theo tháng"}</CardTitle>
-        <CardDescription>Hiệu suất giao dịch phân bổ theo từng tháng</CardDescription>
+        <CardTitle className="text-base font-bold">{t('comparison.monthlyReturns')}</CardTitle>
+        <CardDescription>{t('comparison.monthlyReturnsDesc')}</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
         
