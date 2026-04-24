@@ -36,6 +36,8 @@ export function adaptMT5ToParseResult(report: MT5Report): ParseResult {
       : trades.reduce((sum, t) => sum + t.profit, 0),
     trades,
     totalFound: trades.length,
-    currency: report.accountInfo.accountCurrency || 'USD'
+    currency: report.accountInfo.accountCurrency || 'USD',
+    startDate: report.exportInfo.dateRangeFrom ? report.exportInfo.dateRangeFrom.replace(/\//g, '-') : null,
+    endDate: report.exportInfo.dateRangeTo ? report.exportInfo.dateRangeTo.replace(/\//g, '-') : null
   };
 }

@@ -73,6 +73,9 @@ export const translations = {
       clearCache: "Clear Cache",
       trades: "trades",
       analyze: "Analyze",
+      recentReports: "Recent Reports",
+      reportDateRange: "Report: {start} - {end}",
+      noReports: "No reports uploaded yet",
     },
     analysis: {
       performance: "Performance",
@@ -241,6 +244,9 @@ export const translations = {
       clearCache: "Xóa bộ nhớ đệm",
       trades: "lệnh",
       analyze: "Phân tích",
+      recentReports: "Báo cáo gần đây",
+      reportDateRange: "Báo cáo: {start} - {end}",
+      noReports: "Chưa có báo cáo nào được tải lên",
     },
     analysis: {
       performance: "Hiệu suất",

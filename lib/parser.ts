@@ -108,14 +108,15 @@ export function recalculateResult(allTrades: Trade[], params: FilterParams): Par
     totalProfit,
     trades: filtered,
     totalFound: allTrades.length,
-    currency: params.currency || 'USD'
+    currency: params.currency || 'USD',
+    startDate: (params as any).reportStartDate || null,
+    endDate: (params as any).reportEndDate || null
   };
 }
 
 export function parseHTMLStatement(html: string, params: FilterParams & { currency?: string }): ParseResult {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
-  
   // Extract Currency from Account Info
   let currency = 'USD';
   const bTags = doc.querySelectorAll('b');
@@ -127,6 +128,25 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
         currency = match[1].toUpperCase();
         break;
       }
+    }
+  }
+
+  // Extract Date Range from header info
+  let startDate: string | null = null;
+  let endDate: string | null = null;
+  
+  const allText = doc.body.textContent || "";
+  // Pattern: "Period: 2024.01.01 00:00 - 2024.04.24 12:00"
+  const periodMatch = allText.match(/Period:\s*(\d{4}\.\d{2}\.\d{2}\s+\d{2}:\d{2})\s*-\s*(\d{4}\.\d{2}\.\d{2}\s+\d{2}:\d{2})/i);
+  if (periodMatch) {
+    startDate = periodMatch[1].replace(/\./g, '-');
+    endDate = periodMatch[2].replace(/\./g, '-');
+  } else {
+    // Try another pattern: "From: ... To: ..."
+    const fromToMatch = allText.match(/From:\s*(\d{4}\.\d{2}\.\d{2}\s+\d{2}:\d{2})\s*To:\s*(\d{4}\.\d{2}\.\d{2}\s+\d{2}:\d{2})/i);
+    if (fromToMatch) {
+      startDate = fromToMatch[1].replace(/\./g, '-');
+      endDate = fromToMatch[2].replace(/\./g, '-');
     }
   }
 
@@ -235,7 +255,9 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
     totalProfit,
     trades: filtered,
     totalFound,
-    currency
+    currency,
+    startDate,
+    endDate
   };
 }
 

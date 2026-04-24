@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { KpiCards } from "@/components/analysis/KpiCards";
 import { MultiEaChart } from "@/components/analysis/MultiEaChart";
 import ResultsTable from "@/components/ResultsTable";
+import { ReportDateRange } from "@/components/ReportDateRange";
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
 import {
   FileSearch,
@@ -126,7 +127,8 @@ export default function Home() {
                   className="mt-6 space-y-8 outline-none animate-in fade-in slide-in-from-left-2 duration-300"
                 >
                   {/* 1. Statistics Cards */}
-                  <section>
+                  <section className="space-y-4">
+                    <ReportDateRange startDate={session.startDate} endDate={session.endDate} />
                     <KpiCards />
                   </section>
 

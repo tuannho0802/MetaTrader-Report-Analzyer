@@ -31,6 +31,8 @@ export interface ParseResult {
   trades: Trade[];
   totalFound: number;  // tổng số giao dịch trong file trước khi lọc
   currency: string;
+  startDate: string | null;
+  endDate: string | null;
 }
 
 export interface FilterPreset {
@@ -54,6 +56,8 @@ export interface AnalysisSession {
   currentResult: ParseResult | null;
   multiEaResults: Record<string, { trades: Trade[]; profit: number }>;
   currency: string;
+  startDate: string | null;
+  endDate: string | null;
   createdAt: number;
 }
 export interface ComparisonResult {

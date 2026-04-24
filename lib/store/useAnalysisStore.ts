@@ -142,6 +142,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
           allTrades: allTradesResult.trades,
           multiEaResults: {},
           currency: result.currency,
+          startDate: result.startDate,
+          endDate: result.endDate,
           createdAt: uploadedAt,
         };
 
@@ -167,7 +169,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
             return { 
               ...s, 
               currentResult: result, 
-              filter: { ...params, currency: s.currency },
+              filter: { ...params, currency: s.currency, reportStartDate: s.startDate, reportEndDate: s.endDate },
               history: newHistory,
               historyIndex: newHistory.length - 1
             };
@@ -194,7 +196,9 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         createdAt: s.createdAt,
         history: s.history,
         historyIndex: s.historyIndex,
-        currency: s.currency
+        currency: s.currency,
+        startDate: s.startDate,
+        endDate: s.endDate
       }))));
 
     } catch (err: any) {
@@ -232,6 +236,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         totalProfit: filtered.reduce((s, t) => s + t.profit, 0),
         totalFound: parseResult.trades.length,
         currency: parseResult.currency,
+        startDate: parseResult.startDate,
+        endDate: parseResult.endDate,
       };
 
       const sessionId = crypto.randomUUID();
@@ -246,6 +252,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         history: [params],
         historyIndex: 0,
         currentResult: filteredResult,
+        startDate: parseResult.startDate,
+        endDate: parseResult.endDate,
         allTrades: parseResult.trades, // unfiltered – needed for comparator
         multiEaResults: {},
         currency: parseResult.currency,
@@ -273,6 +281,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         history: s.history,
         historyIndex: s.historyIndex,
         currency: s.currency,
+        startDate: s.startDate,
+        endDate: s.endDate,
       }))));
 
       set({
@@ -328,7 +338,9 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
           ...s.filter,
           startDate: new Date(s.filter.startDate),
           endDate: new Date(s.filter.endDate),
-          currency: s.currency
+          currency: s.currency,
+          reportStartDate: s.startDate,
+          reportEndDate: s.endDate
         };
 
         const result = trades.length > 0 ? recalculateResult(trades, filter) : null;
@@ -405,6 +417,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       currentResult: null,
       multiEaResults: {},
       currency: 'USD',
+      startDate: null,
+      endDate: null,
       createdAt: Date.now(),
     };
     const updated = [...sessions, newSession];
@@ -440,7 +454,9 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       createdAt: s.createdAt,
       history: s.history,
       historyIndex: s.historyIndex,
-      currency: s.currency
+      currency: s.currency,
+      startDate: s.startDate,
+      endDate: s.endDate
     }))));
   },
 
