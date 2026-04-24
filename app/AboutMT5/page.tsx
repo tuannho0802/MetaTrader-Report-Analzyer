@@ -13,13 +13,20 @@ import {
   Code2,
 } from "lucide-react";
 import { useTranslation } from "@/lib/i18n";
-import { BASE_PATH } from "@/lib/constants";
+import { BASE_PATH, GITHUB_RAW_BASE } from "@/lib/constants";
 
 
 export default function AboutMT5Page() {
   const { t } = useTranslation();
   const steps = t('aboutMT5.steps') as any[];
   const columns = t('aboutMT5.columns') as string[];
+
+  const getDownloadUrl = (path: string) => {
+    // In production, we use the raw github link as a fallback if the self-hosted link fails
+    // But for now, we'll try to use the self-hosted link as primary and provide a way to switch or just use github raw
+    const isProd = process.env.NODE_ENV === 'production';
+    return isProd ? `${GITHUB_RAW_BASE}${path}` : `${BASE_PATH}${path}`;
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -106,7 +113,7 @@ export default function AboutMT5Page() {
             </p>
 
             <a
-              href={`${BASE_PATH}/script-for-mt5/MT5_Report_Script.ex5`}
+              href={getDownloadUrl('/script-for-mt5/MT5_Report_Script.ex5')}
               download
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold shadow-sm hover:bg-primary/90 transition-colors"
             >
@@ -158,7 +165,7 @@ export default function AboutMT5Page() {
             </p>
 
             <a
-              href={`${BASE_PATH}/script-for-mt5/MT5_Report_Script.mq5`}
+              href={getDownloadUrl('/script-for-mt5/MT5_Report_Script.mq5')}
               download
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold shadow-sm hover:bg-primary/90 transition-colors"
             >

@@ -6,3 +6,5 @@ export const INDEXEDDB_NAME = 'MT4AnalyzerDB';
 
 export const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
+export const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/tuannho0802/MetaTrader-Report-Analzyer/main/public";
+
