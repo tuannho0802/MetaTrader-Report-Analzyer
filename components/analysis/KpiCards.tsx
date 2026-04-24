@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, TrendingDown, Layers, PieChart, Activity, ArrowDownCircle, Info } from "lucide-react"
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore"
 import { useTranslation } from "@/lib/i18n"
+import { useSettingsStore } from "@/lib/store/useSettingsStore"
 import { cn, calculateDrawdown } from "@/lib/utils"
+import { ReportDateCard } from "@/components/ReportDateCard"
 import {
   Tooltip,
   TooltipContent,
@@ -18,11 +20,12 @@ export function KpiCards() {
   const activeSession = sessions.find(s => s.id === activeSessionId)
   const currentResult = activeSession?.currentResult || null
   const { t } = useTranslation()
+  const { language } = useSettingsStore()
 
   if (!currentResult) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-        {[1, 2, 3, 4, 5].map((i) => (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
           <Card key={i} className="animate-pulse">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="h-4 w-24 bg-muted rounded" />
@@ -101,7 +104,8 @@ export function KpiCards() {
   ]
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <ReportDateCard className="h-full flex flex-col justify-center" />
       {kpis.map((kpi, i) => (
         <Card key={i} className="overflow-hidden border border-border/50 shadow-sm bg-card/50 backdrop-blur-sm transition-all hover:shadow-md hover:border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-5">

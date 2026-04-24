@@ -29,15 +29,44 @@ export function adaptMT5ToParseResult(report: MT5Report): ParseResult {
     similarity: 0,                      // N/A for imported CSV
   }));
 
-  return {
-    // Use summary total when available, fall back to summing trades
+  const result = {
     totalProfit: report.summary.totalNetProfit !== 0
       ? report.summary.totalNetProfit
       : trades.reduce((sum, t) => sum + t.profit, 0),
     trades,
     totalFound: trades.length,
     currency: report.accountInfo.accountCurrency || 'USD',
-    startDate: report.exportInfo.dateRangeFrom ? report.exportInfo.dateRangeFrom.replace(/\//g, '-') : null,
-    endDate: report.exportInfo.dateRangeTo ? report.exportInfo.dateRangeTo.replace(/\//g, '-') : null
+    startDate: report.exportInfo.dateRangeFrom ? report.exportInfo.dateRangeFrom.split(' ')[0].replace(/\//g, '-') : null,
+    endDate: report.exportInfo.dateRangeTo ? report.exportInfo.dateRangeTo.split(' ')[0].replace(/\//g, '-') : null
   };
+
+  // Fallback to deriving from trades if not available from export info
+  if ((!result.startDate || !result.endDate) && trades.length > 0) {
+    let minTime = new Date('2100-01-01').getTime();
+    let maxTime = new Date('1970-01-01').getTime();
+    
+    for (const trade of trades) {
+      if (!trade.closeTime) continue;
+      const timeStr = trade.closeTime.replace(/\./g, '/');
+      const timeVal = new Date(timeStr).getTime();
+      if (!isNaN(timeVal)) {
+        if (timeVal < minTime) minTime = timeVal;
+        if (timeVal > maxTime) maxTime = timeVal;
+      }
+    }
+    
+    if (minTime <= maxTime && minTime !== new Date('2100-01-01').getTime()) {
+      const minDate = new Date(minTime);
+      const maxDate = new Date(maxTime);
+      
+      const formatFallback = (d: Date) => {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      };
+
+      if (!result.startDate) result.startDate = formatFallback(minDate);
+      if (!result.endDate) result.endDate = formatFallback(maxDate);
+    }
+  }
+
+  return result;
 }

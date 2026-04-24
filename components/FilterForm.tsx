@@ -40,7 +40,9 @@ interface FilterFormProps {
 }
 
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
+import { useSettingsStore } from "@/lib/store/useSettingsStore";
 import { usePresets } from "@/hooks/use-presets";
+
 import { 
   Settings2, 
   Bookmark, 
@@ -81,7 +83,9 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
     errorMsg
   } = useAnalysisStore();
   const { t } = useTranslation();
+  const { language } = useSettingsStore();
   const activeSession = sessions.find(s => s.id === activeSessionId);
+
 
   const canUndo = (activeSession?.historyIndex ?? 0) > 0;
   const canRedo = (activeSession?.historyIndex ?? 0) < (activeSession?.history.length ?? 0) - 1;
@@ -357,11 +361,19 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
             id="startDate"
             type="date"
             {...register("startDate")}
+            max={new Date().toISOString().split('T')[0]}
             disabled={disabled || isLoading}
             className="rounded-lg h-10"
           />
           {errors.startDate && (
             <p className="text-xs text-rose-500 font-medium">{errors.startDate.message}</p>
+          )}
+          {activeSession?.startDate && watch("startDate") < activeSession.startDate && (
+            <p className="text-[10px] text-amber-500 font-medium leading-tight mt-1">
+              {language === 'vi' 
+                ? `Dữ liệu này chỉ có từ ngày ${activeSession.startDate}.`
+                : `Data only available from ${activeSession.startDate}.`}
+            </p>
           )}
         </div>
         <div className="space-y-2">
@@ -370,14 +382,23 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
             id="endDate"
             type="date"
             {...register("endDate")}
+            max={new Date().toISOString().split('T')[0]}
             disabled={disabled || isLoading}
             className="rounded-lg h-10"
           />
           {errors.endDate && (
             <p className="text-xs text-rose-500 font-medium">{errors.endDate.message}</p>
           )}
+          {activeSession?.endDate && watch("endDate") > activeSession.endDate && (
+            <p className="text-[10px] text-amber-500 font-medium leading-tight mt-1">
+              {language === 'vi' 
+                ? `Dữ liệu báo cáo kết thúc vào ngày ${activeSession.endDate}.`
+                : `Report data ends on ${activeSession.endDate}.`}
+            </p>
+          )}
         </div>
       </div>
+
 
       <Button
         type="submit"

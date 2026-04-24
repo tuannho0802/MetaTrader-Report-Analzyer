@@ -2,10 +2,10 @@ import { Trade, FilterParams, ParseResult, FilterMode } from "./types";
 
 export function parseMT4Date(dateStr: string): Date | null {
   if (!dateStr?.trim()) return null;
-  const match = dateStr.trim().match(/^(\d{4})\.(\d{2})\.(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
+  const match = dateStr.trim().match(/^(\d{4})[./](\d{2})[./](\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
   if (!match) return null;
-  const [, year, month, day, hour, min, sec] = match.map(Number);
-  return new Date(year, month - 1, day, hour, min, sec);
+  const [, year, month, day, hour, min, sec] = match;
+  return new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(min), sec ? Number(sec) : 0);
 }
 
 export function diceCoefficient(a: string, b: string): number {
@@ -136,14 +136,13 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
   let endDate: string | null = null;
   
   const allText = doc.body.textContent || "";
-  // Pattern: "Period: 2024.01.01 00:00 - 2024.04.24 12:00"
-  const periodMatch = allText.match(/Period:\s*(\d{4}\.\d{2}\.\d{2}\s+\d{2}:\d{2})\s*-\s*(\d{4}\.\d{2}\.\d{2}\s+\d{2}:\d{2})/i);
+  const periodMatch = allText.match(/Period:\s*(?:Custom\s*)?\(?(\d{4}\.\d{2}\.\d{2})(?:\s+\d{2}:\d{2})?\s*-\s*(\d{4}\.\d{2}\.\d{2})(?:\s+\d{2}:\d{2})?\)?/i);
   if (periodMatch) {
     startDate = periodMatch[1].replace(/\./g, '-');
     endDate = periodMatch[2].replace(/\./g, '-');
   } else {
-    // Try another pattern: "From: ... To: ..."
-    const fromToMatch = allText.match(/From:\s*(\d{4}\.\d{2}\.\d{2}\s+\d{2}:\d{2})\s*To:\s*(\d{4}\.\d{2}\.\d{2}\s+\d{2}:\d{2})/i);
+    // Attempt to find another pattern like "From: 2024.01.01 To: 2024.04.24"
+    const fromToMatch = allText.match(/From:\s*(\d{4}\.\d{2}\.\d{2})(?:\s+\d{2}:\d{2})?\s*To:\s*(\d{4}\.\d{2}\.\d{2})(?:\s+\d{2}:\d{2})?/i);
     if (fromToMatch) {
       startDate = fromToMatch[1].replace(/\./g, '-');
       endDate = fromToMatch[2].replace(/\./g, '-');
@@ -249,7 +248,38 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
     }
   }
 
+  // Fallback: If startDate or endDate is null, derive from trades
+  if ((!startDate || !endDate) && allExtractedTrades.length > 0) {
+    let minTime = new Date('2100-01-01').getTime();
+    let maxTime = new Date('1970-01-01').getTime();
+    
+    for (const trade of allExtractedTrades) {
+      if (!trade.closeTime) continue;
+      // Convert "YYYY.MM.DD HH:mm:ss" to "YYYY/MM/DD HH:mm:ss" for robust cross-browser parsing (Safari doesn't like "-")
+      const timeStr = trade.closeTime.replace(/\./g, '/');
+      const timeVal = new Date(timeStr).getTime();
+      if (!isNaN(timeVal)) {
+        if (timeVal < minTime) minTime = timeVal;
+        if (timeVal > maxTime) maxTime = timeVal;
+      }
+    }
+    
+    if (minTime <= maxTime && minTime !== new Date('2100-01-01').getTime()) {
+      const minDate = new Date(minTime);
+      const maxDate = new Date(maxTime);
+      
+      const formatFallback = (d: Date) => {
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      };
+
+      if (!startDate) startDate = formatFallback(minDate);
+      if (!endDate) endDate = formatFallback(maxDate);
+    }
+  }
+
   const { filtered, totalProfit } = filterTrades(allExtractedTrades, params);
+
+  console.log("MT4 PARSER DATES:", { startDate, endDate });
 
   return {
     totalProfit,

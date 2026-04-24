@@ -52,6 +52,7 @@ interface AnalysisState {
   errorMsg: string;
   cachedStatementInfo: CachedInfo | null;
   isHydrated: boolean;
+  filteredTrades: Trade[];
 
   // Actions
   setFile: (file: File | null) => void;
@@ -89,6 +90,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   errorMsg: '',
   cachedStatementInfo: null,
   isHydrated: false,
+  filteredTrades: [],
 
 
 
@@ -182,6 +184,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         sessions: updatedSessions,
         activeSessionId: newActiveId,
         allTrades: updatedSessions.find(s => s.id === newActiveId)?.allTrades || [],
+        filteredTrades: updatedSessions.find(s => s.id === newActiveId)?.currentResult?.trades || [],
         file: null, // Clear file after processing
         isProcessing: false, 
         statusMsg: '' 
@@ -289,6 +292,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         sessions: updatedSessions,
         activeSessionId: sessionId,
         allTrades: parseResult.trades,
+        filteredTrades: filteredResult.trades,
         isProcessing: false,
         statusMsg: '',
         file: null,
@@ -365,6 +369,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
         sessions: sessionsWithTrades,
         activeSessionId: lastActiveId,
         allTrades: sessionsWithTrades.find(s => s.id === lastActiveId)?.allTrades || [],
+        filteredTrades: sessionsWithTrades.find(s => s.id === lastActiveId)?.currentResult?.trades || [],
         isHydrated: true
       });
     } catch (err) {
@@ -393,6 +398,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       allTrades: [], 
       sessions: [], 
       activeSessionId: "", 
+      filteredTrades: [],
       cachedStatementInfo: null, 
       file: null 
     });
@@ -422,7 +428,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       createdAt: Date.now(),
     };
     const updated = [...sessions, newSession];
-    set({ sessions: updated, activeSessionId: newSession.id, allTrades: [] });
+    set({ sessions: updated, activeSessionId: newSession.id, allTrades: [], filteredTrades: [] });
   },
 
   removeSession: async (id) => {
@@ -442,7 +448,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
     set({ 
       sessions: updated, 
       activeSessionId: nextActive,
-      allTrades: nextTrades
+      allTrades: nextTrades,
+      filteredTrades: updated.find(s => s.id === nextActive)?.currentResult?.trades || []
     });
 
     // Update metadata persistence
@@ -465,7 +472,8 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
     const session = sessions.find(s => s.id === id);
     set({ 
       activeSessionId: id,
-      allTrades: session?.allTrades || []
+      allTrades: session?.allTrades || [],
+      filteredTrades: session?.currentResult?.trades || []
     });
   },
 
@@ -482,7 +490,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       s.id === activeSessionId ? { ...s, filter: newFilter, historyIndex: newIndex, currentResult: newResult } : s
     );
 
-    set({ sessions: updatedSessions });
+    set({ sessions: updatedSessions, filteredTrades: newResult?.trades || [] });
   },
 
   redo: () => {
@@ -498,7 +506,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       s.id === activeSessionId ? { ...s, filter: newFilter, historyIndex: newIndex, currentResult: newResult } : s
     );
 
-    set({ sessions: updatedSessions });
+    set({ sessions: updatedSessions, filteredTrades: newResult?.trades || [] });
   },
 
   processMultiEa: (patterns, threshold, startDate, endDate) => {
