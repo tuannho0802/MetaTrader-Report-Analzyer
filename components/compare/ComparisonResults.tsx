@@ -12,13 +12,17 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ComparisonResult, MetricsRow } from "@/lib/types"
 import { ComparisonChart } from "./ComparisonChart"
-import { Table as TableIcon, Info } from "lucide-react"
+import { Table as TableIcon, Info, Download } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
 import { formatCurrency } from "@/lib/formatCurrency"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ComparisonDrawdownChart } from "./ComparisonDrawdownChart"
+import { ComparisonHistogram } from "./ComparisonHistogram"
+import { MonthlyReturnsTable } from "./MonthlyReturnsTable"
+import { exportComparisonCSV } from "@/lib/exportComparison"
+import { Button } from "@/components/ui/button"
 
 interface ComparisonResultsProps {
   data: ComparisonResult
@@ -27,7 +31,6 @@ interface ComparisonResultsProps {
 export function ComparisonResults({ data }: ComparisonResultsProps) {
   const { t } = useTranslation()
 
-  // Helper functions for highlighting
   const getBestValue = (key: keyof MetricsRow) => {
     if (data.metrics.length === 0) return null;
     const values = data.metrics.map(m => m[key] as number).filter(v => v !== null && !isNaN(v));
@@ -49,7 +52,6 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
   const bestProfitFactor = getBestValue('profitFactor');
   const worstProfitFactor = getWorstValue('profitFactor');
   
-  // For maxDrawdown, higher is better (e.g. -2.5 is better than -15.4)
   const bestMaxDrawdown = getBestValue('maxDrawdown'); 
   const worstMaxDrawdown = getWorstValue('maxDrawdown');
   
@@ -60,10 +62,11 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
   const bestSharpe = getBestValue('sharpeRatio');
   const worstSharpe = getWorstValue('sharpeRatio');
 
-  const highlightClass = (val: number | null, best: number | null, worst: number | null) => {
+  const highlightClass = (val: number | null, best: number | null, worst: number | null, pad = true) => {
     if (val === null || best === null || worst === null || best === worst) return "";
-    if (val === best) return "bg-emerald-500/10 dark:bg-emerald-500/20";
-    if (val === worst) return "bg-rose-500/10 dark:bg-rose-500/20";
+    const padding = pad ? " px-2 py-0.5 rounded" : "";
+    if (val === best) return "bg-emerald-500/15 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" + padding;
+    if (val === worst) return "bg-rose-500/15 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400" + padding;
     return "";
   };
 
@@ -81,13 +84,105 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
     });
   };
 
+  const renderMetricsCards = () => {
+    return (
+      <div className={`grid gap-4 p-4 ${data.metrics.length === 2 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'}`}>
+        {data.metrics.map((row, idx) => {
+          const seriesColor = data.series.find(s => s.name === row.name)?.color || '#ccc';
+          return (
+            <Card key={row.name} className="overflow-hidden border-border/50 shadow-sm relative">
+              <div className="absolute top-0 left-0 w-full h-1.5" style={{ backgroundColor: seriesColor }} />
+              <CardHeader className="pb-3 pt-5">
+                <CardTitle className="text-lg font-bold">{row.name}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1 text-sm">
+                
+                <div className="flex justify-between items-center py-2 border-b border-border/40">
+                  <span className="text-muted-foreground">{t('analysis.netProfit')}</span>
+                  <span className={cn("font-bold font-mono", row.totalProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400", highlightClass(row.totalProfit, bestTotalProfit, worstTotalProfit))}>
+                    {row.totalProfit > 0 ? "+" : ""}{formatCurrency(row.totalProfit, row.currency)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center py-2 border-b border-border/40">
+                  <span className="text-muted-foreground">{t('analysis.winRate')}</span>
+                  <span className={cn("font-medium", highlightClass(row.winRate, bestWinRate, worstWinRate))}>{row.winRate}%</span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-b border-border/40">
+                  <span className="text-muted-foreground">{t('comparison.columns.profitFactor')}</span>
+                  <span className={cn("font-medium", highlightClass(row.profitFactor, bestProfitFactor, worstProfitFactor))}>
+                    {row.profitFactor === 9999 ? "∞" : row.profitFactor.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-b border-border/40">
+                  <span className="text-muted-foreground">{t('comparison.columns.maxDrawdown')}</span>
+                  <span className={cn("font-medium", row.maxDrawdown < 0 ? "text-rose-600 dark:text-rose-400" : "", highlightClass(row.maxDrawdown, bestMaxDrawdown, worstMaxDrawdown))}>
+                    {row.maxDrawdown.toFixed(2)}%
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-b border-border/40">
+                  <span className="text-muted-foreground">{t('comparison.columns.avgProfit')}</span>
+                  <span className={cn("font-medium font-mono", highlightClass(row.avgProfitPerTrade, bestAvgProfit, worstAvgProfit))}>
+                    {formatCurrency(row.avgProfitPerTrade, row.currency)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-b border-border/40">
+                  <span className="text-muted-foreground">{t('comparison.columns.bestTrade')}</span>
+                  <span className={cn("font-medium font-mono text-emerald-600 dark:text-emerald-400", highlightClass(row.bestTrade, bestTradeValue, worstTradeValue))}>
+                    +{formatCurrency(row.bestTrade, row.currency)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-b border-border/40">
+                  <span className="text-muted-foreground">{t('comparison.columns.worstTrade')}</span>
+                  <span className={cn("font-medium font-mono text-rose-600 dark:text-rose-400", highlightClass(row.worstTrade, bestTradeValue, worstTradeValue))}>
+                    {formatCurrency(row.worstTrade, row.currency)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-b border-border/40">
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    {t('comparison.columns.sharpeRatio')}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger className="cursor-help"><Info className="w-3 h-3" /></TooltipTrigger>
+                        <TooltipContent><p>Risk-adjusted return. Higher is better.</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <span className={cn("font-medium", highlightClass(row.sharpeRatio, bestSharpe, worstSharpe))}>
+                    {row.sharpeRatio !== null ? row.sharpeRatio.toFixed(2) : "N/A"}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-muted-foreground">{t('analysis.totalTrades')}</span>
+                  <span className="font-medium text-foreground">{row.tradeCount}</span>
+                </div>
+
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+    )
+  }
+
+  const useCardsLayout = data.metrics.length === 2;
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <Tabs defaultValue="equity" className="w-full">
-        <div className="flex items-center justify-between mb-4">
-          <TabsList>
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="equity">{t('chart.equityTitle') || "Tăng trưởng (Equity)"}</TabsTrigger>
             <TabsTrigger value="drawdown">Sụt giảm (Drawdown)</TabsTrigger>
+            <TabsTrigger value="distribution">{t('comparison.profitDistribution') || "Phân phối"}</TabsTrigger>
+            <TabsTrigger value="monthly">{t('comparison.monthlyReturns') || "Theo tháng"}</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="equity" className="mt-0">
@@ -96,21 +191,41 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
         <TabsContent value="drawdown" className="mt-0">
           <ComparisonDrawdownChart series={data.series} height={380} hiddenSeries={hiddenSeries} onLegendClick={toggleSeries} />
         </TabsContent>
+        <TabsContent value="distribution" className="mt-0">
+          <ComparisonHistogram series={data.series} trades={data.tradesByEa || {}} height={380} hiddenSeries={hiddenSeries} onLegendClick={toggleSeries} />
+        </TabsContent>
+        <TabsContent value="monthly" className="mt-0">
+          <MonthlyReturnsTable tradesByEa={data.tradesByEa || {}} currency={data.series[0]?.currency || "USD"} />
+        </TabsContent>
       </Tabs>
 
       <Card className="border-border/50 shadow-lg overflow-hidden">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between py-4 bg-muted/20 border-b border-border/50">
           <CardTitle className="flex items-center gap-2 text-base">
             <TableIcon size={18} className="text-primary" />
             {t('comparison.metrics')}
           </CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportComparisonCSV(data)}
+            className="flex items-center gap-2 h-8"
+          >
+            <Download size={14} />
+            <span className="hidden sm:inline">{t('comparison.exportCsv') || "Export CSV"}</span>
+          </Button>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-muted/50">
+          {/* Always show cards on mobile. Show cards on desktop if length == 2 */}
+          <div className={cn("block", useCardsLayout ? "md:block" : "md:hidden")}>
+            {renderMetricsCards()}
+          </div>
+
+          <div className={cn("hidden", useCardsLayout ? "md:hidden" : "md:block overflow-x-auto -mx-6 px-6 pb-2")}>
+            <Table className="min-w-[800px]">
+              <TableHeader className="bg-muted/50 sticky top-0 z-10">
                 <TableRow>
-                  <TableHead className="px-4 py-3 text-xs font-bold uppercase whitespace-nowrap">
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase whitespace-nowrap sticky left-0 bg-muted/50 shadow-[1px_0_0_0_hsl(var(--border))]">
                     {t('comparison.eaIdentifier')}
                   </TableHead>
                   <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap">
@@ -119,22 +234,22 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
                   <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap">
                     {t('analysis.winRate')}
                   </TableHead>
-                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap hidden md:table-cell">
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap">
                     {t('comparison.columns.profitFactor')}
                   </TableHead>
                   <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap">
                     {t('comparison.columns.maxDrawdown')}
                   </TableHead>
-                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap hidden lg:table-cell">
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap">
                     {t('comparison.columns.avgProfit')}
                   </TableHead>
-                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap hidden xl:table-cell">
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap">
                     {t('comparison.columns.bestTrade')}
                   </TableHead>
-                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap hidden xl:table-cell">
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap">
                     {t('comparison.columns.worstTrade')}
                   </TableHead>
-                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap hidden lg:table-cell">
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger className="flex items-center justify-end gap-1 w-full cursor-help">
@@ -154,14 +269,19 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
               </TableHeader>
               <TableBody>
                 {data.metrics.map((row) => (
-                  <TableRow key={row.name} className="hover:bg-muted/50 transition-colors">
-                    <TableCell className="px-4 py-4 font-bold text-sm whitespace-nowrap">{row.name}</TableCell>
+                  <TableRow key={row.name} className="hover:bg-muted/30 transition-colors">
+                    <TableCell className="px-4 py-4 font-bold text-sm whitespace-nowrap sticky left-0 bg-background shadow-[1px_0_0_0_hsl(var(--border))]">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: data.series.find(s => s.name === row.name)?.color || '#ccc' }} />
+                        {row.name}
+                      </div>
+                    </TableCell>
                     
                     <TableCell
                       className={cn(
                         "px-4 py-4 text-right font-bold font-mono whitespace-nowrap",
                         row.totalProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
-                        highlightClass(row.totalProfit, bestTotalProfit, worstTotalProfit)
+                        highlightClass(row.totalProfit, bestTotalProfit, worstTotalProfit, false)
                       )}
                     >
                       {row.totalProfit > 0 ? "+" : ""}
@@ -170,14 +290,14 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
                     
                     <TableCell className={cn(
                       "px-4 py-4 text-right font-medium whitespace-nowrap",
-                      highlightClass(row.winRate, bestWinRate, worstWinRate)
+                      highlightClass(row.winRate, bestWinRate, worstWinRate, false)
                     )}>
                       {row.winRate}%
                     </TableCell>
 
                     <TableCell className={cn(
-                      "px-4 py-4 text-right font-medium whitespace-nowrap hidden md:table-cell",
-                      highlightClass(row.profitFactor, bestProfitFactor, worstProfitFactor)
+                      "px-4 py-4 text-right font-medium whitespace-nowrap",
+                      highlightClass(row.profitFactor, bestProfitFactor, worstProfitFactor, false)
                     )}>
                       {row.profitFactor === 9999 ? "∞" : row.profitFactor.toFixed(2)}
                     </TableCell>
@@ -185,35 +305,35 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
                     <TableCell className={cn(
                       "px-4 py-4 text-right font-medium whitespace-nowrap",
                       row.maxDrawdown < 0 ? "text-rose-600 dark:text-rose-400" : "",
-                      highlightClass(row.maxDrawdown, bestMaxDrawdown, worstMaxDrawdown)
+                      highlightClass(row.maxDrawdown, bestMaxDrawdown, worstMaxDrawdown, false)
                     )}>
                       {row.maxDrawdown.toFixed(2)}%
                     </TableCell>
 
                     <TableCell className={cn(
-                      "px-4 py-4 text-right font-medium font-mono whitespace-nowrap hidden lg:table-cell",
-                      highlightClass(row.avgProfitPerTrade, bestAvgProfit, worstAvgProfit)
+                      "px-4 py-4 text-right font-medium font-mono whitespace-nowrap",
+                      highlightClass(row.avgProfitPerTrade, bestAvgProfit, worstAvgProfit, false)
                     )}>
                       {formatCurrency(row.avgProfitPerTrade, row.currency)}
                     </TableCell>
 
                     <TableCell className={cn(
-                      "px-4 py-4 text-right font-medium font-mono whitespace-nowrap hidden xl:table-cell text-emerald-600 dark:text-emerald-400",
-                      highlightClass(row.bestTrade, bestTradeValue, worstTradeValue)
+                      "px-4 py-4 text-right font-medium font-mono whitespace-nowrap text-emerald-600 dark:text-emerald-400",
+                      highlightClass(row.bestTrade, bestTradeValue, worstTradeValue, false)
                     )}>
                       +{formatCurrency(row.bestTrade, row.currency)}
                     </TableCell>
 
                     <TableCell className={cn(
-                      "px-4 py-4 text-right font-medium font-mono whitespace-nowrap hidden xl:table-cell text-rose-600 dark:text-rose-400",
-                      highlightClass(row.worstTrade, bestTradeValue, worstTradeValue)
+                      "px-4 py-4 text-right font-medium font-mono whitespace-nowrap text-rose-600 dark:text-rose-400",
+                      highlightClass(row.worstTrade, bestTradeValue, worstTradeValue, false)
                     )}>
                       {formatCurrency(row.worstTrade, row.currency)}
                     </TableCell>
 
                     <TableCell className={cn(
-                      "px-4 py-4 text-right font-medium whitespace-nowrap hidden lg:table-cell",
-                      highlightClass(row.sharpeRatio, bestSharpe, worstSharpe)
+                      "px-4 py-4 text-right font-medium whitespace-nowrap",
+                      highlightClass(row.sharpeRatio, bestSharpe, worstSharpe, false)
                     )}>
                       {row.sharpeRatio !== null ? row.sharpeRatio.toFixed(2) : "N/A"}
                     </TableCell>

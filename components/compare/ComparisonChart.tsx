@@ -10,6 +10,8 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceDot,
+  Label
 } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { EquitySeries } from "@/lib/types"
@@ -80,6 +82,23 @@ export function ComparisonChart({
     return data
   }, [series])
 
+  // Find Peak points for each EA to render ReferenceDots
+  const peaks = useMemo(() => {
+    const p: Record<string, { date: string, value: number }> = {};
+    series.forEach(s => {
+      let max = -Infinity;
+      let maxDate = '';
+      s.data.forEach(d => {
+        if (d.equity > max) {
+          max = d.equity;
+          maxDate = d.date;
+        }
+      });
+      if (maxDate) p[s.name] = { date: maxDate, value: max };
+    });
+    return p;
+  }, [series]);
+
   if (series.length === 0) return null
 
   return (
@@ -129,6 +148,7 @@ export function ComparisonChart({
                 const s = series.find(ser => ser.name === name);
                 return [formatCurrency(value, s?.currency), name];
               }}
+              cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }}
             />
             <Legend
               verticalAlign="top"
@@ -170,6 +190,29 @@ export function ComparisonChart({
                 connectNulls
               />
             ))}
+            {series.map((s) => {
+              if (hiddenSeries.has(s.name)) return null;
+              const peak = peaks[s.name];
+              if (!peak) return null;
+              
+              // Only render dot if the point actually exists in downsampled chartData
+              const exists = chartData.some(d => d.date === peak.date);
+              if (!exists) return null;
+
+              return (
+                <ReferenceDot
+                  key={`peak-${s.name}`}
+                  x={peak.date}
+                  y={peak.value}
+                  r={4}
+                  fill={s.color}
+                  stroke="hsl(var(--background))"
+                  strokeWidth={2}
+                >
+                  <Label value="Peak" position="top" fill={s.color} fontSize={10} fontWeight="bold" />
+                </ReferenceDot>
+              );
+            })}
           </LineChart>
         </ResponsiveContainer>
       </CardContent>

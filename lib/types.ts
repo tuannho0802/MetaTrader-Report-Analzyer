@@ -64,6 +64,7 @@ export interface ComparisonResult {
   mode: 'same' | 'cross';
   series: EquitySeries[];
   metrics: MetricsRow[];
+  tradesByEa?: Record<string, Trade[]>;
 }
 
 export interface EquitySeries {

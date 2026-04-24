@@ -9,7 +9,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend
+  Legend,
+  ReferenceDot,
+  Label
 } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { EquitySeries } from "@/lib/types"
@@ -95,6 +97,26 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
     return { chartData: finalData, dataKeys, minDrawdown: minDd }
   }, [series])
 
+  // Find lowest trough (Max Drawdown) points for each EA
+  const troughs = useMemo(() => {
+    const t: Record<string, { date: string, value: number }> = {};
+    series.forEach(s => {
+      let maxEq = 0;
+      let maxDd = 0; // max drawdown is a negative number
+      let minDate = '';
+      s.data.forEach(d => {
+        if (d.equity > maxEq) maxEq = d.equity;
+        const dd = maxEq > 0 ? ((d.equity - maxEq) / maxEq) * 100 : 0;
+        if (dd < maxDd) {
+          maxDd = dd;
+          minDate = d.date.split(" ")[0]; // using the date format stored in chartData
+        }
+      });
+      if (minDate) t[s.name] = { date: minDate, value: maxDd };
+    });
+    return t;
+  }, [series]);
+
   if (chartData.length === 0) return null
 
   const isDark = theme === "dark"
@@ -168,6 +190,7 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
                   return [`${numValue.toFixed(2)}%`, name];
                 }}
                 labelStyle={{ fontWeight: 'bold', marginBottom: '0.5rem' }}
+                cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }}
               />
               <Legend content={renderLegend} verticalAlign="top" height={36}/>
               {dataKeys.map((key) => !hiddenSeries.has(key.name) && (
@@ -183,6 +206,29 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
                   isAnimationActive={false}
                 />
               ))}
+              {dataKeys.map((key) => {
+                if (hiddenSeries.has(key.name)) return null;
+                const trough = troughs[key.name];
+                if (!trough || trough.value === 0) return null; // Don't show if no drawdown
+                
+                // Only render dot if the point actually exists in downsampled chartData
+                const exists = chartData.some(d => d.date === trough.date);
+                if (!exists) return null;
+
+                return (
+                  <ReferenceDot
+                    key={`trough-${key.name}`}
+                    x={trough.date}
+                    y={trough.value}
+                    r={4}
+                    fill={key.color}
+                    stroke="hsl(var(--background))"
+                    strokeWidth={2}
+                  >
+                    <Label value="Max DD" position="bottom" fill={key.color} fontSize={10} fontWeight="bold" />
+                  </ReferenceDot>
+                );
+              })}
             </AreaChart>
           </ResponsiveContainer>
         </div>

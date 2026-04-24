@@ -59,6 +59,9 @@ export const translations = {
       selectEa: "Select EA",
       noEaDetected: "No EA IDs detected in this report.",
       crossModeRequirement: "Upload at least 2 reports to use cross-report mode.",
+      profitDistribution: "Profit Distribution",
+      monthlyReturns: "Monthly Returns",
+      exportCsv: "Export CSV",
       columns: {
         profitFactor: "Profit Factor",
         maxDrawdown: "Max Drawdown",
@@ -244,6 +247,9 @@ export const translations = {
       selectEa: "Chọn EA",
       noEaDetected: "Không tìm thấy ID EA trong báo cáo này.",
       crossModeRequirement: "Tải lên ít nhất 2 báo cáo để dùng chế độ so sánh chéo.",
+      profitDistribution: "Phân phối lợi nhuận",
+      monthlyReturns: "Lợi nhuận theo tháng",
+      exportCsv: "Xuất CSV",
       columns: {
         profitFactor: "Profit Factor",
         maxDrawdown: "Max Drawdown (%)",

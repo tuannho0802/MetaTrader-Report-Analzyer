@@ -99,6 +99,8 @@ export function compareSameReport(
   const series: EquitySeries[] = [];
   const metrics: MetricsRow[] = [];
 
+  const tradesByEa: Record<string, Trade[]> = {};
+
   eaIds.forEach((id, index) => {
     const eaTrades = trades.filter(t => 
       (t.eaId || "").toLowerCase() === id.toLowerCase() || 
@@ -106,6 +108,7 @@ export function compareSameReport(
     );
 
     if (eaTrades.length > 0) {
+      tradesByEa[id] = eaTrades;
       series.push({
         name: id,
         data: calculateEquity(eaTrades),
@@ -116,7 +119,7 @@ export function compareSameReport(
     }
   });
 
-  return { mode: 'same', series, metrics };
+  return { mode: 'same', series, metrics, tradesByEa };
 }
 
 export function compareCrossReport(
@@ -126,19 +129,23 @@ export function compareCrossReport(
   const series: EquitySeries[] = [];
   const metrics: MetricsRow[] = [];
 
+  const tradesByEa: Record<string, Trade[]> = {};
+
   // Process Report A
   const tradesA = reportA.trades.filter(t => 
     (t.eaId || "").toLowerCase() === reportA.eaId.toLowerCase() || 
     (t.comment || "").toLowerCase().includes(reportA.eaId.toLowerCase())
   );
   if (tradesA.length > 0) {
+    const nameA = `${reportA.eaId} (${reportA.name})`;
+    tradesByEa[nameA] = tradesA;
     series.push({
-      name: `${reportA.eaId} (${reportA.name})`,
+      name: nameA,
       data: calculateEquity(tradesA),
       color: COLORS[0],
       currency: reportA.currency
     });
-    metrics.push(calculateMetrics(`${reportA.eaId} (${reportA.name})`, tradesA, reportA.currency));
+    metrics.push(calculateMetrics(nameA, tradesA, reportA.currency));
   }
 
   // Process Report B
@@ -147,14 +154,16 @@ export function compareCrossReport(
     (t.comment || "").toLowerCase().includes(reportB.eaId.toLowerCase())
   );
   if (tradesB.length > 0) {
+    const nameB = `${reportB.eaId} (${reportB.name})`;
+    tradesByEa[nameB] = tradesB;
     series.push({
-      name: `${reportB.eaId} (${reportB.name})`,
+      name: nameB,
       data: calculateEquity(tradesB),
       color: COLORS[1],
       currency: reportB.currency
     });
-    metrics.push(calculateMetrics(`${reportB.eaId} (${reportB.name})`, tradesB, reportB.currency));
+    metrics.push(calculateMetrics(nameB, tradesB, reportB.currency));
   }
 
-  return { mode: 'cross', series, metrics };
+  return { mode: 'cross', series, metrics, tradesByEa };
 }
