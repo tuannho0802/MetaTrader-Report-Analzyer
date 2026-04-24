@@ -36,5 +36,6 @@ export function adaptMT5ToParseResult(report: MT5Report): ParseResult {
       : trades.reduce((sum, t) => sum + t.profit, 0),
     trades,
     totalFound: trades.length,
+    currency: report.accountInfo.accountCurrency || 'USD'
   };
 }

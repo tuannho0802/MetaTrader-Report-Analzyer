@@ -24,7 +24,7 @@ function calculateEquity(trades: Trade[]): { date: string; equity: number }[] {
   });
 }
 
-function calculateMetrics(name: string, trades: Trade[]): MetricsRow {
+function calculateMetrics(name: string, trades: Trade[], currency: string): MetricsRow {
   const totalProfit = trades.reduce((sum, t) => sum + t.profit, 0);
   const wins = trades.filter(t => t.profit > 0).length;
   const winRate = trades.length > 0 ? (wins / trades.length) * 100 : 0;
@@ -33,13 +33,15 @@ function calculateMetrics(name: string, trades: Trade[]): MetricsRow {
     name,
     totalProfit: Number(totalProfit.toFixed(2)),
     winRate: Number(winRate.toFixed(1)),
-    tradeCount: trades.length
+    tradeCount: trades.length,
+    currency
   };
 }
 
 export function compareSameReport(
   trades: Trade[],
-  eaIds: string[]
+  eaIds: string[],
+  currency: string
 ): ComparisonResult {
   const series: EquitySeries[] = [];
   const metrics: MetricsRow[] = [];
@@ -54,9 +56,10 @@ export function compareSameReport(
       series.push({
         name: id,
         data: calculateEquity(eaTrades),
-        color: COLORS[index % COLORS.length]
+        color: COLORS[index % COLORS.length],
+        currency
       });
-      metrics.push(calculateMetrics(id, eaTrades));
+      metrics.push(calculateMetrics(id, eaTrades, currency));
     }
   });
 
@@ -64,8 +67,8 @@ export function compareSameReport(
 }
 
 export function compareCrossReport(
-  reportA: { trades: Trade[]; eaId: string; name: string },
-  reportB: { trades: Trade[]; eaId: string; name: string }
+  reportA: { trades: Trade[]; eaId: string; name: string; currency: string },
+  reportB: { trades: Trade[]; eaId: string; name: string; currency: string }
 ): ComparisonResult {
   const series: EquitySeries[] = [];
   const metrics: MetricsRow[] = [];
@@ -79,9 +82,10 @@ export function compareCrossReport(
     series.push({
       name: `${reportA.eaId} (${reportA.name})`,
       data: calculateEquity(tradesA),
-      color: COLORS[0]
+      color: COLORS[0],
+      currency: reportA.currency
     });
-    metrics.push(calculateMetrics(`${reportA.eaId} (${reportA.name})`, tradesA));
+    metrics.push(calculateMetrics(`${reportA.eaId} (${reportA.name})`, tradesA, reportA.currency));
   }
 
   // Process Report B
@@ -93,9 +97,10 @@ export function compareCrossReport(
     series.push({
       name: `${reportB.eaId} (${reportB.name})`,
       data: calculateEquity(tradesB),
-      color: COLORS[1]
+      color: COLORS[1],
+      currency: reportB.currency
     });
-    metrics.push(calculateMetrics(`${reportB.eaId} (${reportB.name})`, tradesB));
+    metrics.push(calculateMetrics(`${reportB.eaId} (${reportB.name})`, tradesB, reportB.currency));
   }
 
   return { mode: 'cross', series, metrics };

@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { EquitySeries } from "@/lib/types"
 import { LayoutGrid } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
+import { getCurrencySymbol, formatCurrency } from "@/lib/formatCurrency"
 
 interface ComparisonChartProps {
   series: EquitySeries[]
@@ -100,7 +101,7 @@ export function ComparisonChart({
             <XAxis dataKey="date" hide={true} />
             <YAxis
               tick={{ fontSize: 10, fontWeight: 500 }}
-              tickFormatter={(val) => `$${val}`}
+              tickFormatter={(val) => `${getCurrencySymbol(series[0]?.currency)}${val}`}
               axisLine={false}
               tickLine={false}
               className="fill-muted-foreground"
@@ -119,6 +120,10 @@ export function ComparisonChart({
                 fontWeight: "bold",
                 color: "hsl(var(--muted-foreground))",
                 marginBottom: "8px",
+              }}
+              formatter={(value: any, name: any) => {
+                const s = series.find(ser => ser.name === name);
+                return [formatCurrency(value, s?.currency), name];
               }}
             />
             <Legend

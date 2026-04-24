@@ -15,6 +15,7 @@ import { ComparisonChart } from "./ComparisonChart"
 import { Table as TableIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
+import { formatCurrency } from "@/lib/formatCurrency"
 
 interface ComparisonResultsProps {
   data: ComparisonResult
@@ -63,7 +64,7 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
                     )}
                   >
                     {row.totalProfit > 0 ? "+" : ""}
-                    {row.totalProfit.toFixed(2)} USD
+                    {formatCurrency(row.totalProfit, row.currency)}
                   </TableCell>
                   <TableCell className="px-6 py-4 text-right font-medium">
                     {row.winRate}%

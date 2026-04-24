@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore"
 import { useTranslation } from "@/lib/i18n"
 import { LayoutGrid } from "lucide-react"
+import { getCurrencySymbol, formatCurrency } from "@/lib/formatCurrency"
 
 export function MultiEaChart() {
   const { sessions, activeSessionId } = useAnalysisStore()
@@ -121,7 +122,7 @@ export function MultiEaChart() {
             />
             <YAxis 
               tick={{ fontSize: 10, fontWeight: 500 }} 
-              tickFormatter={(val) => `$${val}`}
+              tickFormatter={(val) => `${getCurrencySymbol(activeSession?.currency)}${val}`}
               axisLine={false}
               tickLine={false}
               className="fill-muted-foreground"
@@ -136,6 +137,7 @@ export function MultiEaChart() {
               }}
               itemStyle={{ fontSize: '12px', fontWeight: '600', padding: '2px 0' }}
               labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: 'hsl(var(--muted-foreground))', marginBottom: '8px' }}
+              formatter={(value: any) => formatCurrency(value, activeSession?.currency)}
             />
             <Legend 
               verticalAlign="top" 

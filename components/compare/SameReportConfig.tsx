@@ -91,7 +91,7 @@ export function SameReportConfig({ sessions, onAnalyze }: SameReportConfigProps)
       })
     })
 
-    const result = compareSameReport(selectedSession.allTrades || [], patternList)
+    const result = compareSameReport(selectedSession.allTrades || [], patternList, selectedSession.currency || 'USD')
     onAnalyze(result)
   }
 

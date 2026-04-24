@@ -23,12 +23,14 @@ export interface FilterParams {
   startDate: Date;
   endDate: Date;
   filterMode: FilterMode;
+  currency?: string;
 }
 
 export interface ParseResult {
   totalProfit: number;
   trades: Trade[];
   totalFound: number;  // tổng số giao dịch trong file trước khi lọc
+  currency: string;
 }
 
 export interface FilterPreset {
@@ -51,6 +53,7 @@ export interface AnalysisSession {
   historyIndex: number;
   currentResult: ParseResult | null;
   multiEaResults: Record<string, { trades: Trade[]; profit: number }>;
+  currency: string;
   createdAt: number;
 }
 export interface ComparisonResult {
@@ -63,6 +66,7 @@ export interface EquitySeries {
   name: string;
   data: { date: string; equity: number }[];
   color: string;
+  currency?: string;
 }
 
 export interface MetricsRow {
@@ -70,4 +74,5 @@ export interface MetricsRow {
   totalProfit: number;
   winRate: number;
   tradeCount: number;
+  currency: string;
 }

@@ -44,8 +44,8 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
   const handleAnalyze = () => {
     if (!sessionA || !sessionB || !eaA || !eaB) return
     const result = compareCrossReport(
-      { trades: sessionA.allTrades || [], eaId: eaA, name: sessionA.name },
-      { trades: sessionB.allTrades || [], eaId: eaB, name: sessionB.name }
+      { trades: sessionA.allTrades || [], eaId: eaA, name: sessionA.name, currency: sessionA.currency || 'USD' },
+      { trades: sessionB.allTrades || [], eaId: eaB, name: sessionB.name, currency: sessionB.currency || 'USD' }
     )
     onAnalyze(result)
   }

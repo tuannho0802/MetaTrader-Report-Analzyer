@@ -11,6 +11,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { formatCurrency } from "@/lib/formatCurrency"
 
 export function KpiCards() {
   const { sessions, activeSessionId } = useAnalysisStore()
@@ -62,7 +63,7 @@ export function KpiCards() {
   const kpis = [
     {
       title: t('analysis.netProfit'),
-      value: `${totalProfit.toFixed(2)} USD`,
+      value: formatCurrency(totalProfit, activeSession?.currency || 'USD'),
       icon: totalProfit >= 0 ? TrendingUp : TrendingDown,
       description: t('analysis.netProfit'),
       color: totalProfit >= 0 ? "text-emerald-400" : "text-rose-400"
@@ -77,7 +78,7 @@ export function KpiCards() {
     {
       title: t('analysis.maxDrawdown'),
       value: `-${drawdown.percent.toFixed(1)}%`,
-      subValue: `-${drawdown.amount.toFixed(2)} USD`,
+      subValue: `-${formatCurrency(drawdown.amount, activeSession?.currency || 'USD')}`,
       icon: ArrowDownCircle,
       description: t('analysis.maxDrawdown'),
       color: "text-rose-400",

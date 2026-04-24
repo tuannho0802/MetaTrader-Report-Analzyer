@@ -18,6 +18,7 @@ import {
 
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
 import { useTranslation } from "@/lib/i18n";
+import { formatCurrency } from "@/lib/formatCurrency";
 
 interface ResultsTableProps {
   result: ParseResult | null;
@@ -166,7 +167,7 @@ export default function ResultsTable({ result }: ResultsTableProps) {
                         "text-right font-bold text-sm px-4 py-2.5 tabular-nums",
                         t.profit >= 0 ? "text-emerald-400" : "text-rose-400"
                       )}>
-                        {t.profit > 0 ? "+" : ""}{t.profit.toFixed(2)}
+                        {formatCurrency(t.profit, result.currency)}
                       </TableCell>
                       <TableCell className="max-w-[150px] truncate italic text-muted-foreground text-xs px-4 py-2.5" title={t.comment}>
                         {t.comment || "-"}

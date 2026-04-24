@@ -107,13 +107,28 @@ export function recalculateResult(allTrades: Trade[], params: FilterParams): Par
   return {
     totalProfit,
     trades: filtered,
-    totalFound: allTrades.length
+    totalFound: allTrades.length,
+    currency: params.currency || 'USD'
   };
 }
 
-export function parseHTMLStatement(html: string, params: FilterParams): ParseResult {
+export function parseHTMLStatement(html: string, params: FilterParams & { currency?: string }): ParseResult {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
+  
+  // Extract Currency from Account Info
+  let currency = 'USD';
+  const bTags = doc.querySelectorAll('b');
+  for (const b of Array.from(bTags)) {
+    if (b.textContent?.includes('Currency:')) {
+      const parentText = b.parentElement?.textContent || '';
+      const match = parentText.match(/Currency:\s*(\w+)/i);
+      if (match) {
+        currency = match[1].toUpperCase();
+        break;
+      }
+    }
+  }
 
   const allTables = doc.querySelectorAll("table");
   let targetTable = null;
@@ -219,7 +234,8 @@ export function parseHTMLStatement(html: string, params: FilterParams): ParseRes
   return {
     totalProfit,
     trades: filtered,
-    totalFound
+    totalFound,
+    currency
   };
 }
 
