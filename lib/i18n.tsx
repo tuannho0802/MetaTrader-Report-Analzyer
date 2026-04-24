@@ -375,7 +375,9 @@ export const TranslationProvider = ({ children }: { children: React.ReactNode })
 
   return (
     <TranslationContext.Provider value={{ language }}>
-      {children}
+      <div data-lang={language} className="contents">
+        {children}
+      </div>
     </TranslationContext.Provider>
   );
 };

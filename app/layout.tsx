@@ -8,6 +8,8 @@ import { AppSidebar } from "@/components/layout/AppSidebar";
 import { Header } from "@/components/layout/Header";
 import { StoreHydrator } from "@/components/StoreHydrator";
 
+import { ClientLayout } from "@/components/layout/ClientLayout";
+
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
@@ -21,7 +23,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var stored = localStorage.getItem('settings-storage');
+                  if (stored) {
+                    var parsed = JSON.parse(stored);
+                    var lang = parsed.state && parsed.state.language;
+                    if (lang === 'vi') {
+                      document.documentElement.classList.add('lang-vi');
+                    }
+                  }
+                } catch(e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
@@ -29,24 +51,26 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <TooltipProvider>
-            <SidebarProvider>
-              <AppSidebar />
-              <SidebarInset>
-                <div className="flex flex-col min-h-screen bg-background text-foreground transition-colors duration-300">
-                  <Header />
-                  <main className="flex-1 p-4 md:p-6 lg:p-8 space-y-8 max-w-[1600px] mx-auto w-full">
-                    <StoreHydrator>
-                      {children}
-                    </StoreHydrator>
-                  </main>
-                  <footer className="border-t py-6 px-8 text-center text-xs text-muted-foreground">
-                    <p>&copy; {new Date().getFullYear()} MT4 EA Profit Filter Dashboard. All rights reserved.</p>
-                  </footer>
-                </div>
-              </SidebarInset>
-            </SidebarProvider>
-          </TooltipProvider>
+          <ClientLayout>
+            <TooltipProvider>
+              <SidebarProvider>
+                <AppSidebar />
+                <SidebarInset>
+                  <div className="flex flex-col min-h-screen bg-background text-foreground transition-colors duration-300">
+                    <Header />
+                    <main className="flex-1 p-4 md:p-6 lg:p-8 space-y-8 max-w-[1600px] mx-auto w-full">
+                      <StoreHydrator>
+                        {children}
+                      </StoreHydrator>
+                    </main>
+                    <footer className="border-t py-6 px-8 text-center text-xs text-muted-foreground">
+                      <p>&copy; {new Date().getFullYear()} MT4 EA Profit Filter Dashboard. All rights reserved.</p>
+                    </footer>
+                  </div>
+                </SidebarInset>
+              </SidebarProvider>
+            </TooltipProvider>
+          </ClientLayout>
         </ThemeProvider>
       </body>
     </html>

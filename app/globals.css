@@ -128,3 +128,14 @@
     @apply font-sans;
   }
 }
+
+/* 
+ * Language Hydration Guard 
+ * Prevents EN text flicker when VI is the stored preference.
+ */
+html:not(.lang-vi) [data-lang="vi"] {
+  display: none;
+}
+html.lang-vi [data-lang="en"] {
+  display: none;
+}
