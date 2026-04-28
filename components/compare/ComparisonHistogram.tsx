@@ -207,8 +207,8 @@ export function ComparisonHistogram({ series, trades, height = 300, hiddenSeries
             </ComposedChart>
           </ResponsiveContainer>
         </div>
-        <p className="text-xs text-muted-foreground mt-4 text-center px-4 max-w-4xl mx-auto">
-          {t('comparison.profitDistributionNote')}
+        <p className="mt-4 text-xs text-muted-foreground italic border-t border-border/40 pt-2">
+          {t('comparison.histogramChartNote')}
         </p>
       </CardContent>
     </Card>

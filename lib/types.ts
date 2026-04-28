@@ -86,4 +86,11 @@ export interface MetricsRow {
   bestTrade: number;
   worstTrade: number;
   sharpeRatio: number | null;
+  longRate: number;
+  shortRate: number;
+  avgWin: number;
+  avgLoss: number;
+  expectancy: number;
+  recoveryFactor: number;
+  profitPerDay: number;
 }

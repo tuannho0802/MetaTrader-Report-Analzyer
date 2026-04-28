@@ -34,9 +34,10 @@ function calculateMetrics(name: string, trades: Trade[], currency: string): Metr
   const grossLoss = losses.reduce((sum, t) => sum + t.profit, 0);
   const profitFactor = grossLoss === 0 ? (grossProfit > 0 ? 9999 : 0) : grossProfit / Math.abs(grossLoss);
 
-  // Calculate Max Drawdown
+  // Calculate Max Drawdown (Percentage and Absolute)
   let maxEquity = 0;
-  let maxDrawdown = 0;
+  let maxDrawdown = 0; // %
+  let maxDrawdownAbs = 0; // Absolute amount
   let runningEquity = 0;
   
   // Need to sort trades to calculate drawdown correctly
@@ -45,13 +46,27 @@ function calculateMetrics(name: string, trades: Trade[], currency: string): Metr
   );
 
   const profits: number[] = [];
+  const uniqueDays = new Set<string>();
   
   for (const t of sorted) {
     runningEquity += t.profit;
     profits.push(t.profit);
+    
+    // Track unique trading days based on close time
+    const day = t.closeTime.split(' ')[0];
+    if (day) uniqueDays.add(day);
+
     if (runningEquity > maxEquity) {
       maxEquity = runningEquity;
     }
+    
+    // Drawdown amount
+    const currentDrawdownAbs = maxEquity - runningEquity;
+    if (currentDrawdownAbs > maxDrawdownAbs) {
+      maxDrawdownAbs = currentDrawdownAbs;
+    }
+
+    // Drawdown percentage
     const currentDrawdown = maxEquity > 0 ? ((runningEquity - maxEquity) / maxEquity) * 100 : 0;
     if (currentDrawdown < maxDrawdown) {
       maxDrawdown = currentDrawdown;
@@ -61,6 +76,19 @@ function calculateMetrics(name: string, trades: Trade[], currency: string): Metr
   const avgProfitPerTrade = trades.length > 0 ? totalProfit / trades.length : 0;
   const bestTrade = trades.length > 0 ? Math.max(...trades.map(t => t.profit)) : 0;
   const worstTrade = trades.length > 0 ? Math.min(...trades.map(t => t.profit)) : 0;
+
+  // New Metrics
+  const buyTrades = trades.filter(t => t.type?.toLowerCase().includes('buy'));
+  const sellTrades = trades.filter(t => t.type?.toLowerCase().includes('sell'));
+  const longRate = trades.length > 0 ? (buyTrades.length / trades.length) * 100 : 0;
+  const shortRate = trades.length > 0 ? (sellTrades.length / trades.length) * 100 : 0;
+
+  const avgWin = wins.length > 0 ? grossProfit / wins.length : 0;
+  const avgLoss = losses.length > 0 ? grossLoss / losses.length : 0;
+  const expectancy = (winRate / 100 * avgWin) + ((1 - winRate / 100) * avgLoss);
+  
+  const recoveryFactor = maxDrawdownAbs <= 0 ? (totalProfit > 0 ? 9999 : 0) : totalProfit / maxDrawdownAbs;
+  const profitPerDay = uniqueDays.size > 0 ? totalProfit / uniqueDays.size : 0;
 
   let sharpeRatio: number | null = null;
   if (profits.length > 1) {
@@ -87,7 +115,14 @@ function calculateMetrics(name: string, trades: Trade[], currency: string): Metr
     avgProfitPerTrade: Number(avgProfitPerTrade.toFixed(2)),
     bestTrade: Number(bestTrade.toFixed(2)),
     worstTrade: Number(worstTrade.toFixed(2)),
-    sharpeRatio: sharpeRatio !== null ? Number(sharpeRatio.toFixed(2)) : null
+    sharpeRatio: sharpeRatio !== null ? Number(sharpeRatio.toFixed(2)) : null,
+    longRate: Number(longRate.toFixed(1)),
+    shortRate: Number(shortRate.toFixed(1)),
+    avgWin: Number(avgWin.toFixed(2)),
+    avgLoss: Number(avgLoss.toFixed(2)),
+    expectancy: Number(expectancy.toFixed(2)),
+    recoveryFactor: Number(recoveryFactor.toFixed(2)),
+    profitPerDay: Number(profitPerDay.toFixed(2))
   };
 }
 

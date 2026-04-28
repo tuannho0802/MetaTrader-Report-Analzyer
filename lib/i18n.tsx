@@ -75,7 +75,14 @@ export const translations = {
         bestTrade: "Best Trade",
         worstTrade: "Worst Trade",
         sharpeRatio: "Sharpe Ratio",
-        sharpeRatioDesc: "Risk-adjusted return. Higher is better."
+        sharpeRatioDesc: "Risk-adjusted return. Higher is better.",
+        longRate: "Long Rate",
+        shortRate: "Short Rate",
+        avgWin: "Avg Win",
+        avgLoss: "Avg Loss",
+        expectancy: "Expectancy",
+        recoveryFactor: "Recovery Factor",
+        profitPerDay: "Profit per Day"
       },
       histogram: {
         title: "Profit Distribution",
@@ -83,7 +90,11 @@ export const translations = {
         tradesCount: "Trades",
         percentage: "Percentage",
         eaName: "EA Name",
-      }
+      },
+      equityChartNote: "This chart shows account equity growth over time. The steeper the slope, the better the EA performed during that period.",
+      drawdownChartNote: "This chart shows account drawdown over time. The deeper the valley, the greater the risk. Pay attention to the lowest points.",
+      histogramChartNote: "Distribution of individual trade profits. Tall bars on the right indicate many large wins; tall bars on the left signal heavy losses. Helps assess stability and risk.",
+      monthlyReturnsNote: "Monthly profit summary. Green cells = profitable months, red cells = losing months. Useful for spotting seasonality or weak periods.",
     },
     chart: {
       equityTitle: "Comparative Equity Curve",
@@ -277,7 +288,14 @@ export const translations = {
         bestTrade: "Lệnh tốt nhất",
         worstTrade: "Lệnh tệ nhất",
         sharpeRatio: "Sharpe Ratio",
-        sharpeRatioDesc: "Lợi nhuận điều chỉnh theo rủi ro. Càng cao càng tốt."
+        sharpeRatioDesc: "Lợi nhuận điều chỉnh theo rủi ro. Càng cao càng tốt.",
+        longRate: "Tỷ lệ Buy",
+        shortRate: "Tỷ lệ Sell",
+        avgWin: "Lợi nhuận TB thắng",
+        avgLoss: "Thua lỗ TB",
+        expectancy: "Kỳ vọng (Expectancy)",
+        recoveryFactor: "Hệ số hồi phục (RF)",
+        profitPerDay: "Lãi/Ngày"
       },
       histogram: {
         title: "Phân phối lợi nhuận",
@@ -285,7 +303,11 @@ export const translations = {
         tradesCount: "Số lệnh",
         percentage: "Tỷ lệ",
         eaName: "Tên EA",
-      }
+      },
+      equityChartNote: "Biểu đồ thể hiện sự tăng trưởng của tài khoản theo thời gian. Đường càng dốc lên, EA càng hiệu quả trong giai đoạn đó.",
+      drawdownChartNote: "Biểu đồ thể hiện mức sụt giảm tài khoản theo thời gian. Đường càng đi xuống, rủi ro càng lớn. Chú ý các đáy sâu – thời điểm tài khoản mất giá trị nhiều nhất.",
+      histogramChartNote: "Biểu đồ phân phối lợi nhuận từng lệnh. Cột cao bên phải thể hiện nhiều lệnh thắng lớn, cột cao bên trái cảnh báo các lệnh thua nặng. Giúp đánh giá độ ổn định và rủi ro.",
+      monthlyReturnsNote: "Bảng tổng kết lợi nhuận theo từng tháng. Ô màu xanh là tháng có lãi, ô màu đỏ là tháng thua lỗ. Dùng để phát hiện mùa vụ hoặc giai đoạn EA hoạt động kém.",
     },
     chart: {
       equityTitle: "Biểu đồ tăng trưởng so sánh",

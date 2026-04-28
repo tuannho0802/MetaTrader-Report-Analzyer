@@ -174,6 +174,7 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
+                minTickGap={10}
                 domain={[Math.floor(minDrawdown - 5), 0]}
               />
               <Tooltip
@@ -232,6 +233,9 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
             </AreaChart>
           </ResponsiveContainer>
         </div>
+        <p className="mt-4 text-xs text-muted-foreground italic border-t border-border/40 pt-2">
+          {t('comparison.drawdownChartNote')}
+        </p>
       </CardContent>
     </Card>
   )

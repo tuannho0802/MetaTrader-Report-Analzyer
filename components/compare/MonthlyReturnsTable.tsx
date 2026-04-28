@@ -150,6 +150,9 @@ export function MonthlyReturnsTable({ tradesByEa, currency }: MonthlyReturnsTabl
           ))}
         </div>
 
+        <p className="mt-4 text-xs text-muted-foreground italic border-t border-border/40 pt-2 px-4 pb-4">
+          {t('comparison.monthlyReturnsNote')}
+        </p>
       </CardContent>
     </Card>
   )

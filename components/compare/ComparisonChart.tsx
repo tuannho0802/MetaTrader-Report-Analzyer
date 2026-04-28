@@ -215,6 +215,9 @@ export function ComparisonChart({
             })}
           </LineChart>
         </ResponsiveContainer>
+        <p className="mt-4 text-xs text-muted-foreground italic border-t border-border/40 pt-2">
+          {t('comparison.equityChartNote')}
+        </p>
       </CardContent>
     </Card>
   )

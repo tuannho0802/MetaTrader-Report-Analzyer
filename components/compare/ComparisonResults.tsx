@@ -61,6 +61,20 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
   const worstTradeValue = getWorstValue('worstTrade');
   const bestSharpe = getBestValue('sharpeRatio');
   const worstSharpe = getWorstValue('sharpeRatio');
+  const bestLongRate = getBestValue('longRate');
+  const worstLongRate = getWorstValue('longRate');
+  const bestShortRate = getBestValue('shortRate');
+  const worstShortRate = getWorstValue('shortRate');
+  const bestAvgWin = getBestValue('avgWin');
+  const worstAvgWin = getWorstValue('avgWin');
+  const bestAvgLoss = getBestValue('avgLoss');
+  const worstAvgLoss = getWorstValue('avgLoss');
+  const bestExpectancy = getBestValue('expectancy');
+  const worstExpectancy = getWorstValue('expectancy');
+  const bestRecovery = getBestValue('recoveryFactor');
+  const worstRecovery = getWorstValue('recoveryFactor');
+  const bestProfitPerDay = getBestValue('profitPerDay');
+  const worstProfitPerDay = getWorstValue('profitPerDay');
 
   const highlightClass = (val: number | null, best: number | null, worst: number | null, pad = true) => {
     if (val === null || best === null || worst === null || best === worst) return "";
@@ -159,9 +173,55 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center py-2">
+                <div className="flex justify-between items-center py-2 border-b border-border/40">
                   <span className="text-muted-foreground">{t('analysis.totalTrades')}</span>
                   <span className="font-medium text-foreground">{row.tradeCount}</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-x-4 border-b border-border/40">
+                  <div className="flex justify-between items-center py-2 border-r border-border/40 pr-2">
+                    <span className="text-xs text-muted-foreground">{t('comparison.columns.longRate')}</span>
+                    <span className={cn("text-xs font-medium", highlightClass(row.longRate, bestLongRate, worstLongRate))}>{row.longRate}%</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 pl-2">
+                    <span className="text-xs text-muted-foreground">{t('comparison.columns.shortRate')}</span>
+                    <span className={cn("text-xs font-medium", highlightClass(row.shortRate, bestShortRate, worstShortRate))}>{row.shortRate}%</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-b border-border/40">
+                  <span className="text-muted-foreground">{t('comparison.columns.avgWin')}</span>
+                  <span className={cn("font-medium text-emerald-600 dark:text-emerald-400", highlightClass(row.avgWin, bestAvgWin, worstAvgWin))}>
+                    +{formatCurrency(row.avgWin, row.currency)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-b border-border/40">
+                  <span className="text-muted-foreground">{t('comparison.columns.avgLoss')}</span>
+                  <span className={cn("font-medium text-rose-600 dark:text-rose-400", highlightClass(row.avgLoss, bestAvgLoss, worstAvgLoss))}>
+                    {formatCurrency(row.avgLoss, row.currency)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-b border-border/40">
+                  <span className="text-muted-foreground">{t('comparison.columns.expectancy')}</span>
+                  <span className={cn("font-bold font-mono", row.expectancy >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400", highlightClass(row.expectancy, bestExpectancy, worstExpectancy))}>
+                    {formatCurrency(row.expectancy, row.currency)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-2 border-b border-border/40">
+                  <span className="text-muted-foreground">{t('comparison.columns.recoveryFactor')}</span>
+                  <span className={cn("font-medium", highlightClass(row.recoveryFactor, bestRecovery, worstRecovery))}>
+                    {row.recoveryFactor === 9999 ? "∞" : row.recoveryFactor.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-muted-foreground">{t('comparison.columns.profitPerDay')}</span>
+                  <span className={cn("font-medium font-mono", highlightClass(row.profitPerDay, bestProfitPerDay, worstProfitPerDay))}>
+                    {formatCurrency(row.profitPerDay, row.currency)}
+                  </span>
                 </div>
 
               </CardContent>
@@ -262,6 +322,27 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
                       </Tooltip>
                     </TooltipProvider>
                   </TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap hidden lg:table-cell">
+                    {t('comparison.columns.longRate')}
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap hidden lg:table-cell">
+                    {t('comparison.columns.shortRate')}
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap hidden xl:table-cell">
+                    {t('comparison.columns.avgWin')}
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap hidden xl:table-cell">
+                    {t('comparison.columns.avgLoss')}
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap hidden 2xl:table-cell">
+                    {t('comparison.columns.expectancy')}
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap hidden 2xl:table-cell">
+                    {t('comparison.columns.recoveryFactor')}
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap hidden 2xl:table-cell">
+                    {t('comparison.columns.profitPerDay')}
+                  </TableHead>
                   <TableHead className="px-4 py-3 text-xs font-bold uppercase text-right whitespace-nowrap">
                     {t('analysis.totalTrades')}
                   </TableHead>
@@ -336,6 +417,56 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
                       highlightClass(row.sharpeRatio, bestSharpe, worstSharpe, false)
                     )}>
                       {row.sharpeRatio !== null ? row.sharpeRatio.toFixed(2) : "N/A"}
+                    </TableCell>
+
+                    <TableCell className={cn(
+                      "px-4 py-4 text-right font-medium whitespace-nowrap hidden lg:table-cell",
+                      highlightClass(row.longRate, bestLongRate, worstLongRate, false)
+                    )}>
+                      {row.longRate}%
+                    </TableCell>
+
+                    <TableCell className={cn(
+                      "px-4 py-4 text-right font-medium whitespace-nowrap hidden lg:table-cell",
+                      highlightClass(row.shortRate, bestShortRate, worstShortRate, false)
+                    )}>
+                      {row.shortRate}%
+                    </TableCell>
+
+                    <TableCell className={cn(
+                      "px-4 py-4 text-right font-medium font-mono whitespace-nowrap text-emerald-600 dark:text-emerald-400 hidden xl:table-cell",
+                      highlightClass(row.avgWin, bestAvgWin, worstAvgWin, false)
+                    )}>
+                      +{formatCurrency(row.avgWin, row.currency)}
+                    </TableCell>
+
+                    <TableCell className={cn(
+                      "px-4 py-4 text-right font-medium font-mono whitespace-nowrap text-rose-600 dark:text-rose-400 hidden xl:table-cell",
+                      highlightClass(row.avgLoss, bestAvgLoss, worstAvgLoss, false)
+                    )}>
+                      {formatCurrency(row.avgLoss, row.currency)}
+                    </TableCell>
+
+                    <TableCell className={cn(
+                      "px-4 py-4 text-right font-bold font-mono whitespace-nowrap hidden 2xl:table-cell",
+                      row.expectancy >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400",
+                      highlightClass(row.expectancy, bestExpectancy, worstExpectancy, false)
+                    )}>
+                      {formatCurrency(row.expectancy, row.currency)}
+                    </TableCell>
+
+                    <TableCell className={cn(
+                      "px-4 py-4 text-right font-medium whitespace-nowrap hidden 2xl:table-cell",
+                      highlightClass(row.recoveryFactor, bestRecovery, worstRecovery, false)
+                    )}>
+                      {row.recoveryFactor === 9999 ? "∞" : row.recoveryFactor.toFixed(2)}
+                    </TableCell>
+
+                    <TableCell className={cn(
+                      "px-4 py-4 text-right font-medium font-mono whitespace-nowrap hidden 2xl:table-cell",
+                      highlightClass(row.profitPerDay, bestProfitPerDay, worstProfitPerDay, false)
+                    )}>
+                      {formatCurrency(row.profitPerDay, row.currency)}
                     </TableCell>
 
                     <TableCell className="px-4 py-4 text-right text-muted-foreground whitespace-nowrap">
