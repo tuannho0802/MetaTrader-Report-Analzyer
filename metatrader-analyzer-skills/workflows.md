@@ -4,103 +4,74 @@ This document maps the end-to-end user journey and the underlying data pipeline 
 
 ## User Workflow (Traders Perspective)
 
-1. **Extraction**: The user exports their "Account History" from MetaTrader 4 as a "Detailed Report" (`.htm` file).
-2. **Selection**: The user launches the web app and drags the `.htm` file onto the drop zone.
+1. **Extraction**:
+   - **MT4**: Export "Account History" as a "Detailed Report" (`.htm`).
+   - **MT5**: Run the custom `MT5_Report_Script.ex5` to export a standardized 21-column `.csv`.
+2. **Selection**: Drag and drop the file onto the Dashboard. The app automatically detects the format (MT4 HTM vs MT5 CSV).
 3. **Configuration**:
-   - The user enters a specific EA identifier (e.g., "BBS41").
-   - Selects the **Filter Mode** (EA ID, Comment, or Both).
-   - Adjusts the **Similarity Threshold** (typically 80%) to catch minor comment variations.
-   - Selects a specific **date range** for performance analysis.
-4. **Execution**: Clicks the "Analyze" button.
-5. **Review**: Analyzes the generated dashboard showing **Total Profit**, **Win/Loss Counts**, and the full list of matched trades.
-6. **Export**: 
-   - **CSV**: Download data for Excel/Google Sheets.
-   - **Clipboard**: Copy data in TSV format for instant pasting into spreadsheets.
+   - **Language**: Select English or Vietnamese in the header.
+   - **Filter**: Enter EA identifiers (Patterns) and choose the filter mode.
+   - **Date Range**: Select specific start and end dates for the report period.
+4. **Execution**: Click "Analyze" to generate the performance dashboard.
+5. **Comparison**: Use the **Compare** tab (EA Comparator) to analyze multiple strategies or benchmark different reports side-by-side.
+6. **Review & Export**: 
+   - Analyze **KPI Cards**, **Equity/Drawdown Curves**, and **Monthly Returns**.
+   - Download results as **CSV** or copy to **Clipboard**.
+
+---
 
 ## Internal Data Pipeline (Technical Sequence)
 
-### 1. File Access
-The system uses the `FileReader` API in `readAsText(file, "utf-8")` mode to ingest the raw HTML string without any server-side upload, ensuring 100% privacy.
+### 1. Ingestion &Sniffing
+The system uses the `FileReader` API. A "sniffer" logic determines the file type and dispatches to the correct parser module.
 
-### 2. Table Localization
-The `DOMParser` instantiation converts the string into a navigable document. The parser iterates through `<table>` elements searching for specific anchor text: "Closed Transactions:".
+### 2. Multi-Version Extraction
+- **MT4**: Parses DOM nodes, extracting EA IDs from ticket titles and paired comment rows.
+- **MT5**: Section-based string parsing, extracting Magic Numbers and Net Profit directly.
+- **Currency**: Extracts the native currency (USD, EUR, USC, etc.) for dynamic formatting.
 
-### 3. Trade Extraction Loop
-The loop traverses `<tr>` nodes. For each valid trade row:
-- It extracts the primary data (Price, Profit, Time).
-- It reads the `title` attribute from the Ticket cell to extract the **EA ID**.
-- It looks ahead at the next row for **Comment** row metadata.
-- If a comment row is found, it extracts the last non-empty cell.
+### 3. Unified Persistence
+- Metadata is saved to **localStorage**.
+- Large trade datasets are stored in **IndexedDB** using unique session UUIDs.
 
-### 4. Filtering & Aggregation
-A filtering pass is performed based on the selected **Filter Mode**:
-- **Date Check**: Comparison against the selected inclusive range.
-- **Match Check**: 
-  - IDs are checked for substring/prefix existence.
-  - Comments are checked using bigram-based Dice Coefficients.
-- **Aggregation**: Total profit is summed globally from the filtered result set.
+### 4. Recalculation Engine
+When filters change:
+- **Match Check**: Fuzzy matching (Dice Coefficient) or exact EA ID matching.
+- **Extended Metrics (P0-P5)**: Sharpe Ratio, Profit Factor, Max Drawdown, and Win Rate are recalculated on the fly.
+- **Visualization**: Data is aggregated into time-series for charts and frequency bins for the histogram.
 
-### 5. UI Reconciliation
-React state is updated with a `ParseResult` object. The `ResultsTable` component triggers a re-render, calculating pagination and displaying the final list.
+---
 
-## Scalability to MT5
-The internal pipeline is built on a **Pipeline Pattern** that allows swapping the "Extraction Loop" (Step 3) while keeping Steps 1, 4, and 5 identical. 
-- **Future Integration**: A `StatementSniffer` service will determine the file format and dispatch the correct version of the extractor before the filtering logic begins.
+## UI Development Patterns
 
-## UI Refactoring: Base UI & asChild Compatibility
+### 1. Base UI & `asChild` Compatibility
+When using **Base UI** for shadcn/ui primitives, follow this pattern for components that need to render as different elements (like Next.js `Link`):
+- Use the `render` prop instead of `asChild`.
+- Use `@base-ui/react/merge-props` to combine internal trigger props with custom refs and classes.
 
-When using **Base UI** (instead of Radix UI) for shadcn/ui primitives, the traditional `asChild` prop is not natively supported. We follow this refactoring pattern:
+### 2. Custom Component Strategy
+If a common UI primitive is missing from dependencies:
+1. **Context for Nesting**: Use React Context to manage state across nested sub-components.
+2. **ARIA Roles**: Explicitly define `role` and `aria-*` attributes to maintain accessibility.
 
-1. **Primitive Trigger Mapping**: Instead of passing `asChild` directly to the primitive, use the `render` prop.
-2. **Prop Merging**: Use the `mergeProps` utility from `@base-ui/react/merge-props` to combine Base UI's internal `triggerProps` with any custom `ref` or `className`.
-3. **TypeScript Safety**: Define a custom `TriggerProps` interface that extends the primitive props to include `asChild?: boolean`.
+---
 
-**Standard Pattern:**
-```tsx
-const Trigger = React.forwardRef<HTMLButtonElement, TriggerProps>(
-  ({ asChild, children, ...props }, ref) => {
-    if (asChild) {
-      return (
-        <Primitive.Trigger
-          {...props}
-          render={(triggerProps) => React.cloneElement(
-            children as React.ReactElement,
-            mergeProps(triggerProps, { ref })
-          )}
-        />
-      );
-    }
-    return <Primitive.Trigger ref={ref} {...props}>{children}</Primitive.Trigger>;
-  }
-);
-```
+## Deployment & Build Workflow
 
-## Custom Component vs. Dependency Strategy
+### 1. Static Export (Next.js)
+The app uses `output: 'export'`.
+- **Base Path**: The `BASE_PATH` in `lib/constants.ts` ensures assets work correctly on GitHub Pages subdirectories.
 
-When a common UI primitive (like Radix `RadioGroup`) is missing from the project dependencies and cannot be easily installed, follow the **Custom Implementation Strategy**:
+### 2. GitHub Actions
+The `.github/workflows/nextjs.yml` workflow:
+- Builds the production bundle.
+- Injects `.nojekyll` to the output.
+- Deploys to the `gh-pages` branch.
 
-1. **Self-Contained Logic**: Implement the component using standard React `useState` or `useContext` for state management and Tailwind for styling.
-2. **Context for Nesting**: Specifically for groups (like Radio Groups), use **React Context** to allow nesting items inside sub-layouts (e.g., within `div` wrappers or cards) without breaking the link between the group root and its items.
-3. **Accessibility**: Ensure the custom component maintains ARIA roles (`role="radiogroup"`, `role="radio"`, `aria-checked`) to simulate the missing primitive's behavior accurately.
-4. **Consistency**: Match the styling exactly with the project's existing design system to ensure a seamless "premium" feel.
-
-## MT5 Report Generation Workflow
-
-MT5 reports require a custom script because the default HTML export lacks specific metadata (like Magic Numbers in the ticket title) needed for granular analysis.
-
-1. **Script Activation**: Drag the `MT5_Report_Script.ex5` from the Navigator onto a chart.
-2. **Data Extraction**: The script iterates through the `HistoryDeals` and `HistoryOrders` collections.
-3. **Column Mapping**: It maps 21 specific fields into a standardized CSV structure.
-4. **Local Save**: The user saves the file locally via the standard Windows/macOS file dialog.
-5. **Ingestion**: The app's `mt5Parser` module identifies the CSV headers and maps them to the `Trade` interface.
+---
 
 ## i18n Development Workflow
 
-To add or update UI text, follow this reactive pipeline:
-
-1. **Key Registration**: Add the new key to `lib/i18n.tsx` in both `en` and `vi` sections.
-2. **Hook Consumption**: In your component, call `const { t } = useTranslation()`.
-3. **UI Implementation**: Use `{t('your.key.path')}` in the JSX.
-4. **Persistence Verification**: Change the language in the UI settings; verify the setting persists after a page reload via `useSettingsStore`.
-
-
+1. **Key Registration**: Add the key path to `lib/i18n.tsx` for both `en` and `vi`.
+2. **Hook Consumption**: Call `const { t } = useTranslation()` in the component.
+3. **Persistence**: Ensure language settings are managed by `useSettingsStore`.

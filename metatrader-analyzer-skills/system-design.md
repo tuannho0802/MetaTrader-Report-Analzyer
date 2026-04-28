@@ -1,139 +1,81 @@
-# System Design - MT4 EA Profit Filter
+# System Design - MetaTrader Report Analyzer
 
 ## Overview
-MT4 EA Profit Filter is a high-performance, privacy-focused browser-based tool designed for traders to analyze MetaTrader account statements. It allows users to filter trades based on Expert Advisor (EA) comments using fuzzy matching logic and calculate exact profits within specific date ranges.
+MetaTrader Report Analyzer is a high-performance, privacy-focused browser-based tool designed for traders to analyze MetaTrader account statements. It allows users to filter trades based on Expert Advisor (EA) identifiers using fuzzy matching logic and calculate exact profits within specific date ranges.
 
 ## Technology Stack
-- **Framework**: [Next.js 14+](https://nextjs.org/) (App Router)
+- **Framework**: [Next.js 16.2.4](https://nextjs.org/) (App Router)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **UI Components**: [shadcn/ui](https://ui.shadcn.com/)
-- **Form Handling**: React Hook Form + Zod
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
+- **State Management**: [Zustand 5.0](https://github.com/pmndrs/zustand) with `persist` middleware.
+- **Database**: [Dexie.js 4.4](https://dexie.org/) (IndexedDB) for large trade datasets.
+- **Visualization**: [Recharts 3.8](https://recharts.org/)
+- **UI Primitives**: [Base UI 1.4](https://base-ui.com/) (formerly part of MUI)
+- **Themes**: `next-themes` for reliable dark/light mode.
 - **Deployment**: Static Export (`output: "export"`)
 
 ## Architecture Decisions
 
 ### 1. Privacy-First Static Export
-The application is designed as a fully client-side tool. By using Next.js static export, all processing occurs within the user's browser context.
-- **Security**: Account statements (which contain sensitive financial data) are never uploaded to a server.
-- **Speed**: Instant parsing and filtering without network latency for data processing.
-- **Cost**: Zero infrastructure costs as the app can be hosted on simple CDNs like Cloudflare Pages or Vercel.
+The application is a fully client-side tool. By using Next.js static export, all processing occurs within the user's browser context.
+- **Security**: Sensitive financial data is never uploaded to a server.
+- **Cost**: Hosted on GitHub Pages with zero infrastructure cost.
 
-### 2. Domain-Specific Parsing
-Unlike generic HTML parsers, this system uses a specialized algorithm to handle the non-standard, nested table structures produced by MetaTrader 4.
+### 2. Multi-Version Parsing Strategy
+The system handles both MT4 (HTML) and MT5 (CSV) formats through a unified internal interface:
+- **MT4 Parser**: DOM-based extraction for complex nested tables.
+- **MT5 Parser**: High-speed string-based parsing for custom 21-column CSVs.
+- **Adapter Pattern**: Versions-specific data is mapped to a common `Trade` interface in `lib/types.ts`.
+
+### 3. Dynamic Currency Detection
+Instead of hardcoding a single currency, the system detects the account currency from the report header.
+- **Utility**: `lib/formatCurrency.ts` uses `Intl.NumberFormat` to support any currency code (USD, EUR, JPY, USC, etc.) with localized formatting.
 
 ## System Data Flow
 
 ```mermaid
 graph TD
-    A[MT4 .htm File] --> B[FileReader API]
-    B --> C[DOMParser - Browser Native]
-    C --> D[Trade Extraction Logic]
-    D --> E1[Look-ahead Comment Pairing]
-    D --> E2[Ticket title EA ID Extraction]
-    E1 --> F[Dual-Mode Match & Date Filter]
-    E2 --> F
-    F --> G[React State Update]
-    G --> H[Results Table & Total Profit]
-    H --> I[CSV & Clipboard Export]
+    A[MT4 .htm / MT5 .csv] --> B[FileReader API]
+    B --> C{Format Sniffer}
+    C -->|MT4| D1[DOMParser + Look-ahead Logic]
+    C -->|MT5| D2[CSV Column Mapping Logic]
+    D1 --> E[Unified Trade Interface]
+    D2 --> E
+    E --> F[IndexedDB Persistence]
+    F --> G[Zustand Store Hydration]
+    G --> H[Filtering & KPIs Recalculation]
+    H --> I[Dashboard & Comparison UI]
 ```
 
-## Directory Structure
-- `app/`: Contains the main layout and the home page.
-- `components/`: UI components (FileUploader, FilterForm, ResultsTable).
-- `lib/`: Core logic including the `parser.ts` and type definitions.
-- `public/`: Static assets and icons.
+## Sidebar & UI Primitive Implementation
 
-## Strategy for MetaTrader 5 (MT5) Expansion
-The system's architecture is prepared for MT5 support through:
-- **Format Detection**: A middleware component to identify if a file is MT4 or MT5 based on column headers and metadata.
-- **Modular Parsers**: Separation of the extraction logic into version-specific modules while sharing the same filtering and UI layers.
-- **Standardized Schema**: Both parsers will output to the unified `Trade` interface defined in `lib/types.ts`.
+### The `asChild` Constraint (Base UI)
+Base UI uses a `render` prop pattern instead of Radix's `asChild`. 
+- **Solution**: Components like `SidebarMenuButton` use a stable `render` function to manually clone children (like Next.js `Link`) and merge props (using `@base-ui/react/merge-props`). This ensures navigation and accessibility attributes are correctly passed down.
 
-## UI Component Patterns (Base UI Integration)
+## Unified EA Comparison Architecture (P0-P5)
 
-The project leverages **Base UI** as its primitive engine. This requires specific implementation details for shadcn/ui components:
+Consolidated all comparison features into a unified `EAComparator` that integrates directly into the main dashboard workspace.
+- **Extended Metrics**: Calculates Profit Factor, Max Drawdown, Sharpe Ratio, Avg Profit, and Best/Worst trades.
+- **Tabbed Visualization**:
+    - **Equity Curve**: Shared time-axis performance tracking.
+    - **Drawdown Chart**: Relative percentage sụt giảm tracking.
+    - **Profit Distribution**: Histogram showing the count of trades by profit/loss range.
+    - **Monthly Returns**: Heatmapped grid of periodic ROI.
+- **Comparison Logic**: Supports "Within Report" (pattern matching) and "Across Reports" (comparing EAs from two different files).
 
-### 1. The `asChild` Constraint
-Unlike Radix UI, Base UI utilizes a **`render` prop** or **Function-as-Child** pattern for element composition.
-- **Problem**: `asChild` is a core shandcn/ui convention but doesn't exist in Base UI.
-- **Solution**: All UI triggers (Tooltip, Popover, Dialog, Dropdown) are wrapped in a component that intercepts `asChild` and translates it to a Base UI `render` prop.
+## Global Hydration & Deep Linking
 
-### 2. Button Primitive Compatibility
-- **Custom Button**: Our `Button` component supports `asChild` using `@radix-ui/react-slot` but defaults to Base UI's `ButtonPrimitive`.
-- **Styling**: All variants use CVA merged with `tailwind-merge` (`cn` utility) for robust class management.
+### Problem: Empty State on Deep Linking
+Deep-linking to sub-routes (e.g., `/compare`) previously found an empty store because hydration was tied to the main page.
 
-### 3. Ref Management
-Always use `mergeProps` from `@base-ui/react/merge-props` when cloning children in a `render` prop to ensure both Base UI's internal logic and external `forwardRef` function correctly.
-
-## Sidebar Implementation & Fixes
-
-### Problem Summary
-Sidebar menu items (text and icons) were invisible. Group labels had poor contrast. Navigation clicks did nothing (items were static placeholders with `href="#"`).
-
-### Root Cause
-The `SidebarMenuButton` component, built using **Base UI**, encountered a conflict between the `asChild` prop, the `useRender` hook, and the `TooltipTrigger`. Specifically:
-- **State Conflict**: When `asChild` was `true`, the `children` were set to `undefined` in the component props to prevent duplicate rendering, but this caused the `Link` component (the child) to lose its content and styles during the cloning process.
-- **Tooltip Wrapping**: Wrapping the `useRender` result in a `TooltipTrigger` after the fact interfered with Base UI's ability to correctly merge attributes and handle the component lifecycle.
-
-### Solution
-- **Refactored `SidebarMenuButton`**: Switched to a single, stable `render` function pattern. This function manually handles the cloning of `asChild` elements (like `Link`) and ensures all classes, active states, and event handlers are passed down in a single pass.
-- **Integrated Tooltip**: Moved the `TooltipTrigger` *inside* the `useRender` lifecycle. This allows the trigger to participate in the prop-merging process, ensuring that navigation and accessibility attributes reach the final DOM element.
-- **Visibility Optimization**:
-  - Applied `opacity-100` and `font-semibold` to all menu text spans.
-  - Enhanced group labels using `text-foreground/60` with bold uppercase styling for better hierarchy.
-- **Standard Navigation**: Replaced placeholder links with Next.js `Link` components and used the `usePathname` hook to drive the `isActive` state for real-time visual feedback.
-
-### Code References
-- `components/ui/sidebar.tsx`: Refactored `SidebarMenuButton` rendering logic.
-- `components/layout/AppSidebar.tsx`: Updated menu structure, navigation links, and group label styling.
-
-### Verification
-- Sidebar text and icons are clearly visible in both light and dark modes.
-- Clicking "Dashboard" or test items performs correct routing.
-
-## Unified EA Comparison Architecture
-
-### Problem Summary
-Previously, the application had two disjointed comparison systems: a "Multi-EA Analysis" textarea in the sidebar and a separate "EA Comparison" sheet overlay. This led to fragmented data pipelines, inconsistent matching logic, and a confusing user experience.
-
-### Solution: The EA Comparator
-Consolidated all comparison features into a single, unified `EAComparator` component that integrates directly into the main dashboard workspace.
-
-- **True Route Navigation**: Instead of using internal view state overlays, the application uses distinct Next.js pages (e.g., `/compare`, `/history`) tied natively into the global layout shell, allowing robust browser navigation while maintaining workspace UI structures.
-- **Integrated Tooling**:
-    - **Within Report Mode**: Combines pattern-based filtering with a report selector. It leverages the session's active filters (threshold, mode, date range) for consistency.
-    - **Across Reports Mode**: Allows side-by-side comparison of individual EAs from two different uploaded reports.
-- **Refactored Data Visualization**:
-    - **Shared Charting**: Optimized `ComparisonChart` (Recharts) to handle multi-series equity lines on a shared time axis, regardless of the comparison mode.
-    - **Metrics Aggregation**: A unified table for comparing key performance indicators (Net Profit, Win Rate, Trade Count) across all selected series.
-
-### Technical Implementation
-- **Store Evolution**: Migrated from a singular global `comparisonResult` to component-local results for better encapsulation, while maintaining shared file data in the session store.
-- **EA Auto-Discovery**: Implemented a system that extracts unique EA IDs from trade data to provide clickable "badges" for rapid configuration.
-- **Reliability**: Unified the matching strategy across the app to ensure that a pattern entered in the dashboard yields the exact same results in the comparator.
-
-## Next.js True Routing & Global Hydration
-During the refactor to strict Next.js routing, a critical race condition was introduced where deep-linking to pages (like `/compare`) would find the global data store completely empty, as the IndexedDB load sequence was exclusively bound to the `page.tsx` (Dashboard) component.
-
-### The Solution: Global Store Hydrator
-Instead of tying IndexedDB parsing functions to individual UI components, the architecture now forces all data loading logic securely through a root-level intersection.
-
-- **`StoreHydrator.tsx` Component**: Integrated natively inside `app/layout.tsx`. On mount, it kicks off `store.loadCachedStatement()` to pull stored metrics from IndexedDB prior to rendering internal tools.
-- **Race Condition Prevention**: Added an `isHydrated` tracker variable onto the Zustand Store. The `StoreHydrator` purposefully blocks nested child rendering (`return <LoadingSpinner />`) up until hydration succeeds or concludes, comprehensively guaranteeing that route changes automatically process against active data pools regardless of deep linking combinations.
+### Solution: Global Store Hydrator
+- **`StoreHydrator.tsx`**: Mounted in `app/layout.tsx`, it blocks rendering (`Loading...`) until IndexedDB data is fully restored into the Zustand store. This guarantees that any route accessed has immediate access to active trading sessions.
 
 ## Persistent i18n Architecture
 
-The application implements a decoupled internationalization strategy to maintain high performance and state separation.
-
-### 1. Settings vs. Analysis State
-To prevent UI settings from triggering heavy data re-calculations, language preference is moved into a standalone `useSettingsStore`.
-- **`useSettingsStore`**: Manages the `language` ('en' | 'vi') and persists to `localStorage`.
-- **Reactivity**: The `TranslationProvider` wraps the application root, observing the settings store and providing a fresh translation context to all `useTranslation` hooks.
-
-### 2. Recursive Path Resolution
-The `t(path)` function uses a recursive lookup algorithm to resolve nested keys in the dictionary (e.g., `filter.errors.dateOrder`), ensuring that the dictionary can scale without becoming a flat, unmanageable file.
-
-### 3. Static Export Support
-By avoiding server-side translation libraries (like `next-intl`), the system remains fully compatible with `next export`, fulfilling the privacy-first architecture requirement.
-
+The application implements a decoupled internationalization strategy:
+- **Settings Store**: `useSettingsStore` manages the `language` ('en' | 'vi') and persists to `localStorage`.
+- **Decoupled Dictionary**: `lib/i18n.tsx` uses a nested structure for scalability.
+- **Recursive Resolution**: The `t(path)` function resolves nested keys dynamically.
+- **Static Compatibility**: No server-side components are used, maintaining compatibility with `next export`.

@@ -2,24 +2,25 @@
 
 A professional, privacy-first trading journal and analytics tool for MetaTrader 4 (MT4) and MetaTrader 5 (MT5).
 
-🌐 **Bilingual Support** – Fully localized in **English** and **Tiếng Việt** with persistent language settings across sessions.
+🌐 **Bilingual Support** – Fully localized in **English** and **Tiếng Việt** with persistent settings.
 
 ## 🚀 Overview
 
-MetaTrader Report Analyzer allows traders to deep-dive into their performance by parsing standard MetaTrader reports. Unlike generic tools, it offers advanced filtering by **EA ID (Magic Number)**, comment fuzzy matching, and multi-session analysis, all processed entirely within your browser for maximum privacy.
+**MetaTrader Report Analyzer** (formerly MT4 EA Profit Filter) is a high-performance web application that allows traders to deep-dive into their trading performance. Processed entirely within your browser for maximum privacy, it offers advanced filtering by EA ID (Magic Number), fuzzy comment matching, and multi-session analysis.
 
 ## ✨ Key Features
 
-- **Multi-Platform Support**: Parse MT4 `.htm` Detailed Reports and MT5 `.csv` exports (via custom script).
-- **EA Comparator**: Compare performance across different Expert Advisors or different reports side-by-side with shared equity curves.
-- **Advanced Filtering**: 
-  - Filter by Magic Number (EA ID) extracted from trade ticket metadata.
-  - Fuzzy matching for trade comments with adjustable similarity thresholds.
-  - Precise date range filtering.
-- **Multi-Session Workspace**: Analyze multiple reports simultaneously in a tabbed interface.
-- **Persistent Data**: Uses **IndexedDB** (Dexie) and **Zustand Persistence** to save your analysis sessions and settings locally.
-- **Privacy-First**: No data is ever sent to a server. All parsing and calculations happen on the client side.
-- **Bilingual Interface**: Seamlessly switch between English and Vietnamese.
+- **Multi-Platform Support**: Seamlessly parse MT4 `.htm` Detailed Reports and custom MT5 `.csv` exports.
+- **Advanced EA Comparator (P0-P5)**:
+  - Compare performance across different EAs or different reports side-by-side.
+  - **Equity & Drawdown Charts**: Shared time-series visualization.
+  - **Profit Distribution**: Histogram of trade outcomes.
+  - **Monthly Heatmaps**: Grid-based performance breakdown.
+  - **Deep Metrics**: Auto-calculated Sharpe Ratio, Profit Factor, Max Drawdown, and more.
+- **Dynamic Currency Detection**: Automatically handles and formats account currencies (USD, EUR, JPY, USC, etc.).
+- **Report Date Range**: Isolate performance within specific timeframes with built-in validation.
+- **Multi-Session Workspace**: Analyze and switch between up to 5 reports simultaneously.
+- **Privacy-First Architecture**: Your trading data never leaves your computer.
 
 ## 🛠️ Getting Started
 
@@ -30,22 +31,22 @@ npm run dev
 ```
 
 ### 2. Usage
-1. Open the application.
-2. Upload an MT4 Detailed Report (`.htm`) or an MT5 CSV export.
-3. Use the **Language Switcher** in the header to select your preferred language.
-4. Enter EA identifiers in the **Filter Form** to isolate specific strategies.
-5. Explore results in the **KpiCards**, **Equity Chart**, and **Results Table**.
+1. Upload an MT4 Detailed Report (`.htm`) or an MT5 CSV export.
+2. Configure your filters (EA ID or Comment) and date range.
+3. Explore the dashboard cards, charts, and detailed trade table.
+4. Use the **Compare** tab to benchmark multiple strategies.
 
 ### 3. MT5 Export Instructions
-To analyze MT5 reports, you need to use our custom export script. 
-👉 [See MT5 Export Guide](docs/MT5_EXPORT_GUIDE.md) or visit the `/AboutMT5` page within the app.
+MT5 requires a custom script to include all necessary metadata.
+👉 [View MT5 Export Guide](docs/MT5_EXPORT_GUIDE.md) or visit the `/AboutMT5` page in-app.
 
 ## 📂 Documentation
 
-- [MT5 Export Guide](docs/MT5_EXPORT_GUIDE.md) - How to generate compatible MT5 files.
-- [i18n System](docs/i18n.md) - Documentation for the translation architecture.
-- [System Design](metatrader-analyzer-skills/system-design.md) - Technical architecture and decisions.
+- **[System Design](metatrader-analyzer-skills/system-design.md)** - Architecture and technical decisions.
+- **[File Structure](metatrader-analyzer-skills/file-structure.md)** - Codebase organization.
+- **[i18n System](docs/i18n.md)** - Translation architecture.
+- **[Parser Logic](metatrader-analyzer-skills/parser-skills.md)** - Details on MT4 and MT5 extraction.
 
 ## 📄 License
 
-This project is open-source and available under the MIT License.
+MIT License. Developed for traders who value privacy and deep insights.
