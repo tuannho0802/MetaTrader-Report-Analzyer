@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
 import { useTranslation } from "@/lib/i18n";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { useTheme } from "next-themes";
 import {
   Select,
   SelectContent,
@@ -28,6 +29,13 @@ import { cn } from "@/lib/utils";
 export default function ExplorePage() {
   const { sessions, activeSessionId } = useAnalysisStore();
   const { t, language } = useTranslation();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  
+  const tooltipLabelColor = isDark ? '#94a3b8' : '#64748b'; // slate-400 / slate-500
+  const tooltipItemColor  = isDark ? '#f1f5f9' : '#0f172a'; // slate-100 / slate-900
+  const axisTickColor     = isDark ? '#cbd5e1' : '#475569'; // slate-300 / slate-600
+
   const activeSessions = sessions.filter(s => !(s as any).deleted && !(s as any).archived);
 
   const [selectedId, setSelectedId] = useState<string>(activeSessionId || "");
@@ -216,7 +224,7 @@ export default function ExplorePage() {
                     fontSize={10} 
                     tickLine={false} 
                     axisLine={{ stroke: 'hsl(var(--border))' }} 
-                    tick={{ fill: 'hsl(var(--foreground))' }} 
+                    tick={{ fill: axisTickColor }} 
                     interval="preserveStartEnd"
                     tickCount={6}
                   />
@@ -224,7 +232,7 @@ export default function ExplorePage() {
                     fontSize={10} 
                     tickLine={false} 
                     axisLine={{ stroke: 'hsl(var(--border))' }} 
-                    tick={{ fill: 'hsl(var(--foreground))' }} 
+                    tick={{ fill: axisTickColor }} 
                     tickFormatter={(v) => formatCurrency(v, currency).replace(/[^0-9\-.,kKmM$€£]/g, '').slice(0, 8)}
                   />
                   <Tooltip
@@ -235,9 +243,9 @@ export default function ExplorePage() {
                       boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
                       padding: "12px",
                     }}
-                    itemStyle={{ fontSize: "12px", fontWeight: "600", color: "#f1f5f9" }}
-                    labelStyle={{ fontSize: "11px", fontWeight: "bold", color: "#94a3b8" }}
-                    cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
+                    itemStyle={{ fontSize: "12px", fontWeight: "600", color: tooltipItemColor }}
+                    labelStyle={{ fontSize: "11px", fontWeight: "bold", color: tooltipLabelColor }}
+                    cursor={false}
                     formatter={(value: any) => [formatCurrency(value, currency), '']}
                   />
                   <Bar dataKey="profit" radius={[4, 4, 0, 0]} isAnimationActive={false}>
@@ -278,7 +286,7 @@ export default function ExplorePage() {
                     fontSize={10} 
                     tickLine={false} 
                     axisLine={{ stroke: 'hsl(var(--border))' }} 
-                    tick={{ fill: 'hsl(var(--foreground))' }} 
+                    tick={{ fill: axisTickColor }} 
                     interval="preserveStartEnd"
                     tickCount={6}
                   />
@@ -286,7 +294,7 @@ export default function ExplorePage() {
                     fontSize={10} 
                     tickLine={false} 
                     axisLine={{ stroke: 'hsl(var(--border))' }} 
-                    tick={{ fill: 'hsl(var(--foreground))' }} 
+                    tick={{ fill: axisTickColor }} 
                     tickFormatter={(v) => formatCurrency(v, currency).replace(/[^0-9\-.,kKmM$€£]/g, '').slice(0, 8)}
                   />
                   <Tooltip
@@ -297,9 +305,9 @@ export default function ExplorePage() {
                       boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
                       padding: "12px",
                     }}
-                    itemStyle={{ fontSize: "12px", fontWeight: "600", color: "#f1f5f9" }}
-                    labelStyle={{ fontSize: "11px", fontWeight: "bold", color: "#94a3b8" }}
-                    cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
+                    itemStyle={{ fontSize: "12px", fontWeight: "600", color: tooltipItemColor }}
+                    labelStyle={{ fontSize: "11px", fontWeight: "bold", color: tooltipLabelColor }}
+                    cursor={false}
                     formatter={(value: any) => [formatCurrency(value, currency), '']}
                   />
                   <Bar dataKey="profit" radius={[4, 4, 0, 0]} isAnimationActive={false}>
@@ -340,7 +348,7 @@ export default function ExplorePage() {
                     fontSize={10} 
                     tickLine={false} 
                     axisLine={{ stroke: 'hsl(var(--border))' }} 
-                    tick={{ fill: 'hsl(var(--foreground))' }} 
+                    tick={{ fill: axisTickColor }} 
                     interval="preserveStartEnd"
                     tickCount={6}
                   />
@@ -348,7 +356,7 @@ export default function ExplorePage() {
                     fontSize={10} 
                     tickLine={false} 
                     axisLine={{ stroke: 'hsl(var(--border))' }} 
-                    tick={{ fill: 'hsl(var(--foreground))' }} 
+                    tick={{ fill: axisTickColor }} 
                     tickFormatter={(v) => formatCurrency(v, currency).replace(/[^0-9\-.,kKmM$€£]/g, '').slice(0, 8)}
                   />
                   <Tooltip
@@ -359,9 +367,9 @@ export default function ExplorePage() {
                       boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
                       padding: "12px",
                     }}
-                    itemStyle={{ fontSize: "12px", fontWeight: "600", color: "#f1f5f9" }}
-                    labelStyle={{ fontSize: "11px", fontWeight: "bold", color: "#94a3b8" }}
-                    cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
+                    itemStyle={{ fontSize: "12px", fontWeight: "600", color: tooltipItemColor }}
+                    labelStyle={{ fontSize: "11px", fontWeight: "bold", color: tooltipLabelColor }}
+                    cursor={false}
                     formatter={(value: any) => [formatCurrency(value, currency), '']}
                   />
                   <Bar dataKey="profit" radius={[4, 4, 0, 0]} isAnimationActive={false}>
