@@ -27,6 +27,7 @@ import {
   BarChart,
   GitCompareArrows,
   Info,
+  Dices,
 } from "lucide-react"
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore"
 import { useTranslation } from "@/lib/i18n"
@@ -99,6 +100,14 @@ export function AppSidebar() {
                   <Link href="/statistics" className="flex items-center gap-3 w-full">
                     <BarChart className={cn("h-4 w-4 shrink-0", pathname === "/statistics" ? "text-primary" : "text-muted-foreground")} />
                     <span className="font-semibold text-foreground opacity-100">{t('common.statistics')}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/montecarlo"} tooltip={t('monteCarlo.title')}>
+                  <Link href="/montecarlo" className="flex items-center gap-3 w-full">
+                    <Dices className={cn("h-4 w-4 shrink-0", pathname === "/montecarlo" ? "text-primary" : "text-muted-foreground")} />
+                    <span className="font-semibold text-foreground opacity-100">{t('monteCarlo.title')}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

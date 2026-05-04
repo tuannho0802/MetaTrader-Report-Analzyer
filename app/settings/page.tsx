@@ -124,7 +124,7 @@ export default function SettingsPage() {
               <Slider 
                 id="max-tabs"
                 value={[maxTabs]} 
-                onValueChange={([v]) => setMaxTabs(v)} 
+                onValueChange={(v) => { if (Array.isArray(v)) setMaxTabs(v[0]); }} 
                 min={1} 
                 max={10} 
                 step={1} 
