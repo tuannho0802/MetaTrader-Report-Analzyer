@@ -41,11 +41,24 @@ export function CrossReportConfig({ sessions, onAnalyze }: CrossReportConfigProp
   const easA = useMemo(() => getUniqueEaIds(sessionA?.allTrades), [sessionA])
   const easB = useMemo(() => getUniqueEaIds(sessionB?.allTrades), [sessionB])
 
+  const filterByDateRange = (trades: Trade[], start: Date, end: Date) => {
+    const s = new Date(start); s.setHours(0,0,0,0);
+    const e = new Date(end); e.setHours(23,59,59,999);
+    return trades.filter(t => {
+      const d = new Date((t.closeTime || t.openTime).replace(/\./g, '/'));
+      return !isNaN(d.getTime()) && d >= s && d <= e;
+    });
+  };
+
   const handleAnalyze = () => {
     if (!sessionA || !sessionB || !eaA || !eaB) return
+
+    const filteredA = filterByDateRange(sessionA.allTrades || [], sessionA.filter.startDate, sessionA.filter.endDate);
+    const filteredB = filterByDateRange(sessionB.allTrades || [], sessionB.filter.startDate, sessionB.filter.endDate);
+
     const result = compareCrossReport(
-      { trades: sessionA.allTrades || [], eaId: eaA, name: sessionA.name, currency: sessionA.currency || 'USD' },
-      { trades: sessionB.allTrades || [], eaId: eaB, name: sessionB.name, currency: sessionB.currency || 'USD' }
+      { trades: filteredA, eaId: eaA, name: sessionA.name, currency: sessionA.currency || 'USD' },
+      { trades: filteredB, eaId: eaB, name: sessionB.name, currency: sessionB.currency || 'USD' }
     )
     onAnalyze(result)
   }
