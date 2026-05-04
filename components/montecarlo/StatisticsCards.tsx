@@ -22,7 +22,7 @@ import {
   Target,
   Sigma,
   Percent,
-  HelpCircle,
+  Info,
 } from 'lucide-react';
 
 interface Props {
@@ -41,7 +41,7 @@ interface MetricCard {
   sentiment: 'good' | 'bad' | 'neutral';
   icon: React.ElementType;
   isSequentialOnly?: boolean;
-  helpKey?: string;
+  tooltipKey?: string;
 }
 
 export function StatisticsCards({ results, currency, accountBalance, isSequential }: Props) {
@@ -94,21 +94,21 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
       sentiment: stats.meanProfit >= 0 ? 'good' : 'bad',
       icon: TrendingUp,
       isSequentialOnly: true,
-      helpKey: 'monteCarlo.helpMeanProfit',
+      tooltipKey: 'monteCarlo.tooltip.meanProfit',
     },
     {
       label: t('monteCarlo.medianProfit'),
       value: formatCurrency(stats.medianProfit, currency),
       sentiment: stats.medianProfit >= 0 ? 'good' : 'bad',
       icon: Activity,
-      helpKey: 'monteCarlo.helpMedianProfit',
+      tooltipKey: 'monteCarlo.tooltip.medianProfit',
     },
     {
       label: t('monteCarlo.stdDev'),
       value: formatCurrency(stats.stdDev, currency),
       sentiment: 'neutral',
       icon: Sigma,
-      helpKey: 'monteCarlo.helpStdDev',
+      tooltipKey: 'monteCarlo.tooltip.stdDev',
     },
     {
       label: t('monteCarlo.worstProfit'),
@@ -116,7 +116,7 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
       sentiment: stats.worstProfit >= 0 ? 'good' : 'bad',
       icon: TrendingDown,
       isSequentialOnly: true,
-      helpKey: 'monteCarlo.helpWorstProfit',
+      tooltipKey: 'monteCarlo.tooltip.worstProfit',
     },
     {
       label: t('monteCarlo.bestProfit'),
@@ -124,14 +124,14 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
       sentiment: 'good',
       icon: Target,
       isSequentialOnly: true,
-      helpKey: 'monteCarlo.helpBestProfit',
+      tooltipKey: 'monteCarlo.tooltip.bestProfit',
     },
     {
       label: t('monteCarlo.confidence95'),
       value: `${formatCurrency(stats.ci95Lower, currency)} — ${formatCurrency(stats.ci95Upper, currency)}`,
       sentiment: 'neutral',
       icon: BarChart3,
-      helpKey: 'monteCarlo.helpConfidence95',
+      tooltipKey: 'monteCarlo.tooltip.confidence95',
     },
     {
       label: isSequential ? t('dashboard.maxDrawdown') : t('monteCarlo.meanDrawdown'),
@@ -139,7 +139,7 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
       sentiment: 'bad',
       icon: Minus,
       isSequentialOnly: true,
-      helpKey: 'monteCarlo.helpMeanDrawdown',
+      tooltipKey: 'monteCarlo.tooltip.meanDrawdown',
     },
     {
       label: t('monteCarlo.worstDrawdown'),
@@ -147,21 +147,21 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
       sentiment: 'bad',
       icon: AlertTriangle,
       isSequentialOnly: true,
-      helpKey: 'monteCarlo.helpWorstDrawdown',
+      tooltipKey: 'monteCarlo.tooltip.worstDrawdown',
     },
     {
       label: t('monteCarlo.probProfit'),
       value: `${stats.probProfit.toFixed(1)}%`,
       sentiment: stats.probProfit >= 50 ? 'good' : 'bad',
       icon: Percent,
-      helpKey: 'monteCarlo.helpProbProfit',
+      tooltipKey: 'monteCarlo.tooltip.probProfit',
     },
     {
       label: t('monteCarlo.riskOfRuin'),
       value: `${stats.riskOfRuin.toFixed(2)}%`,
       sentiment: stats.riskOfRuin < 5 ? 'good' : stats.riskOfRuin < 20 ? 'neutral' : 'bad',
       icon: ShieldCheck,
-      helpKey: 'monteCarlo.helpRiskOfRuin',
+      tooltipKey: 'monteCarlo.tooltip.riskOfRuin',
     },
   ];
 
@@ -193,29 +193,31 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
                 <Tooltip key={i}>
                   <TooltipTrigger asChild>
                     <div
+                      tabIndex={0}
                       className={cn(
-                        'rounded-xl p-4 border border-border/40 transition-all hover:shadow-md hover:border-border cursor-help',
+                        'rounded-xl p-4 border border-border/40 transition-all hover:shadow-md hover:border-border cursor-help focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none',
                         'flex flex-col gap-2 bg-card/50 backdrop-blur-sm'
                       )}
                     >
                       <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-tight">
-                          {m.label}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-tight">
+                            {m.label}
+                          </p>
+                          <Info className="h-2.5 w-2.5 text-muted-foreground/50 shrink-0" />
+                        </div>
                         <div className={cn('p-1.5 rounded-lg', sentimentBg(m.sentiment))}>
                           <Icon className={cn('h-3 w-3', sentimentClass(m.sentiment))} />
                         </div>
                       </div>
-                      <div className="flex items-baseline gap-1">
-                        <p className={cn('text-sm font-bold tabular-nums leading-snug', sentimentClass(m.sentiment))}>
-                          {m.value}
-                        </p>
-                        <HelpCircle className="h-2 w-2 text-muted-foreground/40" />
-                      </div>
+                      <p className={cn('text-sm font-bold tabular-nums leading-snug', sentimentClass(m.sentiment))}>
+                        {m.value}
+                      </p>
                     </div>
                   </TooltipTrigger>
-                  <TooltipContent className="max-w-[200px] text-[10px] leading-relaxed p-2" side="bottom">
-                    {m.helpKey ? t(m.helpKey as any) : m.label}
+                  <TooltipContent className="max-w-[240px] text-xs leading-relaxed p-3 bg-popover text-popover-foreground border-border shadow-xl">
+                    <p className="font-semibold mb-1 text-primary">{m.label}</p>
+                    <p>{m.tooltipKey ? t(m.tooltipKey as any) : m.label}</p>
                   </TooltipContent>
                 </Tooltip>
               );

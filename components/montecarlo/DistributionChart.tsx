@@ -71,20 +71,20 @@ const CustomTooltip = ({ active, payload, total, t, currency }: any) => {
 
     return (
       <div className="bg-card border border-border p-3 rounded-xl shadow-xl backdrop-blur-md">
-        <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1 tracking-wider">
-          {t('monteCarlo.tooltipRange')}
-        </p>
-        <p className="text-xs font-bold mb-2">
-          {formatCurrency(data.rangeStart, currency)} – {formatCurrency(data.rangeEnd, currency)}
-        </p>
-        <div className="space-y-1">
-          <div className="flex items-center justify-between gap-4">
-            <span className="text-[10px] text-muted-foreground">{t('monteCarlo.tooltipFrequency')}</span>
-            <span className="text-xs font-mono font-bold">{count}</span>
+        <div className="space-y-2">
+          <div>
+            <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1 tracking-wider">
+              {t('monteCarlo.tooltipRange')}
+            </p>
+            <p className="text-xs font-bold">
+              {formatCurrency(data.rangeStart, currency)} – {formatCurrency(data.rangeEnd, currency)}
+            </p>
           </div>
-          <div className="flex items-center justify-between gap-4">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-1 border-t border-border/50">
+            <span className="text-[10px] text-muted-foreground">{t('monteCarlo.tooltipFrequency')}</span>
+            <span className="text-xs font-mono font-bold text-right">{count}</span>
             <span className="text-[10px] text-muted-foreground">{t('monteCarlo.tooltipPercent')}</span>
-            <span className="text-xs font-mono font-bold text-primary">{percent}%</span>
+            <span className="text-xs font-mono font-bold text-primary text-right">{percent}%</span>
           </div>
         </div>
       </div>
@@ -112,14 +112,14 @@ export function DistributionChart({ data, title, description, variant = 'profit'
   };
 
   return (
-    <Card className="border-border/50 shadow-lg overflow-hidden flex flex-col">
+    <Card className="border-border/50 shadow-lg overflow-hidden flex flex-col h-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-xl">{title}</CardTitle>
         {description && <CardDescription className="text-xs">{description}</CardDescription>}
       </CardHeader>
       <CardContent className="pt-4 flex-1 flex flex-col">
         <div className="bg-card rounded-xl p-4 border border-border/20 flex-1">
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={260}>
             <BarChart
               data={chartData}
               margin={{ top: 10, right: 10, left: -20, bottom: 40 }}
@@ -156,9 +156,12 @@ export function DistributionChart({ data, title, description, variant = 'profit'
           </ResponsiveContainer>
         </div>
         
-        <div className="mt-4 flex items-start gap-2 p-3 bg-muted/20 rounded-lg border border-border/10">
-          <Info className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-          <p className="text-[10px] text-muted-foreground leading-relaxed italic">
+        {/* Explanatory Note */}
+        <div className="mt-4 flex items-start gap-3 p-4 bg-muted/30 rounded-xl border border-border/50">
+          <div className="p-1.5 bg-primary/10 rounded-lg shrink-0">
+            <Info className="h-4 w-4 text-primary" />
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
             {variant === 'profit' ? t('monteCarlo.chartNoteProfit') : t('monteCarlo.chartNoteDrawdown')}
           </p>
         </div>
