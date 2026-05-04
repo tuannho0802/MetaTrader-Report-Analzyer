@@ -7,6 +7,7 @@ import { useMonteCarlo } from '@/lib/hooks/useMonteCarlo';
 import { formatCurrency } from '@/lib/formatCurrency';
 import { DistributionChart } from '@/components/montecarlo/DistributionChart';
 import { StatisticsCards } from '@/components/montecarlo/StatisticsCards';
+import { MonteCarloGuide } from '@/components/montecarlo/MonteCarloGuide';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -406,6 +407,8 @@ export default function MonteCarloPage() {
                     />
                   </div>
                 )}
+
+                <MonteCarloGuide />
               </>
             );
           })()}

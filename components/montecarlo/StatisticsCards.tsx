@@ -6,12 +6,6 @@ import { formatCurrency } from '@/lib/formatCurrency';
 import { useTranslation } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   TrendingUp,
   TrendingDown,
   Minus,
@@ -22,7 +16,6 @@ import {
   Target,
   Sigma,
   Percent,
-  Info,
 } from 'lucide-react';
 
 interface Props {
@@ -41,7 +34,6 @@ interface MetricCard {
   sentiment: 'good' | 'bad' | 'neutral';
   icon: React.ElementType;
   isSequentialOnly?: boolean;
-  tooltipKey?: string;
 }
 
 export function StatisticsCards({ results, currency, accountBalance, isSequential }: Props) {
@@ -94,21 +86,18 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
       sentiment: stats.meanProfit >= 0 ? 'good' : 'bad',
       icon: TrendingUp,
       isSequentialOnly: true,
-      tooltipKey: 'monteCarlo.tooltip.meanProfit',
     },
     {
       label: t('monteCarlo.medianProfit'),
       value: formatCurrency(stats.medianProfit, currency),
       sentiment: stats.medianProfit >= 0 ? 'good' : 'bad',
       icon: Activity,
-      tooltipKey: 'monteCarlo.tooltip.medianProfit',
     },
     {
       label: t('monteCarlo.stdDev'),
       value: formatCurrency(stats.stdDev, currency),
       sentiment: 'neutral',
       icon: Sigma,
-      tooltipKey: 'monteCarlo.tooltip.stdDev',
     },
     {
       label: t('monteCarlo.worstProfit'),
@@ -116,7 +105,6 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
       sentiment: stats.worstProfit >= 0 ? 'good' : 'bad',
       icon: TrendingDown,
       isSequentialOnly: true,
-      tooltipKey: 'monteCarlo.tooltip.worstProfit',
     },
     {
       label: t('monteCarlo.bestProfit'),
@@ -124,14 +112,12 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
       sentiment: 'good',
       icon: Target,
       isSequentialOnly: true,
-      tooltipKey: 'monteCarlo.tooltip.bestProfit',
     },
     {
       label: t('monteCarlo.confidence95'),
       value: `${formatCurrency(stats.ci95Lower, currency)} — ${formatCurrency(stats.ci95Upper, currency)}`,
       sentiment: 'neutral',
       icon: BarChart3,
-      tooltipKey: 'monteCarlo.tooltip.confidence95',
     },
     {
       label: isSequential ? t('dashboard.maxDrawdown') : t('monteCarlo.meanDrawdown'),
@@ -139,7 +125,6 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
       sentiment: 'bad',
       icon: Minus,
       isSequentialOnly: true,
-      tooltipKey: 'monteCarlo.tooltip.meanDrawdown',
     },
     {
       label: t('monteCarlo.worstDrawdown'),
@@ -147,21 +132,18 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
       sentiment: 'bad',
       icon: AlertTriangle,
       isSequentialOnly: true,
-      tooltipKey: 'monteCarlo.tooltip.worstDrawdown',
     },
     {
       label: t('monteCarlo.probProfit'),
       value: `${stats.probProfit.toFixed(1)}%`,
       sentiment: stats.probProfit >= 50 ? 'good' : 'bad',
       icon: Percent,
-      tooltipKey: 'monteCarlo.tooltip.probProfit',
     },
     {
       label: t('monteCarlo.riskOfRuin'),
       value: `${stats.riskOfRuin.toFixed(2)}%`,
       sentiment: stats.riskOfRuin < 5 ? 'good' : stats.riskOfRuin < 20 ? 'neutral' : 'bad',
       icon: ShieldCheck,
-      tooltipKey: 'monteCarlo.tooltip.riskOfRuin',
     },
   ];
 
@@ -185,45 +167,32 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
         <CardTitle className="text-xl">{t('monteCarlo.statistics')}</CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <TooltipProvider>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {metrics.map((m, i) => {
-              const Icon = m.icon;
-              return (
-                <Tooltip key={i}>
-                  <TooltipTrigger asChild>
-                    <div
-                      tabIndex={0}
-                      className={cn(
-                        'rounded-xl p-4 border border-border/40 transition-all hover:shadow-md hover:border-border cursor-help focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none',
-                        'flex flex-col gap-2 bg-card/50 backdrop-blur-sm'
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-tight">
-                            {m.label}
-                          </p>
-                          <Info className="h-2.5 w-2.5 text-muted-foreground/50 shrink-0" />
-                        </div>
-                        <div className={cn('p-1.5 rounded-lg', sentimentBg(m.sentiment))}>
-                          <Icon className={cn('h-3 w-3', sentimentClass(m.sentiment))} />
-                        </div>
-                      </div>
-                      <p className={cn('text-sm font-bold tabular-nums leading-snug', sentimentClass(m.sentiment))}>
-                        {m.value}
-                      </p>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-[240px] text-xs leading-relaxed p-3 bg-popover text-popover-foreground border-border shadow-xl">
-                    <p className="font-semibold mb-1 text-primary">{m.label}</p>
-                    <p>{m.tooltipKey ? t(m.tooltipKey as any) : m.label}</p>
-                  </TooltipContent>
-                </Tooltip>
-              );
-            })}
-          </div>
-        </TooltipProvider>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {metrics.map((m, i) => {
+            const Icon = m.icon;
+            return (
+              <div
+                key={i}
+                className={cn(
+                  'rounded-xl p-4 border border-border/40 transition-all hover:bg-muted/10 hover:shadow-md hover:border-border cursor-default',
+                  'flex flex-col gap-2 bg-card/50 backdrop-blur-sm'
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-tight">
+                    {m.label}
+                  </p>
+                  <div className={cn('p-1.5 rounded-lg', sentimentBg(m.sentiment))}>
+                    <Icon className={cn('h-3 w-3', sentimentClass(m.sentiment))} />
+                  </div>
+                </div>
+                <p className={cn('text-sm font-bold tabular-nums leading-snug', sentimentClass(m.sentiment))}>
+                  {m.value}
+                </p>
+              </div>
+            );
+          })}
+        </div>
 
         {isSequential && (
           <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border/50 flex items-center gap-2">

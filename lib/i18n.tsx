@@ -306,6 +306,21 @@ export const translations = {
       "tooltip.worstDrawdown": "The largest drawdown observed in any simulation.",
       "tooltip.probProfit": "Percentage of simulations that ended with a profit > 0.",
       "tooltip.riskOfRuin": "Probability that the maximum drawdown exceeds your account balance, leading to ruin.",
+      guide: {
+        title: "Monte Carlo Guide",
+        explainMeanProfit: "The average final profit over all simulations. It represents the expected outcome if the strategy were repeated many times.",
+        explainMedianProfit: "The middle value of all outcomes. 50% of simulations are above this, 50% below. More robust than the mean.",
+        explainStdDev: "Measures the dispersion of results. A higher value indicates higher volatility and uncertainty in performance.",
+        explainWorstProfit: "The single worst outcome observed across all simulations. Represents the theoretical 'rock bottom'.",
+        explainBestProfit: "The single best outcome observed across all simulations. Represents the high-performance potential.",
+        explainConfidence95: "The range where 95% of the results fall. There is only a 5% chance the real outcome will be outside this range.",
+        explainMeanDrawdown: "The average maximum drawdown across all runs. Shows the typical risk depth you might experience.",
+        explainWorstDrawdown: "The largest single drawdown observed in any simulation. Useful for preparing for extreme stress scenarios.",
+        explainProbProfit: "The percentage of simulated runs that ended with a total profit greater than zero.",
+        explainRiskOfRuin: "The probability that the drawdown will exceed your account balance, leading to total loss of capital.",
+        metric: "Metric",
+        explanation: "Explanation",
+      },
     },
   },
   vi: {
@@ -616,6 +631,21 @@ export const translations = {
       "tooltip.worstDrawdown": "Sụt giảm vốn lớn nhất quan sát được trong bất kỳ lần mô phỏng nào.",
       "tooltip.probProfit": "Tỷ lệ phần trăm các lần mô phỏng kết thúc với lợi nhuận > 0.",
       "tooltip.riskOfRuin": "Xác suất mà mức sụt giảm vốn tối đa vượt quá số dư tài khoản, dẫn đến cháy tài khoản.",
+      guide: {
+        title: "Hướng dẫn Monte Carlo",
+        explainMeanProfit: "Lợi nhuận cuối cùng trung bình trên tất cả lần mô phỏng. Đại diện cho kết quả kỳ vọng nếu chạy chiến lược nhiều lần.",
+        explainMedianProfit: "Giá trị lợi nhuận nằm ở giữa tập dữ liệu. 50% kịch bản cao hơn và 50% kịch bản thấp hơn giá trị này.",
+        explainStdDev: "Đo lường mức độ biến động của kết quả. Giá trị cao hơn cho thấy rủi ro và sự không chắc chắn lớn hơn.",
+        explainWorstProfit: "Kết quả tệ nhất từng xảy ra trong toàn bộ mô phỏng. Đại diện cho mức 'đáy' lý thuyết.",
+        explainBestProfit: "Kết quả tốt nhất từng xảy ra trong toàn bộ mô phỏng. Cho thấy tiềm năng tối đa của chiến lược.",
+        explainConfidence95: "Khoảng giá trị chứa 95% kết quả mô phỏng. Chỉ có 5% khả năng kết quả thực tế nằm ngoài khoảng này.",
+        explainMeanDrawdown: "Mức sụt giảm vốn tối đa trung bình. Cho thấy độ sâu rủi ro thông thường mà bạn có thể gặp phải.",
+        explainWorstDrawdown: "Mức sụt giảm vốn lớn nhất từng quan sát được. Giúp chuẩn bị cho kịch bản căng thẳng cực đoan nhất.",
+        explainProbProfit: "Tỷ lệ phần trăm các lần mô phỏng kết thúc với tổng lợi nhuận lớn hơn không.",
+        explainRiskOfRuin: "Xác suất mà mức sụt giảm vốn vượt quá số dư tài khoản, dẫn đến mất toàn bộ vốn đầu tư.",
+        metric: "Chỉ số",
+        explanation: "Giải thích",
+      },
     }
   }
 };
