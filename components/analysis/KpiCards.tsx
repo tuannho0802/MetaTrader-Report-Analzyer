@@ -127,7 +127,7 @@ export function KpiCards() {
             </div>
           </CardHeader>
           <CardContent className="p-5 pt-0">
-            <div className={cn("text-3xl font-bold tracking-tight", (i === 0 || kpi.title === "Max Drawdown") && kpi.color)}>
+            <div className={cn("text-3xl font-bold tracking-tight", (i === 0 || kpi.title === "Max Drawdown" || kpi.title === "Sụt giảm tài khoản") && kpi.color)}>
               {kpi.value}
             </div>
             {'subValue' in kpi && (

@@ -13,16 +13,20 @@ This document maps the end-to-end user journey and the underlying data pipeline 
    - **Filter**: Enter EA identifiers (Patterns) and choose the filter mode.
    - **Date Range**: Select specific start and end dates for the report period.
 4. **Execution**: Click "Analyze" to generate the performance dashboard.
-5. **Comparison**: Use the **Compare** tab (EA Comparator) to analyze multiple strategies or benchmark different reports side-by-side.
-6. **Review & Export**: 
+5. **Deep Exploration**:
+   - Visit the **Explore** page to see hourly, daily, and monthly profit distributions for the active session.
+   - Visit the **Statistics** page to view the global EA Leaderboard and aggregated equity trends across all uploaded reports.
+6. **Comparison**: Use the **Compare** tab to benchmark multiple EA strategies side-by-side or analyze performance across different reports.
+7. **Session Management**: Use the **History** page to restore old sessions, archive completed ones, or permanently delete data.
+8. **Review & Export**: 
    - Analyze **KPI Cards**, **Equity/Drawdown Curves**, and **Monthly Returns**.
-   - Download results as **CSV** or copy to **Clipboard**.
+   - Download comparative results as **CSV**.
 
 ---
 
 ## Internal Data Pipeline (Technical Sequence)
 
-### 1. Ingestion &Sniffing
+### 1. Ingestion & Sniffing
 The system uses the `FileReader` API. A "sniffer" logic determines the file type and dispatches to the correct parser module.
 
 ### 2. Multi-Version Extraction
@@ -35,24 +39,25 @@ The system uses the `FileReader` API. A "sniffer" logic determines the file type
 - Large trade datasets are stored in **IndexedDB** using unique session UUIDs.
 
 ### 4. Recalculation Engine
-When filters change:
+When filters change or a session is switched:
 - **Match Check**: Fuzzy matching (Dice Coefficient) or exact EA ID matching.
-- **Extended Metrics (P0-P5)**: Sharpe Ratio, Profit Factor, Max Drawdown, and Win Rate are recalculated on the fly.
-- **Visualization**: Data is aggregated into time-series for charts and frequency bins for the histogram.
+- **16+ Deep Metrics**: Sharpe Ratio, Profit Factor, Max Drawdown, Expectancy, and Recovery Factor are recalculated on the fly.
+- **Aggregation**: Data is converted into time-series for charts and frequency bins for distributions.
 
 ---
 
 ## UI Development Patterns
 
-### 1. Base UI & `asChild` Compatibility
-When using **Base UI** for shadcn/ui primitives, follow this pattern for components that need to render as different elements (like Next.js `Link`):
+### 1. Theme-Aware Visualizations
+Charts use `resolvedTheme` from `next-themes` to inject hex-based colors into SVG elements (Tooltips, Axes, Cells). This bypasses CSS variable resolution issues in SVG contexts.
+
+### 2. Recharts Optimization
+- **isAnimationActive={false}**: Disabled for interactive charts to prevent re-triggering animations on hover.
+- **Cursor Management**: BarCharts use `cursor={false}` to eliminate default gray rectangle artifacts.
+
+### 3. Base UI Integration
 - Use the `render` prop instead of `asChild`.
 - Use `@base-ui/react/merge-props` to combine internal trigger props with custom refs and classes.
-
-### 2. Custom Component Strategy
-If a common UI primitive is missing from dependencies:
-1. **Context for Nesting**: Use React Context to manage state across nested sub-components.
-2. **ARIA Roles**: Explicitly define `role` and `aria-*` attributes to maintain accessibility.
 
 ---
 
@@ -62,11 +67,8 @@ If a common UI primitive is missing from dependencies:
 The app uses `output: 'export'`.
 - **Base Path**: The `BASE_PATH` in `lib/constants.ts` ensures assets work correctly on GitHub Pages subdirectories.
 
-### 2. GitHub Actions
-The `.github/workflows/nextjs.yml` workflow:
-- Builds the production bundle.
-- Injects `.nojekyll` to the output.
-- Deploys to the `gh-pages` branch.
+### 2. Automated Deployment
+- GitHub Actions build the production bundle, inject `.nojekyll`, and deploy to the `gh-pages` branch.
 
 ---
 
@@ -74,4 +76,4 @@ The `.github/workflows/nextjs.yml` workflow:
 
 1. **Key Registration**: Add the key path to `lib/i18n.tsx` for both `en` and `vi`.
 2. **Hook Consumption**: Call `const { t } = useTranslation()` in the component.
-3. **Persistence**: Ensure language settings are managed by `useSettingsStore`.
+3. **Persistence**: Language settings are managed by `useSettingsStore`.

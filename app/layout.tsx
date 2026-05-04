@@ -13,8 +13,8 @@ import { HydrationMarker } from "@/components/HydrationMarker";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "MT4 EA Profit Filter",
-  description: "Phân tích và lọc profit giao dịch từ MT4 Statement theo EA Comment",
+  title: "MetaTrader Report Analyzer",
+  description: "Institutional-grade trading performance analysis for MetaTrader 4 and 5.",
 };
 
 export default function RootLayout({
@@ -66,7 +66,7 @@ export default function RootLayout({
                         </StoreHydrator>
                       </main>
                       <footer className="border-t py-6 px-8 text-center text-xs text-muted-foreground">
-                        <p>&copy; {new Date().getFullYear()} MT4 EA Profit Filter Dashboard. All rights reserved.</p>
+                        <p>&copy; {new Date().getFullYear()} MetaTrader Report Analyzer. All rights reserved.</p>
                       </footer>
                     </div>
                   </SidebarInset>

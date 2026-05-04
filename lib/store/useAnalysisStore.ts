@@ -64,8 +64,11 @@ interface AnalysisState {
 
   // Session Actions
   addSession: (filters?: FilterParams) => void;
-  removeSession: (id: string) => void;
+  removeSession: (id: string) => void; // Now performs soft delete
   setActiveSession: (id: string) => void;
+  archiveSession: (id: string) => void;
+  restoreSession: (id: string) => void;
+  permanentDeleteSession: (id: string) => Promise<void>;
   undo: () => void;
   redo: () => void;
   reset: () => void;
@@ -434,13 +437,13 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
   removeSession: async (id) => {
     const { sessions, activeSessionId } = get();
     
-    // Delete from IndexedDB
-    await db.statements.delete(id);
-
-    const updated = sessions.filter(s => s.id !== id);
+    // Soft delete: just mark as deleted
+    const updated = sessions.map(s => s.id === id ? { ...s, deleted: true } : s);
+    
     let nextActive = activeSessionId;
     if (activeSessionId === id) {
-      nextActive = updated.length > 0 ? updated[0].id : "";
+      const remainingActive = updated.filter(s => !s.deleted && !s.archived);
+      nextActive = remainingActive.length > 0 ? remainingActive[0].id : "";
     }
     
     const nextTrades = updated.find(s => s.id === nextActive)?.allTrades || [];
@@ -463,8 +466,56 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       historyIndex: s.historyIndex,
       currency: s.currency,
       startDate: s.startDate,
-      endDate: s.endDate
+      endDate: s.endDate,
+      deleted: s.deleted,
+      archived: s.archived
     }))));
+  },
+
+  archiveSession: (id) => {
+    const { sessions, activeSessionId } = get();
+    const updated = sessions.map(s => s.id === id ? { ...s, archived: true, deleted: false } : s);
+    
+    let nextActive = activeSessionId;
+    if (activeSessionId === id) {
+      const remainingActive = updated.filter(s => !s.deleted && !s.archived);
+      nextActive = remainingActive.length > 0 ? remainingActive[0].id : "";
+    }
+
+    set({ sessions: updated, activeSessionId: nextActive });
+    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updated.map(s => ({ ...s, allTrades: undefined, currentResult: undefined, multiEaResults: undefined }))));
+  },
+
+  restoreSession: (id) => {
+    const { sessions } = get();
+    const updated = sessions.map(s => s.id === id ? { ...s, archived: false, deleted: false } : s);
+    set({ sessions: updated, activeSessionId: id });
+    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updated.map(s => ({ ...s, allTrades: undefined, currentResult: undefined, multiEaResults: undefined }))));
+  },
+
+  permanentDeleteSession: async (id) => {
+    const { sessions, activeSessionId } = get();
+    
+    // Delete from IndexedDB
+    await db.statements.delete(id);
+
+    const updated = sessions.filter(s => s.id !== id);
+    let nextActive = activeSessionId;
+    if (activeSessionId === id) {
+      const remainingActive = updated.filter(s => !s.deleted && !s.archived);
+      nextActive = remainingActive.length > 0 ? remainingActive[0].id : "";
+    }
+    
+    const nextTrades = updated.find(s => s.id === nextActive)?.allTrades || [];
+
+    set({ 
+      sessions: updated, 
+      activeSessionId: nextActive,
+      allTrades: nextTrades,
+      filteredTrades: updated.find(s => s.id === nextActive)?.currentResult?.trades || []
+    });
+
+    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updated.map(s => ({ ...s, allTrades: undefined, currentResult: undefined, multiEaResults: undefined }))));
   },
 
   setActiveSession: (id) => {

@@ -4,14 +4,22 @@ import { Language } from '@/lib/i18n';
 
 interface SettingsState {
   language: Language;
+  maxTabs: number;
+  hasHydrated: boolean;
   setLanguage: (lang: Language) => void;
+  setMaxTabs: (n: number) => void;
+  setHasHydrated: (b: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       language: 'en',
+      maxTabs: 5,
+      hasHydrated: false,
       setLanguage: (language) => set({ language }),
+      setMaxTabs: (maxTabs) => set({ maxTabs }),
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
     }),
     {
       name: 'settings-storage',

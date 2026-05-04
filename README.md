@@ -6,21 +6,23 @@ A professional, privacy-first trading journal and analytics tool for MetaTrader 
 
 ## 🚀 Overview
 
-**MetaTrader Report Analyzer** (formerly MT4 EA Profit Filter) is a high-performance web application that allows traders to deep-dive into their trading performance. Processed entirely within your browser for maximum privacy, it offers advanced filtering by EA ID (Magic Number), fuzzy comment matching, and multi-session analysis.
+**MetaTrader Report Analyzer** is a high-performance web application that allows traders to deep-dive into their trading performance. Processed entirely within your browser for maximum privacy, it offers advanced filtering by EA ID (Magic Number), fuzzy comment matching, and multi-session analysis.
 
 ## ✨ Key Features
 
 - **Multi-Platform Support**: Seamlessly parse MT4 `.htm` Detailed Reports and custom MT5 `.csv` exports.
-- **Advanced EA Comparator (P0-P5)**:
+- **Advanced EA Comparator**:
   - Compare performance across different EAs or different reports side-by-side.
   - **Equity & Drawdown Charts**: Shared time-series visualization.
   - **Profit Distribution**: Histogram of trade outcomes.
   - **Monthly Heatmaps**: Grid-based performance breakdown.
-  - **Deep Metrics**: Auto-calculated Sharpe Ratio, Profit Factor, Max Drawdown, and more.
+  - **16+ Deep Metrics**: Sharpe Ratio, Profit Factor, Max Drawdown, Expectancy, Recovery Factor, Profit per Day, and more.
+- **Trade Explorer (/explore)**: Deep-dive into a single session with hourly, daily, and monthly profit distribution charts.
+- **Statistics Dashboard (/statistics)**: Aggregate EA leaderboard (ranked by profit), global equity trends, and top symbols analysis.
+- **Session Management (/history)**: Advanced workspace control with active, archived, and soft-deleted session support.
 - **Dynamic Currency Detection**: Automatically handles and formats account currencies (USD, EUR, JPY, USC, etc.).
-- **Report Date Range**: Isolate performance within specific timeframes with built-in validation.
-- **Multi-Session Workspace**: Analyze and switch between up to 5 reports simultaneously.
-- **Privacy-First Architecture**: Your trading data never leaves your computer.
+- **Privacy-First Architecture**: Your trading data never leaves your computer, stored locally in IndexedDB (Dexie).
+- **Settings & Backup (/settings)**: Multi-language toggle, theme selection, and data management (backup/restore).
 
 ## 🛠️ Getting Started
 
@@ -35,6 +37,7 @@ npm run dev
 2. Configure your filters (EA ID or Comment) and date range.
 3. Explore the dashboard cards, charts, and detailed trade table.
 4. Use the **Compare** tab to benchmark multiple strategies.
+5. Visit **Explore** and **Statistics** for deeper visual insights.
 
 ### 3. MT5 Export Instructions
 MT5 requires a custom script to include all necessary metadata.
@@ -46,6 +49,7 @@ MT5 requires a custom script to include all necessary metadata.
 - **[File Structure](metatrader-analyzer-skills/file-structure.md)** - Codebase organization.
 - **[i18n System](docs/i18n.md)** - Translation architecture.
 - **[Parser Logic](metatrader-analyzer-skills/parser-skills.md)** - Details on MT4 and MT5 extraction.
+- **[Workflows](metatrader-analyzer-skills/workflows.md)** - Development and deployment guide.
 
 ## 📄 License
 

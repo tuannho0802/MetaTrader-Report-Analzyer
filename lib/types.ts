@@ -59,6 +59,8 @@ export interface AnalysisSession {
   startDate: string | null;
   endDate: string | null;
   createdAt: number;
+  archived?: boolean;
+  deleted?: boolean;
 }
 export interface ComparisonResult {
   mode: 'same' | 'cross';

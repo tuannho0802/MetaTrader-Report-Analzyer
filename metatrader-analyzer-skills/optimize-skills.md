@@ -16,46 +16,32 @@ To prevent the main UI thread from freezing during heavy parsing, the applicatio
 - **Choice**: Native `DOMParser` is used instead of libraries like `Cheerio`.
 - **Justification**: Native tools avoid unnecessary bundle size increases and utilize highly optimized browser engines for tree traversal. In a client-side environment, `DOMParser` out-performs JS-native implementations for memory management.
 
-## Potential Bottlenecks
-
-1. **Fuzzy Matching Overhead**: Iterating over 1,000+ trades and performing Bigram-based Dice Coefficients is computationally expensive ($O(N \cdot M)$).
-2. **React State Updates**: Attempting to render a table with 5,000+ rows simultaneously can cause significant layout thrashing.
-
-## Implemented & Recommended Optimizations
+## Real-Time Calculation & Rendering
 
 | Technique | Status | Description |
 | :--- | :--- | :--- |
 | **Pagination** | Implemented | The `ResultsTable` restricts the UI to 50 rows per page to minimize DOM nodes. |
 | **Substring Shortcut** | Implemented | The fuzzy match algorithm exits early with 100% if an exact substring match is found. |
-| **Virtualization** | Recommended | Future use of `react-window` would allow handling 10,000+ rows with constant memory usage. |
 | **Memoization** | Implemented | `useMemo` is used extensively in charts and tables to prevent redundant calculations on theme or language changes. |
 | **IndexedDB Storage** | Implemented | Trade data is moved out of RAM and into IndexedDB, keeping the Zustand store lightweight. |
 
-## MT5 Compatibility Strategy
-MT5 statements are handled via a dedicated CSV parser module (`lib/mt5Parser/`).
-- **Parsing Logic**: String-based CSV parsing is significantly faster than HTML DOM parsing, allowing the app to handle extremely large MT5 history files without memory strain.
-- **Header Boundaries**: The parser identifies distinct sections within the CSV (Account Info, History, Summary) to isolate trade data efficiently.
+### Visualization Optimizations (Recharts)
+To ensure smooth interaction even with large datasets in the EA Comparator:
+- **`isAnimationActive={false}`**: Recharts animations are disabled for interactive charts. This prevents the browser from recalculating entire SVG paths on every mouse hover, which is a major source of lag in equity curves.
+- **`isAnimationActive` Cells**: Individual bar cells in distributions use pre-calculated hex colors instead of CSS variables to avoid SVG paint performance issues in some browsers.
+- **Adaptive Axis Rendering**: Tick count is limited and intervals are managed to prevent overlapping text and excessive layout recalculation.
 
-## IndexedDB Multi-Tab Persistence
+## Multi-Session Management
 
-### Problem Summary
-Previously, only one session's data survived page reloads. Empty tabs were created prematurely, and there was no limit on resource consumption.
+### Hybrid Storage Strategy
+- **Metadata**: Session properties (ID, file name, filters, timestamp, currency) are stored in `localStorage` for instant UI initialization.
+- **Trade Data**: Thousands of trade records are stored in **IndexedDB** using unique UUIDs.
+- **Hydration Guard**: The `StoreHydrator` component blocks UI rendering until all active session data is restored from IndexedDB, preventing "empty state" flickering.
 
-### Root Cause
-A hardcoded database key caused new uploads to overwrite previous ones. Tab management was not strictly tied to valid data parsing.
+### Resource Limits
+- **Max Tabs**: A configurable limit (default 5) prevents excessive IndexedDB and RAM consumption from accumulated session data.
+- **Cleanup**: Deleting a session in the UI automatically triggers a `permanent delete` in IndexedDB to free up disk space.
 
-### Solution
-- **Unique Session UUIDs**: Each successful analysis session is assigned a unique UUID.
-- **Hybrid Storage Strategy**:
-  - **Metadata**: Session properties (ID, file name, filters, timestamp, currency) are stored in `localStorage` for instant UI initialization.
-  - **Trade Data**: Thousands of trade records are stored in **IndexedDB** using the UUID as the primary key.
-- **Session Restoration Logic**: On initial load, `StoreHydrator` iterates through sessions and restores trade data from IndexedDB asynchronously.
-- **Tab Management**:
-  - Tabs are created **only** for reports containing at least one valid trade.
-  - A maximum limit of **5 active sessions** is enforced to protect browser memory limits.
-
-### Code References
-- `lib/store/useAnalysisStore.ts`: Optimized session management and persistence lifecycle logic.
-- `lib/db/index.ts`: Updated Dexie schema to support multi-entry storage and UUID keys.
-- `components/layout/StoreHydrator.tsx`: Ensures data is loaded before components attempt to render.
-- `components/analysis/AnalysisTabs.tsx`: Handles dynamic tab labels and session cleanup.
+## Future Scalability
+- **Worker-Thread Parsing**: Moving the `DOMParser` logic to a dedicated Web Worker to completely eliminate UI blocking on extremely large reports.
+- **Trade Virtualization**: Implementing `react-window` for the trade table to support seamless scrolling through tens of thousands of records.

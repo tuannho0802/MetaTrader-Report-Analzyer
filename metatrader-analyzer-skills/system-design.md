@@ -1,7 +1,7 @@
 # System Design - MetaTrader Report Analyzer
 
 ## Overview
-MetaTrader Report Analyzer is a high-performance, privacy-focused browser-based tool designed for traders to analyze MetaTrader account statements. It allows users to filter trades based on Expert Advisor (EA) identifiers using fuzzy matching logic and calculate exact profits within specific date ranges.
+MetaTrader Report Analyzer is a high-performance, privacy-focused browser-based tool designed for traders to analyze MetaTrader account statements. It allows users to filter trades based on Expert Advisor (EA) identifiers using fuzzy matching logic and calculate 16+ deep performance metrics across multiple reports and sessions.
 
 ## Technology Stack
 - **Framework**: [Next.js 16.2.4](https://nextjs.org/) (App Router)
@@ -10,8 +10,8 @@ MetaTrader Report Analyzer is a high-performance, privacy-focused browser-based 
 - **State Management**: [Zustand 5.0](https://github.com/pmndrs/zustand) with `persist` middleware.
 - **Database**: [Dexie.js 4.4](https://dexie.org/) (IndexedDB) for large trade datasets.
 - **Visualization**: [Recharts 3.8](https://recharts.org/)
-- **UI Primitives**: [Base UI 1.4](https://base-ui.com/) (formerly part of MUI)
-- **Themes**: `next-themes` for reliable dark/light mode.
+- **UI Primitives**: [Base UI 1.4](https://base-ui.com/) and [Shadcn UI](https://ui.shadcn.com/)
+- **Themes**: `next-themes` for reliable dark/light mode synchronization.
 - **Deployment**: Static Export (`output: "export"`)
 
 ## Architecture Decisions
@@ -19,17 +19,20 @@ MetaTrader Report Analyzer is a high-performance, privacy-focused browser-based 
 ### 1. Privacy-First Static Export
 The application is a fully client-side tool. By using Next.js static export, all processing occurs within the user's browser context.
 - **Security**: Sensitive financial data is never uploaded to a server.
-- **Cost**: Hosted on GitHub Pages with zero infrastructure cost.
+- **Persistence**: Data is stored locally in IndexedDB, surviving page refreshes and browser restarts.
 
 ### 2. Multi-Version Parsing Strategy
 The system handles both MT4 (HTML) and MT5 (CSV) formats through a unified internal interface:
-- **MT4 Parser**: DOM-based extraction for complex nested tables.
-- **MT5 Parser**: High-speed string-based parsing for custom 21-column CSVs.
-- **Adapter Pattern**: Versions-specific data is mapped to a common `Trade` interface in `lib/types.ts`.
+- **MT4 Parser**: DOM-based extraction for complex nested tables, extracting EA IDs from ticket titles and paired comment rows.
+- **MT5 Parser**: High-speed string-based parsing for custom 21-column CSVs containing Magic Numbers.
+- **Unified Trade Interface**: Both parsers map data to a common `Trade` structure defined in `lib/types.ts`.
 
-### 3. Dynamic Currency Detection
-Instead of hardcoding a single currency, the system detects the account currency from the report header.
-- **Utility**: `lib/formatCurrency.ts` uses `Intl.NumberFormat` to support any currency code (USD, EUR, JPY, USC, etc.) with localized formatting.
+### 3. Comprehensive Performance Metrics (16+ KPIs)
+The analysis engine calculates a wide range of institutional-grade metrics:
+- **Core**: Net Profit, Win Rate, Profit Factor, Max Drawdown.
+- **Risk/Reward**: Sharpe Ratio, Expectancy, Recovery Factor.
+- **Averages**: Avg Profit/Trade, Avg Win, Avg Loss, Best/Worst Trades.
+- **Distribution**: Long/Short rates, Profit per Day.
 
 ## System Data Flow
 
@@ -38,44 +41,36 @@ graph TD
     A[MT4 .htm / MT5 .csv] --> B[FileReader API]
     B --> C{Format Sniffer}
     C -->|MT4| D1[DOMParser + Look-ahead Logic]
-    C -->|MT5| D2[CSV Column Mapping Logic]
+    C -->|MT5| D2[CSV Section-based Parsing]
     D1 --> E[Unified Trade Interface]
     D2 --> E
     E --> F[IndexedDB Persistence]
     F --> G[Zustand Store Hydration]
-    G --> H[Filtering & KPIs Recalculation]
-    H --> I[Dashboard & Comparison UI]
+    G --> H[16+ Metrics Recalculation]
+    H --> I[Dashboard / Explore / Statistics / Compare UI]
 ```
 
-## Sidebar & UI Primitive Implementation
+## Advanced Dashboards
 
-### The `asChild` Constraint (Base UI)
-Base UI uses a `render` prop pattern instead of Radix's `asChild`. 
-- **Solution**: Components like `SidebarMenuButton` use a stable `render` function to manually clone children (like Next.js `Link`) and merge props (using `@base-ui/react/merge-props`). This ensures navigation and accessibility attributes are correctly passed down.
+### 1. Trade Explorer (/explore)
+Provides visual deep-dives into a single trading session.
+- **Hourly Analysis**: Identifies most/least profitable times of day.
+- **DOW Analysis**: Breaks down performance by day of week.
+- **Monthly Breakdown**: Shows long-term profitability trends.
 
-## Unified EA Comparison Architecture (P0-P5)
+### 2. Statistics Leaderboard (/statistics)
+Aggregate view across all uploaded sessions.
+- **EA Leaderboard**: Ranks strategies by total profit.
+- **Global Equity Trend**: Cumulative growth across the entire portfolio.
+- **Instrument Analysis**: Top traded symbols by volume and profit.
 
-Consolidated all comparison features into a unified `EAComparator` that integrates directly into the main dashboard workspace.
-- **Extended Metrics**: Calculates Profit Factor, Max Drawdown, Sharpe Ratio, Avg Profit, and Best/Worst trades.
-- **Tabbed Visualization**:
-    - **Equity Curve**: Shared time-axis performance tracking.
-    - **Drawdown Chart**: Relative percentage sụt giảm tracking.
-    - **Profit Distribution**: Histogram showing the count of trades by profit/loss range.
-    - **Monthly Returns**: Heatmapped grid of periodic ROI.
-- **Comparison Logic**: Supports "Within Report" (pattern matching) and "Across Reports" (comparing EAs from two different files).
+### 3. EA Comparator
+Shared time-series visualization for benchmarking strategies.
+- **Multi-Curve Equity**: Overlaid growth charts.
+- **Relative Drawdown**: Visualizing risk overlap.
+- **Distribution Histograms**: Trade outcome frequency analysis.
 
-## Global Hydration & Deep Linking
-
-### Problem: Empty State on Deep Linking
-Deep-linking to sub-routes (e.g., `/compare`) previously found an empty store because hydration was tied to the main page.
-
-### Solution: Global Store Hydrator
-- **`StoreHydrator.tsx`**: Mounted in `app/layout.tsx`, it blocks rendering (`Loading...`) until IndexedDB data is fully restored into the Zustand store. This guarantees that any route accessed has immediate access to active trading sessions.
-
-## Persistent i18n Architecture
-
-The application implements a decoupled internationalization strategy:
-- **Settings Store**: `useSettingsStore` manages the `language` ('en' | 'vi') and persists to `localStorage`.
-- **Decoupled Dictionary**: `lib/i18n.tsx` uses a nested structure for scalability.
-- **Recursive Resolution**: The `t(path)` function resolves nested keys dynamically.
-- **Static Compatibility**: No server-side components are used, maintaining compatibility with `next export`.
+## i18n & Theme Management
+- **Persistence**: Language and theme preferences are stored in `useSettingsStore`.
+- **Theme-Aware Charts**: Chart elements (ticks, labels, tooltips) dynamically resolve colors based on `resolvedTheme` to ensure accessibility in both dark and light modes.
+- **Localization**: Full EN/VI dictionary with recursive key resolution supporting nested namespaces.

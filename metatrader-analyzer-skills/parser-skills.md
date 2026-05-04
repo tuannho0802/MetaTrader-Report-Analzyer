@@ -20,6 +20,7 @@ MT4 statements often hide a shorter EA identifier within the `title` attribute o
 ### 3. Parsing Algorithm
 - **Identifying a Trade Row**: The parser identifies a valid trade row by checking for numeric Ticket IDs in the first cell and a specific column count (14-15).
 - **Comment Extraction (Look-ahead)**: When a trade row is detected, the parser checks the immediate next row for a `colspan >= 7` cell. It extracts text from the last `<td>` of that row.
+- **Date Range Extraction**: The parser looks for "Period:" or "From: ... To: ..." strings in the report header to determine the statement's coverage. If missing, it derives the range from the oldest and newest trade timestamps.
 
 ---
 
@@ -57,5 +58,8 @@ The system supports three filtering modes across both MT4 and MT5 sessions:
 ### Substring Shortcut
 For performance, the fuzzy match algorithm exits early with 100% similarity if an exact substring match is found before performing bigram calculations.
 
-### Dynamic Currency Detection
-The parser extracts the account currency from the report headers. This currency is stored in the session metadata, allowing `formatCurrency.ts` to apply correct symbols and decimal formatting globally.
+### Dynamic Currency & Formatting
+The parser extracts the account currency from the report headers. 
+- **Universal Support**: Handles standard (USD, EUR) and non-standard codes (USC for US Cents).
+- **Formatting**: `formatCurrency.ts` applies correct symbols and decimal formatting based on the detected currency code globally.
+- **Scaling**: For cent accounts (USC), the system preserves the integer representation as provided in the report.
