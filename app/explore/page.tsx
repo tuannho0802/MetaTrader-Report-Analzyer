@@ -128,7 +128,13 @@ export default function ExplorePage() {
         </div>
         <Select value={selectedId} onValueChange={(v) => setSelectedId(v ?? "")}>
           <SelectTrigger className="w-[280px]">
-            <SelectValue placeholder={t('explore.selectSession')} />
+            {session ? (
+              <span className="truncate">
+                {session.name || session.fileName || 'Unnamed'} ({trades.length} {t('dashboard.trades')})
+              </span>
+            ) : (
+              <SelectValue placeholder={t('explore.selectSession')} />
+            )}
           </SelectTrigger>
           <SelectContent>
             {activeSessions.map(s => (

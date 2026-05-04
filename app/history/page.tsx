@@ -64,8 +64,7 @@ export default function HistoryPage() {
                   <tr key={s.id} className="hover:bg-muted/20 transition-colors group">
                     <td className="px-4 py-3">
                       <div className="flex flex-col">
-                        <span className="font-bold text-foreground">{s.name || s.fileName}</span>
-                        <span className="text-[10px] text-muted-foreground font-mono">{s.id.slice(0, 8)}...</span>
+                        <span className="font-bold text-foreground">{s.name || s.fileName || 'Unnamed'}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 font-mono">

@@ -171,7 +171,13 @@ export default function MonteCarloPage() {
                 onValueChange={(id) => { if (id) { setActiveSession(id); setSelectedEaId('all'); } }}
               >
                 <SelectTrigger id="mc-session">
-                  <SelectValue />
+                  {currentSession ? (
+                    <span className="truncate">
+                      {currentSession.name || currentSession.fileName || 'Unnamed'} ({filteredTrades.length} {t('dashboard.trades')})
+                    </span>
+                  ) : (
+                    <SelectValue placeholder={t('monteCarlo.selectSession')} />
+                  )}
                 </SelectTrigger>
                 <SelectContent>
                   {activeSessions.map((s) => (
