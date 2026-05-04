@@ -258,6 +258,9 @@ export default function MonteCarloPage() {
               <p className="text-[10px] text-muted-foreground">
                 {t('monteCarlo.sampleSizeHint')} (max {filteredTrades.length})
               </p>
+              <p className="text-[9px] text-amber-500 leading-tight italic mt-1">
+                {t('monteCarlo.sampleSizeNote')}
+              </p>
             </div>
 
             {/* Account balance */}
