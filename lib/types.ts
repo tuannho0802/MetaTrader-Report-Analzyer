@@ -61,6 +61,7 @@ export interface AnalysisSession {
   createdAt: number;
   archived?: boolean;
   deleted?: boolean;
+  favorite?: boolean;
 }
 export interface ComparisonResult {
   mode: 'same' | 'cross';

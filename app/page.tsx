@@ -41,7 +41,8 @@ export default function Home() {
   const { language } = useSettingsStore();
 
   const hasData = allTrades.length > 0;
-  const activeSession = sessions.find(s => s.id === activeSessionId);
+  const activeSessions = sessions.filter(s => !s.deleted && !s.archived);
+  const activeSession = activeSessions.find(s => s.id === activeSessionId);
 
   return (
     <>
@@ -99,7 +100,7 @@ export default function Home() {
             <Tabs value={activeSessionId} onValueChange={setActiveSession} className="w-full">
               <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
                 <TabsList className="h-10 bg-muted/50 p-1 gap-1">
-                  {sessions.map((session) => (
+                  {activeSessions.map((session) => (
                     <TabsTrigger 
                       key={session.id} 
                       value={session.id}
@@ -123,7 +124,7 @@ export default function Home() {
                 </TabsList>
               </div>
 
-              {sessions.map((session) => (
+              {activeSessions.map((session) => (
                 <TabsContent 
                   key={session.id} 
                   value={session.id} 

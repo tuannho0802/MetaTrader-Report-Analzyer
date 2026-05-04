@@ -15,6 +15,7 @@ type Mode = "same" | "cross"
 
 export function EAComparator() {
   const { sessions } = useAnalysisStore()
+  const activeSessions = sessions.filter(s => !s.deleted && !s.archived)
   const [mode, setMode] = useState<Mode>("same")
   const [results, setResults] = useState<ComparisonResult | null>(null)
   const { t } = useTranslation()
@@ -69,7 +70,7 @@ export function EAComparator() {
         </div>
       </div>
 
-      {sessions.length === 0 ? (
+      {activeSessions.length === 0 ? (
         /* Empty State */
         <div className="flex flex-col items-center justify-center min-h-[40vh] text-center space-y-5 animate-in fade-in zoom-in duration-500">
           <div className="relative">
@@ -91,12 +92,12 @@ export function EAComparator() {
           <div className="p-5 rounded-2xl border border-border/50 bg-card shadow-sm">
             {mode === "same" ? (
               <SameReportConfig
-                sessions={sessions}
+                sessions={activeSessions}
                 onAnalyze={(r) => setResults(r)}
               />
             ) : (
               <CrossReportConfig
-                sessions={sessions}
+                sessions={activeSessions}
                 onAnalyze={(r) => setResults(r)}
               />
             )}

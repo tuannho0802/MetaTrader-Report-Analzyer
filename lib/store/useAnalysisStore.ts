@@ -69,6 +69,7 @@ interface AnalysisState {
   archiveSession: (id: string) => void;
   restoreSession: (id: string) => void;
   permanentDeleteSession: (id: string) => Promise<void>;
+  toggleFavorite: (id: string) => void;
   undo: () => void;
   redo: () => void;
   reset: () => void;
@@ -81,6 +82,22 @@ const DEFAULT_FILTERS: FilterParams = {
   endDate: new Date(),
   filterMode: 'id',
 };
+
+const sanitizeSessionForStorage = (s: AnalysisSession) => ({
+  id: s.id,
+  name: s.name,
+  fileName: s.fileName,
+  filter: s.filter,
+  createdAt: s.createdAt,
+  history: s.history,
+  historyIndex: s.historyIndex,
+  currency: s.currency,
+  startDate: s.startDate,
+  endDate: s.endDate,
+  deleted: s.deleted,
+  archived: s.archived,
+  favorite: s.favorite
+});
 
 // ─── Store ───────────────────────────────────────────────────────
 export const useAnalysisStore = create<AnalysisState>((set, get) => ({
@@ -194,18 +211,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       });
 
       // Persist session metadata
-      localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updatedSessions.map(s => ({
-        id: s.id,
-        name: s.name,
-        fileName: s.fileName,
-        filter: s.filter,
-        createdAt: s.createdAt,
-        history: s.history,
-        historyIndex: s.historyIndex,
-        currency: s.currency,
-        startDate: s.startDate,
-        endDate: s.endDate
-      }))));
+      localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updatedSessions.map(sanitizeSessionForStorage)));
 
     } catch (err: any) {
       set({ errorMsg: err.message || 'Error parsing file', isProcessing: false, statusMsg: '' });
@@ -278,18 +284,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       });
 
       // Step 5: Persist session metadata to localStorage
-      localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updatedSessions.map(s => ({
-        id: s.id,
-        name: s.name,
-        fileName: s.fileName,
-        filter: s.filter,
-        createdAt: s.createdAt,
-        history: s.history,
-        historyIndex: s.historyIndex,
-        currency: s.currency,
-        startDate: s.startDate,
-        endDate: s.endDate,
-      }))));
+      localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updatedSessions.map(sanitizeSessionForStorage)));
 
       set({
         sessions: updatedSessions,
@@ -456,20 +451,7 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
     });
 
     // Update metadata persistence
-    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updated.map(s => ({
-      id: s.id,
-      name: s.name,
-      fileName: s.fileName,
-      filter: s.filter,
-      createdAt: s.createdAt,
-      history: s.history,
-      historyIndex: s.historyIndex,
-      currency: s.currency,
-      startDate: s.startDate,
-      endDate: s.endDate,
-      deleted: s.deleted,
-      archived: s.archived
-    }))));
+    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updated.map(sanitizeSessionForStorage)));
   },
 
   archiveSession: (id) => {
@@ -483,14 +465,14 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
     }
 
     set({ sessions: updated, activeSessionId: nextActive });
-    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updated.map(s => ({ ...s, allTrades: undefined, currentResult: undefined, multiEaResults: undefined }))));
+    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updated.map(sanitizeSessionForStorage)));
   },
 
   restoreSession: (id) => {
     const { sessions } = get();
     const updated = sessions.map(s => s.id === id ? { ...s, archived: false, deleted: false } : s);
     set({ sessions: updated, activeSessionId: id });
-    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updated.map(s => ({ ...s, allTrades: undefined, currentResult: undefined, multiEaResults: undefined }))));
+    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updated.map(sanitizeSessionForStorage)));
   },
 
   permanentDeleteSession: async (id) => {
@@ -515,7 +497,14 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
       filteredTrades: updated.find(s => s.id === nextActive)?.currentResult?.trades || []
     });
 
-    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updated.map(s => ({ ...s, allTrades: undefined, currentResult: undefined, multiEaResults: undefined }))));
+    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updated.map(sanitizeSessionForStorage)));
+  },
+
+  toggleFavorite: (id) => {
+    const { sessions } = get();
+    const updated = sessions.map(s => s.id === id ? { ...s, favorite: !s.favorite } : s);
+    set({ sessions: updated });
+    localStorage.setItem(STORAGE_KEY_SESSIONS, JSON.stringify(updated.map(sanitizeSessionForStorage)));
   },
 
   setActiveSession: (id) => {

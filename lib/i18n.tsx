@@ -35,7 +35,24 @@ export const translations = {
       explore: "Explore",
       statistics: "Statistics",
       history: "History",
-      bookmarks: "Bookmarks"
+    },
+    history: {
+      filterFavorites: "Favorites",
+      filterActive: "Active",
+      filterArchived: "Archived",
+      filterRecycleBin: "Recycle Bin",
+      noFavorites: "No favorite sessions yet.",
+      noActive: "No active sessions found.",
+      noArchived: "No archived sessions.",
+      noDeleted: "Recycle bin is empty.",
+      actions: {
+        favorite: "Add to favorites",
+        unfavorite: "Remove from favorites",
+        archive: "Archive",
+        restore: "Restore",
+        delete: "Delete",
+        permanentDelete: "Permanent Delete"
+      }
     },
     comparison: {
       title: "EA Comparison",
@@ -356,7 +373,24 @@ export const translations = {
       explore: "Khám phá",
       statistics: "Thống kê",
       history: "Lịch sử",
-      bookmarks: "Dấu trang"
+    },
+    history: {
+      filterFavorites: "Yêu thích",
+      filterActive: "Đang hoạt động",
+      filterArchived: "Đã lưu trữ",
+      filterRecycleBin: "Thùng rác",
+      noFavorites: "Chưa có phiên yêu thích nào.",
+      noActive: "Không tìm thấy phiên nào đang hoạt động.",
+      noArchived: "Không có phiên lưu trữ nào.",
+      noDeleted: "Thùng rác trống.",
+      actions: {
+        favorite: "Thêm vào yêu thích",
+        unfavorite: "Bỏ yêu thích",
+        archive: "Lưu trữ",
+        restore: "Khôi phục",
+        delete: "Xóa",
+        permanentDelete: "Xóa vĩnh viễn"
+      }
     },
     comparison: {
       title: "So sánh Robot (EA)",

@@ -119,14 +119,6 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/bookmarks"} tooltip={t('common.bookmarks')}>
-                  <Link href="/bookmarks" className="flex items-center gap-3 w-full">
-                    <Bookmark className={cn("h-4 w-4 shrink-0", pathname === "/bookmarks" ? "text-primary" : "text-muted-foreground")} />
-                    <span className="font-semibold text-foreground opacity-100">{t('common.bookmarks')}</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
