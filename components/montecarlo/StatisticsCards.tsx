@@ -25,6 +25,7 @@ interface Props {
   };
   currency: string;
   accountBalance: number;
+  isSequential?: boolean;
 }
 
 interface MetricCard {
@@ -32,9 +33,10 @@ interface MetricCard {
   value: string;
   sentiment: 'good' | 'bad' | 'neutral';
   icon: React.ElementType;
+  isSequentialOnly?: boolean;
 }
 
-export function StatisticsCards({ results, currency, accountBalance }: Props) {
+export function StatisticsCards({ results, currency, accountBalance, isSequential }: Props) {
   const { t } = useTranslation();
 
   const stats = useMemo(() => {
@@ -77,12 +79,13 @@ export function StatisticsCards({ results, currency, accountBalance }: Props) {
     };
   }, [results, accountBalance]);
 
-  const metrics: MetricCard[] = [
+  const allMetrics: MetricCard[] = [
     {
-      label: t('monteCarlo.meanProfit'),
+      label: isSequential ? t('dashboard.netProfit') : t('monteCarlo.meanProfit'),
       value: formatCurrency(stats.meanProfit, currency),
       sentiment: stats.meanProfit >= 0 ? 'good' : 'bad',
       icon: TrendingUp,
+      isSequentialOnly: true,
     },
     {
       label: t('monteCarlo.medianProfit'),
@@ -101,12 +104,14 @@ export function StatisticsCards({ results, currency, accountBalance }: Props) {
       value: formatCurrency(stats.worstProfit, currency),
       sentiment: stats.worstProfit >= 0 ? 'good' : 'bad',
       icon: TrendingDown,
+      isSequentialOnly: true,
     },
     {
       label: t('monteCarlo.bestProfit'),
       value: formatCurrency(stats.bestProfit, currency),
       sentiment: 'good',
       icon: Target,
+      isSequentialOnly: true,
     },
     {
       label: t('monteCarlo.confidence95'),
@@ -115,16 +120,18 @@ export function StatisticsCards({ results, currency, accountBalance }: Props) {
       icon: BarChart3,
     },
     {
-      label: t('monteCarlo.meanDrawdown'),
+      label: isSequential ? t('dashboard.maxDrawdown') : t('monteCarlo.meanDrawdown'),
       value: formatCurrency(stats.meanDrawdown, currency),
       sentiment: 'bad',
       icon: Minus,
+      isSequentialOnly: true,
     },
     {
       label: t('monteCarlo.worstDrawdown'),
       value: formatCurrency(stats.worstDrawdown, currency),
       sentiment: 'bad',
       icon: AlertTriangle,
+      isSequentialOnly: true,
     },
     {
       label: t('monteCarlo.probProfit'),
@@ -139,6 +146,8 @@ export function StatisticsCards({ results, currency, accountBalance }: Props) {
       icon: ShieldCheck,
     },
   ];
+
+  const metrics = isSequential ? allMetrics.filter(m => m.isSequentialOnly) : allMetrics;
 
   const sentimentClass = (s: MetricCard['sentiment']) => {
     if (s === 'good') return 'text-emerald-500';
@@ -184,6 +193,14 @@ export function StatisticsCards({ results, currency, accountBalance }: Props) {
             );
           })}
         </div>
+        {isSequential && (
+          <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border/50 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-muted-foreground shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              {t('monteCarlo.statsUnavailable')}
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

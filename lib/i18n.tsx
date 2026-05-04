@@ -266,6 +266,7 @@ export const translations = {
       sampleSize: "Sample Size (trades per run)",
       sampleSizeHint: "Leave blank to use all available trades",
       shuffle: "Shuffle trade order on each run",
+      shuffleHint: "On: Bootstrap resampling (true Monte Carlo). Off: Sequential order (validation only).",
       accountBalance: "Account Balance (for Risk of Ruin)",
       run: "Run Simulation",
       running: "Running…",
@@ -285,6 +286,9 @@ export const translations = {
       worstDrawdown: "Worst Drawdown",
       probProfit: "Prob. of Profit",
       riskOfRuin: "Risk of Ruin",
+      sequentialTitle: "Original Sequence",
+      sequentialNote: "Shuffle is disabled. The results reflect the actual historical sequence. Enable shuffle to see a probability distribution.",
+      statsUnavailable: "Statistics unavailable in sequential mode",
     },
   },
   vi: {
@@ -555,6 +559,7 @@ export const translations = {
       sampleSize: "Kích thước mẫu (lệnh/lần chạy)",
       sampleSizeHint: "Để trống để dùng tất cả lệnh có sẵn",
       shuffle: "Xáo trộn thứ tự giao dịch mỗi lần chạy",
+      shuffleHint: "Bật: Bootstrap resampling (Monte Carlo thực). Tắt: Chuỗi tuần tự (chỉ để kiểm tra).",
       accountBalance: "Số dư tài khoản (tính Rủi ro phá sản)",
       run: "Chạy mô phỏng",
       running: "Đang chạy…",
@@ -574,6 +579,9 @@ export const translations = {
       worstDrawdown: "Drawdown tệ nhất",
       probProfit: "Xác suất có lãi",
       riskOfRuin: "Rủi ro phá sản",
+      sequentialTitle: "Chuỗi gốc",
+      sequentialNote: "Tắt xáo trộn. Kết quả phản ánh đúng chuỗi giao dịch lịch sử. Bật xáo trộn để xem phân phối xác suất.",
+      statsUnavailable: "Thống kê không khả dụng ở chế độ tuần tự",
     }
   }
 };

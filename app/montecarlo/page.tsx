@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useAnalysisStore } from '@/lib/store/useAnalysisStore';
 import { useTranslation } from '@/lib/i18n';
 import { useMonteCarlo } from '@/lib/hooks/useMonteCarlo';
+import { formatCurrency } from '@/lib/formatCurrency';
 import { DistributionChart } from '@/components/montecarlo/DistributionChart';
 import { StatisticsCards } from '@/components/montecarlo/StatisticsCards';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -25,6 +26,7 @@ import {
   ChevronRight,
   BarChart3,
   Settings2,
+  History,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -277,9 +279,14 @@ export default function MonteCarloPage() {
           {/* Shuffle toggle */}
           <div className="flex items-center gap-3">
             <Toggle id="mc-shuffle" checked={shuffle} onChange={setShuffle} />
-            <Label htmlFor="mc-shuffle" className="cursor-pointer select-none">
-              {t('monteCarlo.shuffle')}
-            </Label>
+            <div className="space-y-0.5">
+              <Label htmlFor="mc-shuffle" className="cursor-pointer select-none">
+                {t('monteCarlo.shuffle')}
+              </Label>
+              <p className="text-[10px] text-muted-foreground leading-tight">
+                {t('monteCarlo.shuffleHint')}
+              </p>
+            </div>
           </div>
 
           {/* Action row */}
@@ -325,28 +332,80 @@ export default function MonteCarloPage() {
       {/* ── Results ── */}
       {results && (
         <>
-          <StatisticsCards
-            results={results}
-            currency={currentSession?.currency || 'USD'}
-            accountBalance={accountBalance}
-          />
+          {(() => {
+            const isSequential = Math.min(...results.profits) === Math.max(...results.profits);
+            const netProfit = results.profits[0];
+            const maxDrawdown = results.drawdowns[0];
+            const winRate = (filteredTrades.filter(t => t.profit > 0).length / filteredTrades.length) * 100;
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DistributionChart
-              data={results.profits}
-              title={t('monteCarlo.profitDistribution')}
-              description={t('monteCarlo.profitDistributionDesc')}
-              variant="profit"
-              currency={currentSession?.currency || 'USD'}
-            />
-            <DistributionChart
-              data={results.drawdowns}
-              title={t('monteCarlo.drawdownDistribution')}
-              description={t('monteCarlo.drawdownDistributionDesc')}
-              variant="drawdown"
-              currency={currentSession?.currency || 'USD'}
-            />
-          </div>
+            return (
+              <>
+                {isSequential && (
+                  <Card className="border-border/50 shadow-lg overflow-hidden bg-primary/5">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-2 text-primary">
+                        <History className="h-5 w-5" />
+                        <CardTitle className="text-lg">{t('monteCarlo.sequentialTitle')}</CardTitle>
+                      </div>
+                      <CardDescription className="text-xs">
+                        {t('monteCarlo.sequentialNote')}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold uppercase text-muted-foreground">{t('dashboard.netProfit')}</p>
+                          <p className={cn("text-lg font-black", netProfit >= 0 ? "text-emerald-500" : "text-rose-500")}>
+                            {formatCurrency(netProfit, currentSession?.currency || 'USD')}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold uppercase text-muted-foreground">{t('dashboard.maxDrawdown')}</p>
+                          <p className="text-lg font-black text-rose-500">
+                            {formatCurrency(maxDrawdown, currentSession?.currency || 'USD')}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold uppercase text-muted-foreground">{t('dashboard.trades')}</p>
+                          <p className="text-lg font-black">{filteredTrades.length}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold uppercase text-muted-foreground">{t('dashboard.winRate')}</p>
+                          <p className="text-lg font-black">{winRate.toFixed(1)}%</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                <StatisticsCards
+                  results={results}
+                  currency={currentSession?.currency || 'USD'}
+                  accountBalance={accountBalance}
+                  isSequential={isSequential}
+                />
+
+                {!isSequential && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <DistributionChart
+                      data={results.profits}
+                      title={t('monteCarlo.profitDistribution')}
+                      description={t('monteCarlo.profitDistributionDesc')}
+                      variant="profit"
+                      currency={currentSession?.currency || 'USD'}
+                    />
+                    <DistributionChart
+                      data={results.drawdowns}
+                      title={t('monteCarlo.drawdownDistribution')}
+                      description={t('monteCarlo.drawdownDistributionDesc')}
+                      variant="drawdown"
+                      currency={currentSession?.currency || 'USD'}
+                    />
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </>
       )}
     </div>
