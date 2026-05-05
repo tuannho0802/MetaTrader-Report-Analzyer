@@ -45,10 +45,11 @@ export interface FilterPreset {
   filterMode?: FilterMode; // Optional for backward compatibility
 }
 
+
 export interface AnalysisSession {
   id: string;
   name: string;
-  fileName?: string;
+  fileName: string;
   allTrades?: Trade[];
   filter: FilterParams;
   history: FilterParams[];
@@ -59,7 +60,7 @@ export interface AnalysisSession {
   startDate: string | null;
   endDate: string | null;
   createdAt: number;
-  archived?: boolean;
+  archived: boolean;
   deleted?: boolean;
   favorite?: boolean;
 }

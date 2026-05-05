@@ -10,13 +10,14 @@ import { cn } from "@/lib/utils"
 
 export function ReportDateCard({ className }: { className?: string }) {
   const { t } = useTranslation()
-  const { filteredTrades } = useAnalysisStore()
+  const { sessions, activeSessionId } = useAnalysisStore()
+  const activeSessions = sessions.filter(s => !s.archived)
+  const activeSession = activeSessions.find(s => s.id === activeSessionId)
+  const filteredTrades = activeSession?.currentResult?.trades || []
   const { language } = useSettingsStore()
 
   if (!filteredTrades || filteredTrades.length === 0) return null
 
-  // ============ LOGIC: LẤY TỪ FILTERED TRADES ============
-  
   // Sắp xếp trades theo openTime (sớm → muộn)
   const sortedByOpen = [...filteredTrades].sort((a, b) => {
     const dateA = new Date(a.openTime.replace(/\./g, '/')).getTime()
@@ -24,19 +25,8 @@ export function ReportDateCard({ className }: { className?: string }) {
     return dateA - dateB
   })
   
-  // Sắp xếp trades theo closeTime (sớm → muộn)
-  const sortedByClose = [...filteredTrades].sort((a, b) => {
-    const dateA = new Date(a.closeTime.replace(/\./g, '/')).getTime()
-    const dateB = new Date(b.closeTime.replace(/\./g, '/')).getTime()
-    return dateA - dateB
-  })
-  
   // Ngày EA bắt đầu vào lệnh = openTime của trade đầu tiên
   const displayStartDate = sortedByOpen[0].openTime
-
-  // ============ LOGIC CŨ CHO END-DATE ============
-  const { sessions, activeSessionId } = useAnalysisStore()
-  const activeSession = sessions.find(s => s.id === activeSessionId)
   
   let displayEndDateObj = new Date()
   if (activeSession) {

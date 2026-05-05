@@ -23,7 +23,6 @@ import {
   HelpCircle,
   Compass,
   History,
-  Bookmark,
   BarChart,
   GitCompareArrows,
   Info,

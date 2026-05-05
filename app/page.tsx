@@ -29,48 +29,24 @@ export default function Home() {
   const {
     sessions,
     activeSessionId,
-    allTrades,
-    cachedStatementInfo,
-    loadCachedStatement,
-    clearCache,
-    removeSession,
+    archiveSession,
     setActiveSession,
   } = useAnalysisStore();
+
+  const activeSessions = React.useMemo(() => {
+    return sessions.filter(s => 
+      !s.archived && s.allTrades && s.allTrades.length > 0
+    );
+  }, [sessions]);
 
   const { t } = useTranslation();
   const { language } = useSettingsStore();
 
-  const hasData = allTrades.length > 0;
-  const activeSessions = sessions.filter(s => !s.deleted && !s.archived);
   const activeSession = activeSessions.find(s => s.id === activeSessionId);
+  const hasData = activeSessions.length > 0;
 
   return (
     <>
-      {cachedStatementInfo && !hasData && (
-        <div className="flex items-center justify-between px-4 py-3 bg-muted/50 border border-border/50 rounded-xl animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 text-primary rounded-lg">
-              <History size={18} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold">{t('dashboard.loadedPrevious')} <span className="text-primary">{cachedStatementInfo.fileName}</span></p>
-              <p className="text-[10px] text-muted-foreground">
-                {new Date(cachedStatementInfo.uploadedAt).toLocaleString()} • {cachedStatementInfo.totalTrades} {t('dashboard.trades')}
-              </p>
-            </div>
-          </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={clearCache}
-            className="text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 gap-2"
-          >
-            <Trash2 size={14} />
-            {t('dashboard.clearCache')}
-          </Button>
-        </div>
-      )}
-
       {!hasData ? (
         <div className="flex flex-col items-center justify-center min-h-[65vh] text-center space-y-8 animate-in fade-in zoom-in duration-700">
           <div className="relative">
@@ -97,7 +73,7 @@ export default function Home() {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Session Tabs */}
           <div className="flex flex-col gap-6">
-            <Tabs value={activeSessionId} onValueChange={setActiveSession} className="w-full">
+            <Tabs value={activeSessionId || undefined} onValueChange={setActiveSession} className="w-full">
               <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
                 <TabsList className="h-10 bg-muted/50 p-1 gap-1">
                   {activeSessions.map((session) => (
@@ -108,17 +84,22 @@ export default function Home() {
                     >
                       <LayoutGrid size={14} className="opacity-50" />
                       <span className="max-w-[150px] truncate">{session.name}</span>
-                      {sessions.length > 0 && (
-                        <div 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeSession(session.id);
-                          }}
-                          className="ml-1 p-0.5 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-rose-500"
-                        >
-                          <X size={12} />
-                        </div>
-                      )}
+                      <div 
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (confirm("Archive this session to free up memory?")) {
+                            try {
+                              await archiveSession(session.id);
+                            } catch (error) {
+                              console.error('Archive failed:', error);
+                              alert('Failed to archive session');
+                            }
+                          }
+                        }}
+                        className="ml-1 p-0.5 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-rose-500"
+                      >
+                        <X size={12} />
+                      </div>
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -136,7 +117,7 @@ export default function Home() {
                         <Activity className="h-8 w-8 text-muted-foreground opacity-50" />
                       </div>
                       <h3 className="text-lg font-semibold text-foreground mb-1">
-                        {t('filter.noResults')}
+                        {t('common.noResults')}
                       </h3>
                       <p className="text-sm text-muted-foreground max-w-sm">
                         {language === 'vi' 

@@ -31,13 +31,14 @@ import { Slider } from "@/components/ui/slider";
 
 export default function SettingsPage() {
   const { language, setLanguage, maxTabs, setMaxTabs } = useSettingsStore();
-  const { clearCache, sessions } = useAnalysisStore();
+  const { reset, sessions } = useAnalysisStore();
+  const totalSessionsCount = sessions.length;
   const { theme, setTheme } = useTheme();
   const { t } = useTranslation();
 
-  const handleClearData = async () => {
+  const handleClearData = () => {
     if (confirm("Are you sure you want to clear ALL trading data and sessions? This cannot be undone.")) {
-      await clearCache();
+      reset().catch(console.error);
     }
   };
 
@@ -149,7 +150,7 @@ export default function SettingsPage() {
             <div className="flex items-center gap-2">
               <div className="text-right">
                 <p className="text-[10px] font-bold uppercase text-muted-foreground">Stored Data</p>
-                <p className="text-lg font-black text-foreground">{sessions.length} Sessions</p>
+                <p className="text-lg font-black text-foreground">{totalSessionsCount} Sessions</p>
               </div>
             </div>
           </CardHeader>

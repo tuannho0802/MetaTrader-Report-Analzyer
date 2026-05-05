@@ -134,10 +134,14 @@ export default function ResultsTable({ result }: ResultsTableProps) {
         />
 
         {/* Warning for missing EA IDs */}
-        {useAnalysisStore.getState().sessions.find(s => s.id === useAnalysisStore.getState().activeSessionId)?.filter.filterMode === 'id' && 
-         useAnalysisStore.getState().sessions.find(s => s.id === useAnalysisStore.getState().activeSessionId)?.filter.commentPattern &&
-         result.trades.length === 0 && 
-         useAnalysisStore.getState().allTrades.every(t => !t.eaId) && (
+        {(() => {
+          const state = useAnalysisStore.getState();
+          const activeSession = state.sessions.find(s => s.id === state.activeSessionId);
+          return activeSession?.filter.filterMode === 'id' && 
+                 activeSession?.filter.commentPattern &&
+                 result.trades.length === 0 && 
+                 (activeSession?.allTrades || []).every(t => !t.eaId);
+        })() && (
           <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-3 text-amber-600 dark:text-amber-400 text-xs font-medium animate-in fade-in slide-in-from-top-2">
             <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
             {t('filter.errors.noEaIds')}

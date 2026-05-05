@@ -72,8 +72,11 @@ function Toggle({ checked, onChange, id }: { checked: boolean; onChange: (v: boo
 export default function MonteCarloPage() {
   const { t } = useTranslation();
   const { sessions, activeSessionId, setActiveSession } = useAnalysisStore();
-
-  const activeSessions = sessions.filter((s) => !(s as any).deleted && !(s as any).archived);
+  const activeSessions = useMemo(() => {
+    return sessions.filter(s => 
+      !s.archived && s.allTrades && s.allTrades.length > 0
+    );
+  }, [sessions]);
   const currentSession = activeSessions.find((s) => s.id === activeSessionId) || activeSessions[0] || null;
 
   // ── Config state ─────────────────────────────────────────────────────────

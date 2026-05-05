@@ -82,9 +82,10 @@ export default function FilterForm({ onSubmit, isLoading, disabled }: FilterForm
     redo,
     errorMsg
   } = useAnalysisStore();
+  const activeSessions = sessions.filter(s => !s.archived);
   const { t } = useTranslation();
   const { language } = useSettingsStore();
-  const activeSession = sessions.find(s => s.id === activeSessionId);
+  const activeSession = activeSessions.find(s => s.id === activeSessionId);
 
 
   const canUndo = (activeSession?.historyIndex ?? 0) > 0;

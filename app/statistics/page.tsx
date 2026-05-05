@@ -40,6 +40,11 @@ interface EaAggregate {
 
 export default function StatisticsPage() {
   const { sessions } = useAnalysisStore();
+  const activeSessions = React.useMemo(() => {
+    return sessions.filter(s => 
+      !s.archived && s.allTrades && s.allTrades.length > 0
+    );
+  }, [sessions]);
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
@@ -47,8 +52,6 @@ export default function StatisticsPage() {
   const tooltipLabelColor = isDark ? '#94a3b8' : '#64748b'; // slate-400 / slate-500
   const tooltipItemColor  = isDark ? '#f1f5f9' : '#0f172a'; // slate-100 / slate-900
   const axisTickColor     = isDark ? '#cbd5e1' : '#475569'; // slate-300 / slate-600
-
-  const activeSessions = sessions.filter(s => !(s as any).deleted && !(s as any).archived);
 
   const [selectedEaKey, setSelectedEaKey] = useState<string>("");
 
@@ -67,7 +70,21 @@ export default function StatisticsPage() {
   }
 
   // Aggregate KPIs
-  const allFilteredTrades = activeSessions.flatMap(s => s.currentResult?.trades || []);
+  const allFilteredTrades = activeSessions.flatMap(session => {
+    if (!session.filter || !session.filter.startDate || !session.filter.endDate) {
+      return session.allTrades || [];
+    }
+    const start = new Date(session.filter.startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(session.filter.endDate);
+    end.setHours(23, 59, 59, 999);
+    
+    return (session.allTrades || []).filter(trade => {
+      const closeDate = new Date(trade.closeTime.replace(/\./g, '/'));
+      return closeDate >= start && closeDate <= end;
+    });
+  });
+
   const totalProfit = allFilteredTrades.reduce((s, t) => s + t.profit, 0);
   const currency = activeSessions[0]?.currency || 'USD';
 
@@ -75,7 +92,20 @@ export default function StatisticsPage() {
   const eaMap = new Map<string, EaAggregate>();
 
   activeSessions.forEach(session => {
-    const trades = session.currentResult?.trades || [];
+    let trades = session.allTrades || [];
+    
+    if (session.filter && session.filter.startDate && session.filter.endDate) {
+      const start = new Date(session.filter.startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(session.filter.endDate);
+      end.setHours(23, 59, 59, 999);
+      
+      trades = trades.filter(trade => {
+        const closeDate = new Date(trade.closeTime.replace(/\./g, '/'));
+        return closeDate >= start && closeDate <= end;
+      });
+    }
+
     const sessionName = session.name || session.fileName || 'Unknown';
 
     trades.forEach(trade => {
@@ -114,7 +144,21 @@ export default function StatisticsPage() {
   if (selectedEaKey) {
     const [sessId, rawEaId] = selectedEaKey.split('::');
     const targetSession = activeSessions.find(s => s.id === sessId);
-    const eaTrades = (targetSession?.currentResult?.trades || [])
+    
+    let tradesForTrend = targetSession?.allTrades || [];
+    if (targetSession?.filter && targetSession.filter.startDate && targetSession.filter.endDate) {
+      const start = new Date(targetSession.filter.startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(targetSession.filter.endDate);
+      end.setHours(23, 59, 59, 999);
+      
+      tradesForTrend = tradesForTrend.filter(trade => {
+        const closeDate = new Date(trade.closeTime.replace(/\./g, '/'));
+        return closeDate >= start && closeDate <= end;
+      });
+    }
+
+    const eaTrades = tradesForTrend
       .filter(t => (t.eaId || t.comment || 'Unknown') === rawEaId)
       .sort((a, b) => new Date((a.closeTime || "").replace(/\./g, '/')).getTime() - new Date((b.closeTime || "").replace(/\./g, '/')).getTime());
 
@@ -133,11 +177,9 @@ export default function StatisticsPage() {
 
   // Top Symbols
   const symbolMap = new Map<string, number>();
-  activeSessions.forEach(s => {
-    (s.currentResult?.trades || []).forEach(t => {
-      const sym = t.item || 'Unknown';
-      symbolMap.set(sym, (symbolMap.get(sym) || 0) + 1);
-    });
+  allFilteredTrades.forEach(t => {
+    const sym = t.item || 'Unknown';
+    symbolMap.set(sym, (symbolMap.get(sym) || 0) + 1);
   });
 
   const symbolData = Array.from(symbolMap.entries())

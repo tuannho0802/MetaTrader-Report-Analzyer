@@ -28,6 +28,11 @@ import { cn } from "@/lib/utils";
 
 export default function ExplorePage() {
   const { sessions, activeSessionId } = useAnalysisStore();
+  const activeSessions = React.useMemo(() => {
+    return sessions.filter(s => 
+      !s.archived && s.allTrades && s.allTrades.length > 0
+    );
+  }, [sessions]);
   const { t, language } = useTranslation();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
@@ -35,8 +40,6 @@ export default function ExplorePage() {
   const tooltipLabelColor = isDark ? '#94a3b8' : '#64748b'; // slate-400 / slate-500
   const tooltipItemColor  = isDark ? '#f1f5f9' : '#0f172a'; // slate-100 / slate-900
   const axisTickColor     = isDark ? '#cbd5e1' : '#475569'; // slate-300 / slate-600
-
-  const activeSessions = sessions.filter(s => !(s as any).deleted && !(s as any).archived);
 
   const [selectedId, setSelectedId] = useState<string>(activeSessionId || "");
 
@@ -61,7 +64,25 @@ export default function ExplorePage() {
   }
 
   const session = activeSessions.find(s => s.id === selectedId) || activeSessions[0];
-  const trades = session?.currentResult?.trades || [];
+  const trades = React.useMemo(() => {
+    if (!session || !session.allTrades) return session?.currentResult?.trades || [];
+    
+    // If we have a filter applied to the session, use it
+    if (session.filter && session.filter.startDate && session.filter.endDate) {
+      const start = new Date(session.filter.startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(session.filter.endDate);
+      end.setHours(23, 59, 59, 999);
+      
+      return session.allTrades.filter(trade => {
+        const closeDate = new Date(trade.closeTime.replace(/\./g, '/'));
+        return closeDate >= start && closeDate <= end;
+      });
+    }
+    
+    return session.currentResult?.trades || session.allTrades;
+  }, [session]);
+
   const currency = session?.currency || 'USD';
 
   // KPIs

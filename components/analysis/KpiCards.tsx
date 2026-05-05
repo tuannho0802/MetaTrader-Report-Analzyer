@@ -17,7 +17,8 @@ import { formatCurrency } from "@/lib/formatCurrency"
 
 export function KpiCards() {
   const { sessions, activeSessionId } = useAnalysisStore()
-  const activeSession = sessions.find(s => s.id === activeSessionId)
+  const activeSessions = sessions.filter(s => !s.archived)
+  const activeSession = activeSessions.find(s => s.id === activeSessionId)
   const currentResult = activeSession?.currentResult || null
   const { t } = useTranslation()
   const { language } = useSettingsStore()

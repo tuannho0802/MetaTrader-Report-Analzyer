@@ -19,7 +19,8 @@ import { getCurrencySymbol, formatCurrency } from "@/lib/formatCurrency"
 
 export function MultiEaChart() {
   const { sessions, activeSessionId } = useAnalysisStore()
-  const activeSession = sessions.find(s => s.id === activeSessionId)
+  const activeSessions = sessions.filter(s => !s.archived)
+  const activeSession = activeSessions.find(s => s.id === activeSessionId)
   const multiEaResults = activeSession?.multiEaResults || {}
   const { t } = useTranslation()
 

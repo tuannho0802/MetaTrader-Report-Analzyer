@@ -22,19 +22,19 @@ import { formatCurrency } from "@/lib/formatCurrency";
 
 export default function HistoryPage() {
   const { 
-    sessions, 
+    sessions,
     restoreSession, 
     archiveSession, 
-    removeSession, 
-    permanentDeleteSession,
+    deleteSession,
     toggleFavorite 
   } = useAnalysisStore();
   const { t } = useTranslation();
 
-  const favoriteSessions = sessions.filter(s => s.favorite && !s.deleted && !s.archived);
-  const activeSessions = sessions.filter(s => !s.deleted && !s.archived);
-  const archivedSessions = sessions.filter(s => s.archived && !s.deleted);
-  const deletedSessions = sessions.filter(s => s.deleted);
+  const favoriteSessions = sessions.filter(s => s.favorite);
+  const activeSessionsList = sessions.filter(s => !s.archived);
+  const archivedSessionsList = sessions.filter(s => s.archived);
+  
+  const deletedSessionsList: any[] = []; 
 
   const SessionList = ({ items, type, emptyKey }: { 
     items: any[]; 
@@ -57,119 +57,152 @@ export default function HistoryPage() {
                 <thead className="bg-muted/50 text-muted-foreground font-bold text-[10px] uppercase tracking-widest border-b border-border/50">
                   <tr>
                     <th className="px-6 py-4">{t('comparison.report')}</th>
-                    <th className="px-6 py-4 text-right">{t('explore.kpiNetProfit')}</th>
-                    <th className="px-6 py-4 text-center">{t('explore.kpiTotalTrades')}</th>
+                    <th className="px-6 py-4 text-right">Performance Metrics</th>
                     <th className="px-6 py-4">Uploaded</th>
                     <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
-                  {items.map(s => (
-                    <tr key={s.id} className="hover:bg-muted/30 transition-all group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <button 
-                            onClick={() => toggleFavorite(s.id)}
-                            className={cn(
-                              "transition-all duration-200 hover:scale-110",
-                              s.favorite ? "text-amber-400" : "text-muted-foreground/30 hover:text-amber-400/50"
-                            )}
-                          >
-                            <Star size={18} fill={s.favorite ? "currentColor" : "none"} />
-                          </button>
-                          <div className="flex flex-col min-w-0">
-                            <span className="font-bold text-foreground truncate max-w-[200px]">{s.name || s.fileName || 'Unnamed'}</span>
-                            <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{s.fileName}</span>
+                  {items.map(s => {
+                    const isArchived = s.archived;
+                    const metadata = s.metadata;
+                    const currency = s.currency || 'USD';
+
+                    return (
+                      <tr key={s.id} className="hover:bg-muted/30 transition-all group">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-bold text-foreground truncate max-w-[200px]">{s.name || s.fileName || 'Unnamed'}</span>
+                              <span className="text-[10px] text-muted-foreground truncate max-w-[200px]">{s.fileName}</span>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right font-mono">
-                        <span className={cn(
-                          "font-bold",
-                          (s.currentResult?.totalProfit || 0) >= 0 ? "text-emerald-500" : "text-rose-500"
-                        )}>
-                          {formatCurrency(s.currentResult?.totalProfit || 0, s.currency)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center font-bold text-muted-foreground">
-                        {s.currentResult?.trades.length || 0}
-                      </td>
-                      <td className="px-6 py-4 text-muted-foreground text-[11px] font-medium">
-                        {format(s.createdAt, 'MMM dd, yyyy')}
-                        <div className="text-[10px] opacity-60">{format(s.createdAt, 'HH:mm')}</div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {(type === 'active' || type === 'favorite') && (
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex flex-col items-end gap-1">
                             <>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10" 
-                                onClick={() => archiveSession(s.id)} 
-                                title={t('history.actions.archive')}
-                              >
-                                <Archive className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10" 
-                                onClick={() => removeSession(s.id)} 
-                                title={t('history.actions.delete')}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              <div className="text-xs">
+                                <span className="text-muted-foreground">Trades:</span>{' '}
+                                <span className="font-bold">{s.allTrades?.length || 0}</span>
+                              </div>
+                              <div className="text-xs">
+                                <span className="text-muted-foreground">Net Profit:</span>{' '}
+                                <span className={cn(
+                                  "font-bold",
+                                  (s.currentResult?.totalProfit || 0) >= 0 ? "text-emerald-500" : "text-rose-500"
+                                )}>
+                                  {formatCurrency(s.currentResult?.totalProfit || 0, s.currency || 'USD')}
+                                </span>
+                              </div>
                             </>
-                          )}
-                          {type === 'archived' && (
-                            <>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10" 
-                                onClick={() => restoreSession(s.id)} 
-                                title={t('history.actions.restore')}
-                              >
-                                <RotateCcw className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10" 
-                                onClick={() => removeSession(s.id)} 
-                                title={t('history.actions.delete')}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                          {type === 'deleted' && (
-                            <>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10" 
-                                onClick={() => restoreSession(s.id)} 
-                                title={t('history.actions.restore')}
-                              >
-                                <RotateCcw className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 rounded-lg text-muted-foreground hover:text-rose-600 hover:bg-rose-600/10" 
-                                onClick={() => permanentDeleteSession(s.id)} 
-                                title={t('history.actions.permanentDelete')}
-                              >
-                                <AlertTriangle className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-muted-foreground text-[11px] font-medium">
+                          {format(s.createdAt, 'MMM dd, yyyy')}
+                          <div className="text-[10px] opacity-60">{format(s.createdAt, 'HH:mm')}</div>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className={cn(
+                                "h-8 w-8 rounded-lg", 
+                                s.favorite 
+                                  ? "text-yellow-500 hover:text-yellow-600 hover:bg-yellow-500/10" 
+                                  : "text-muted-foreground hover:text-yellow-500 hover:bg-yellow-500/10"
+                              )}
+                              onClick={() => toggleFavorite(s.id)}
+                              title={s.favorite ? t('history.actions.unfavorite') : t('history.actions.favorite')}
+                            >
+                              <Star className={cn("h-4 w-4", s.favorite && "fill-current")} />
+                            </Button>
+                            {!isArchived ? (
+                              <>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10" 
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (window.confirm("Are you sure you want to archive this session?")) {
+                                      try {
+                                        await archiveSession(s.id);
+                                      } catch (error) {
+                                        console.error('Archive operation failed:', error);
+                                        alert(`Failed to archive session`);
+                                      }
+                                    }
+                                  }} 
+                                  title={t('history.actions.archive')}
+                                >
+                                  <Archive className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10" 
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (window.confirm("Are you sure you want to delete this session?")) {
+                                      try {
+                                        await deleteSession(s.id);
+                                      } catch (error) {
+                                        console.error('Delete failed:', error);
+                                        alert('Failed to delete session');
+                                      }
+                                    }
+                                  }} 
+                                  title={t('history.actions.delete')}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10" 
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                      await restoreSession(s.id);
+                                    } catch (error) {
+                                      console.error('Restore operation failed:', error);
+                                      alert(`Failed to unarchive session`);
+                                    }
+                                  }} 
+                                  title={t('history.actions.restore')}
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10" 
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (window.confirm("Are you sure you want to permanently delete this archived session?")) {
+                                      try {
+                                        await deleteSession(s.id);
+                                      } catch (error) {
+                                        console.error('Delete failed:', error);
+                                        alert('Failed to delete session');
+                                      }
+                                    }
+                                  }} 
+                                  title={t('history.actions.delete')}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -180,64 +213,59 @@ export default function HistoryPage() {
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between">
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-primary/10 rounded-2xl">
             <HistoryIcon className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-black tracking-tight">{t('common.history')}</h1>
-            <p className="text-muted-foreground text-sm mt-0.5">Manage your trading sessions and data archives</p>
+            <h1 className="text-3xl font-black tracking-tight">{t('common.history')}</h1>
+            <p className="text-muted-foreground text-sm">Manage and restore your trading reports</p>
           </div>
         </div>
       </div>
 
       <Tabs defaultValue="active" className="w-full">
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-none">
-          <TabsList className="h-10 bg-muted/50 p-1 gap-1 w-full sm:w-auto">
-            <TabsTrigger value="favorites" className="gap-2 px-4 py-1.5 data-[state=active]:bg-background">
-              <Star className="h-3.5 w-3.5 text-amber-500" fill="currentColor" />
-              <span className="font-bold text-xs">{t('history.filterFavorites')}</span>
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-black">
-                {favoriteSessions.length}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="active" className="gap-2 px-4 py-1.5 data-[state=active]:bg-background">
-              <Layers className="h-3.5 w-3.5" />
-              <span className="font-bold text-xs">{t('history.filterActive')}</span>
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-black">
-                {activeSessions.length}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="archived" className="gap-2 px-4 py-1.5 data-[state=active]:bg-background">
-              <Archive className="h-3.5 w-3.5" />
-              <span className="font-bold text-xs">{t('history.filterArchived')}</span>
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-black">
-                {archivedSessions.length}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="deleted" className="gap-2 px-4 py-1.5 data-[state=active]:bg-background">
-              <Trash2 className="h-3.5 w-3.5 text-rose-500" />
-              <span className="font-bold text-xs">{t('history.filterRecycleBin')}</span>
-              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-muted text-[10px] font-black">
-                {deletedSessions.length}
-              </span>
-            </TabsTrigger>
-          </TabsList>
-        </div>
+        <TabsList className="bg-muted/50 p-1 mb-6 gap-1">
+          <TabsTrigger value="favorites" className="gap-2 px-6">
+            <Star size={14} className="text-amber-500" />
+            {t('history.filterFavorites')}
+            <span className="ml-2 px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 text-[10px] font-bold">
+              {favoriteSessions.length}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="active" className="gap-2 px-6">
+            <Layers size={14} className="text-primary" />
+            {t('history.filterActive')}
+            <span className="ml-2 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+              {activeSessionsList.length}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="archived" className="gap-2 px-6">
+            <Archive size={14} className="text-amber-500" />
+            {t('history.filterArchived')}
+            <span className="ml-2 px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-500 text-[10px] font-bold">
+              {archivedSessionsList.length}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="deleted" className="gap-2 px-6 opacity-50">
+            <Trash2 size={14} className="text-rose-500" />
+            {t('history.filterRecycleBin')}
+          </TabsTrigger>
+        </TabsList>
 
-        <TabsContent value="favorites" className="mt-0 outline-none">
+        <TabsContent value="favorites">
           <SessionList items={favoriteSessions} type="favorite" emptyKey="history.noFavorites" />
         </TabsContent>
-        <TabsContent value="active" className="mt-0 outline-none">
-          <SessionList items={activeSessions} type="active" emptyKey="history.noActive" />
+        <TabsContent value="active">
+          <SessionList items={activeSessionsList} type="active" emptyKey="history.noActive" />
         </TabsContent>
-        <TabsContent value="archived" className="mt-0 outline-none">
-          <SessionList items={archivedSessions} type="archived" emptyKey="history.noArchived" />
+        <TabsContent value="archived">
+          <SessionList items={archivedSessionsList} type="archived" emptyKey="history.noArchived" />
         </TabsContent>
-        <TabsContent value="deleted" className="mt-0 outline-none">
-          <SessionList items={deletedSessions} type="deleted" emptyKey="history.noDeleted" />
+        <TabsContent value="deleted">
+          <SessionList items={deletedSessionsList} type="deleted" emptyKey="history.noDeleted" />
         </TabsContent>
       </Tabs>
     </div>

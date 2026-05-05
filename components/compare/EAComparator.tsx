@@ -15,7 +15,11 @@ type Mode = "same" | "cross"
 
 export function EAComparator() {
   const { sessions } = useAnalysisStore()
-  const activeSessions = sessions.filter(s => !s.deleted && !s.archived)
+  const activeSessions = React.useMemo(() => {
+    return sessions.filter(s => 
+      !s.archived && s.allTrades && s.allTrades.length > 0
+    );
+  }, [sessions]);
   const [mode, setMode] = useState<Mode>("same")
   const [results, setResults] = useState<ComparisonResult | null>(null)
   const { t } = useTranslation()

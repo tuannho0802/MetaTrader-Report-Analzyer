@@ -4,11 +4,11 @@ import React, { useEffect } from "react";
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
 
 export function StoreHydrator({ children }: { children: React.ReactNode }) {
-  const { isHydrated, loadCachedStatement } = useAnalysisStore();
+  const { isHydrated, loadCachedSessions } = useAnalysisStore();
 
   useEffect(() => {
-    loadCachedStatement();
-  }, [loadCachedStatement]);
+    loadCachedSessions();
+  }, [loadCachedSessions]);
 
   if (!isHydrated) {
     return (

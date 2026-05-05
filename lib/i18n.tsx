@@ -35,6 +35,7 @@ export const translations = {
       explore: "Explore",
       statistics: "Statistics",
       history: "History",
+      noResults: "No transactions found in this time period.",
     },
     history: {
       filterFavorites: "Favorites",
@@ -52,7 +53,10 @@ export const translations = {
         restore: "Restore",
         delete: "Delete",
         permanentDelete: "Permanent Delete"
-      }
+      },
+      confirmDelete: "Confirm delete this session? This action cannot be undone.",
+      archivedBadge: "Archived",
+      activeBadge: "Active",
     },
     comparison: {
       title: "EA Comparison",
@@ -161,7 +165,6 @@ export const translations = {
       analyzing: "Analyzing...",
       shortcuts: "Shortcuts",
       reset: "Reset",
-      noResults: "No transactions found in this time period.",
       presets: "Presets",
       noPresets: "No Presets",
       savePreset: "Save Preset",
@@ -390,7 +393,10 @@ export const translations = {
         restore: "Khôi phục",
         delete: "Xóa",
         permanentDelete: "Xóa vĩnh viễn"
-      }
+      },
+      confirmDelete: "Xác nhận xóa session này? Hành động không thể hoàn tác.",
+      archivedBadge: "Đã lưu trữ",
+      activeBadge: "Đang hoạt động",
     },
     comparison: {
       title: "So sánh Robot (EA)",
