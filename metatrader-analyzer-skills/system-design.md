@@ -21,6 +21,12 @@ The application is a fully client-side tool. By using Next.js static export, all
 - **Security**: Sensitive financial data is never uploaded to a server.
 - **Persistence**: Data is stored locally in IndexedDB, surviving page refreshes and browser restarts.
 
+### 2. True Archive Architecture (Memory Management)
+To maintain high performance with datasets exceeding 50,000+ trades, the system uses a dual-database "True Archive" strategy:
+- **Active Store**: Lightweight session metadata (KPIs, filter settings, favorite status) and active trades reside in the primary Zustand store.
+- **Archived Store**: When a session is archived, its large `allTrades` array is moved to a dedicated IndexedDB table (`MT4Analyzer_ArchivedTrades`) and removed from RAM.
+- **Lazy Restoration**: Trades are only re-loaded into memory upon explicit unarchive (restore), ensuring the UI remains snappy even with dozens of reports.
+
 ### 2. Multi-Version Parsing Strategy
 The system handles both MT4 (HTML) and MT5 (CSV) formats through a unified internal interface:
 - **MT4 Parser**: DOM-based extraction for complex nested tables, extracting EA IDs from ticket titles and paired comment rows.
@@ -44,9 +50,11 @@ graph TD
     C -->|MT5| D2[CSV Section-based Parsing]
     D1 --> E[Unified Trade Interface]
     D2 --> E
-    E --> F[IndexedDB Persistence]
-    F --> G[Zustand Store Hydration]
+    E --> F1[(Primary DB: MT4AnalyzerDB)]
+    F1 --> G[Zustand Store Hydration]
     G --> H[16+ Metrics Recalculation]
+    G -->|Archive Command| F2[(Archive DB: MT4Analyzer_ArchivedTrades)]
+    F2 -->|Memory Liberation| G
     H --> I[Dashboard / Explore / Statistics / Compare UI]
 ```
 

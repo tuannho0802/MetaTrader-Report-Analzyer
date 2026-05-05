@@ -20,6 +20,7 @@ A professional, privacy-first trading journal and analytics tool for MetaTrader 
 - **Trade Explorer (/explore)**: Deep-dive into a single session with hourly, daily, and monthly profit distribution charts.
 - **Statistics Dashboard (/statistics)**: Aggregate EA leaderboard (ranked by profit), global equity trends, and top symbols analysis.
 - **Session Management (/history)**: Advanced workspace control with active, archived, and soft-deleted session support.
+- **True Archive Persistence**: Offloads archived report data (trades) to a secondary IndexedDB to keep RAM usage minimal and UI performance high even with thousands of trades.
 - **Dynamic Currency Detection**: Automatically handles and formats account currencies (USD, EUR, JPY, USC, etc.).
 - **Privacy-First Architecture**: Your trading data never leaves your computer, stored locally in IndexedDB (Dexie).
 - **Settings & Backup (/settings)**: Multi-language toggle, theme selection, and data management (backup/restore).

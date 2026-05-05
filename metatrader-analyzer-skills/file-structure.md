@@ -35,7 +35,9 @@ The "brain" of the application, containing logic, state, and database interactio
 - `/store`: 
   - `useAnalysisStore.ts` (Zustand): Manages multi-session data (UUID-based), trade extraction, and history (Undo/Redo).
   - `useSettingsStore.ts`: Persistent store for application-wide settings (Language, Theme, maxTabs) using `localStorage`.
-- `/db`: `index.ts` handles persistent storage using Dexie (IndexedDB) for large datasets (Trade records).
+- `/db`: 
+  - `index.ts`: Handles the primary `MT4AnalyzerDB` for sessions and metadata.
+  - `archivedTradesDb.ts`: Manages the secondary `MT4Analyzer_ArchivedTrades` database, storing offloaded trade data for archived sessions.
 - `/mt5Parser/`: Specialized module for parsing MT5 CSV exports (`parser.ts`, `adapter.ts`, `types.ts`).
 - `parser.ts`: The complex extraction logic for MT4 HTML statements.
 - `comparison.ts`: Mathematical utilities for calculating equity series and 16+ performance metrics (Sharpe Ratio, Recovery Factor, Profit per Day, etc.).
@@ -52,6 +54,7 @@ The "brain" of the application, containing logic, state, and database interactio
 2. `parser.ts` (MT4) or `mt5Parser/` (MT5) extracts raw trades → Returns `ParseResult`.
 3. `useAnalysisStore` saves raw data to `IndexedDB` and creates a metadata session in `localStorage`.
 4. Dashboard re-renders, displaying analysis cards, charts, and the `ResultsTable`.
+5. **Archive Lifecycle**: If a session is archived, trades are moved to `archivedTradesDb.ts` and cleared from the active store to save RAM. They are re-hydrated only when restored.
 
 ### 2. Comparison Logic (P0-P5)
 1. `EAComparator` selects comparison mode and data sources.

@@ -34,13 +34,15 @@ To ensure smooth interaction even with large datasets in the EA Comparator:
 ## Multi-Session Management
 
 ### Hybrid Storage Strategy
-- **Metadata**: Session properties (ID, file name, filters, timestamp, currency) are stored in `localStorage` for instant UI initialization.
+- **Metadata**: Session properties (ID, file name, filters, timestamp, currency) are stored in the primary store.
 - **Trade Data**: Thousands of trade records are stored in **IndexedDB** using unique UUIDs.
+- **Memory Optimization (True Archive)**: To handle 50+ sessions without slowing down the browser, archived sessions move their `allTrades` data to a secondary database and clear it from RAM.
 - **Hydration Guard**: The `StoreHydrator` component blocks UI rendering until all active session data is restored from IndexedDB, preventing "empty state" flickering.
 
 ### Resource Limits
-- **Max Tabs**: A configurable limit (default 5) prevents excessive IndexedDB and RAM consumption from accumulated session data.
-- **Cleanup**: Deleting a session in the UI automatically triggers a `permanent delete` in IndexedDB to free up disk space.
+- **Max Tabs**: A configurable limit (default 5) prevents excessive RAM consumption from accumulated active session data.
+- **True Archive**: Encourages users to archive inactive sessions, which reduces the active memory footprint by ~99% per report.
+- **Cleanup**: Deleting a session in the UI automatically triggers a `permanent delete` in both the primary and archived IndexedDB stores to free up disk space.
 
 ## Future Scalability
 - **Worker-Thread Parsing**: Moving the `DOMParser` logic to a dedicated Web Worker to completely eliminate UI blocking on extremely large reports.

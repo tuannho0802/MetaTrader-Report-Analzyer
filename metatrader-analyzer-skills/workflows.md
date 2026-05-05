@@ -17,7 +17,7 @@ This document maps the end-to-end user journey and the underlying data pipeline 
    - Visit the **Explore** page to see hourly, daily, and monthly profit distributions for the active session.
    - Visit the **Statistics** page to view the global EA Leaderboard and aggregated equity trends across all uploaded reports.
 6. **Comparison**: Use the **Compare** tab to benchmark multiple EA strategies side-by-side or analyze performance across different reports.
-7. **Session Management**: Use the **History** page to restore old sessions, archive completed ones, or permanently delete data.
+7. **Session Management**: Use the **History** page to restore old sessions, archive completed ones (to save browser memory), or permanently delete data.
 8. **Review & Export**: 
    - Analyze **KPI Cards**, **Equity/Drawdown Curves**, and **Monthly Returns**.
    - Download comparative results as **CSV**.
@@ -37,6 +37,7 @@ The system uses the `FileReader` API. A "sniffer" logic determines the file type
 ### 3. Unified Persistence
 - Metadata is saved to **localStorage**.
 - Large trade datasets are stored in **IndexedDB** using unique session UUIDs.
+- **Memory Optimization (True Archive)**: When a user archives a session, the trade data is moved from the active store to a secondary database, freeing RAM while keeping metadata accessible in History.
 
 ### 4. Recalculation Engine
 When filters change or a session is switched:
