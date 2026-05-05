@@ -17,26 +17,14 @@ import { useTranslation } from "@/lib/i18n"
 import { LayoutGrid } from "lucide-react"
 import { getCurrencySymbol, formatCurrency } from "@/lib/formatCurrency"
 
-interface MultiEaChartProps {
-  data?: any[];
-  currency?: string;
-  title?: string;
-  description?: string;
-  height?: number;
-}
-
-export function MultiEaChart({ data: externalData, currency: externalCurrency, title, description, height = 400 }: MultiEaChartProps) {
+export function MultiEaChart() {
   const { sessions, activeSessionId } = useAnalysisStore()
   const activeSessions = sessions.filter(s => !s.archived)
   const activeSession = activeSessions.find(s => s.id === activeSessionId)
   const multiEaResults = activeSession?.multiEaResults || {}
   const { t } = useTranslation()
 
-  const currency = externalCurrency || activeSession?.currency || "USD";
-
   const chartData = useMemo(() => {
-    if (externalData) return externalData;
-
     const patterns = Object.keys(multiEaResults)
     if (patterns.length === 0) return []
 
@@ -49,7 +37,7 @@ export function MultiEaChart({ data: externalData, currency: externalCurrency, t
     })
 
     const sortedTimestamps = Array.from(allTimestampsSet).sort((a, b) => 
-      new Date(a.replace(/\./g, "/")).getTime() - new Date(b.replace(/\./g, "/")).getTime()
+      new Date(a).getTime() - new Date(b).getTime()
     )
 
     // 2. For each timestamp, calculate cumulative profit for each EA
@@ -62,7 +50,7 @@ export function MultiEaChart({ data: externalData, currency: externalCurrency, t
     patterns.forEach(p => tradeIterators[p] = 0)
 
     sortedTimestamps.forEach(ts => {
-      const entry: any = { date: ts }
+      const entry: any = { time: ts }
       
       patterns.forEach(p => {
         const trades = multiEaResults[p].trades
@@ -80,23 +68,16 @@ export function MultiEaChart({ data: externalData, currency: externalCurrency, t
       data.push(entry)
     })
 
-    // Downsample
-    if (data.length > 300) {
-      const step = Math.ceil(data.length / 300)
+    // Downsample if too many points (> 200) to keep chart snappy
+    if (data.length > 200) {
+      const step = Math.ceil(data.length / 200)
       return data.filter((_, i) => i % step === 0 || i === data.length - 1)
     }
 
     return data
-  }, [multiEaResults, externalData])
+  }, [multiEaResults])
 
-  const seriesNames = useMemo(() => {
-    if (externalData && externalData.length > 0) {
-      return Object.keys(externalData[0]).filter(k => k !== 'date' && k !== 'time');
-    }
-    return Object.keys(multiEaResults);
-  }, [externalData, multiEaResults]);
-
-  if (seriesNames.length === 0) {
+  if (Object.keys(multiEaResults).length === 0) {
     return null
   }
 
@@ -107,26 +88,24 @@ export function MultiEaChart({ data: externalData, currency: externalCurrency, t
     "#6366f1", // indigo-500
     "#f43f5e", // rose-500
     "#8b5cf6", // violet-500
-    "#ec4899", // pink-500
-    "#14b8a6", // teal-500
   ]
 
   return (
-    <Card className="col-span-full border-border/50 shadow-lg overflow-hidden bg-card/30 backdrop-blur-sm">
+    <Card className="col-span-full border-border/50 shadow-lg overflow-hidden">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-xl font-bold">{title || t('analysis.equityCurve')}</CardTitle>
-            <CardDescription className="text-xs italic">
-              {description || t('analysis.cumulativeProfit')}
+            <CardTitle className="text-xl">{t('analysis.equityCurve')}</CardTitle>
+            <CardDescription className="text-xs">
+              {t('analysis.cumulativeProfit')}
             </CardDescription>
           </div>
-          <div className="p-2 bg-primary/5 rounded-xl border border-primary/10">
+          <div className="p-2 bg-primary/5 rounded-lg border border-primary/10">
             <LayoutGrid size={18} className="text-primary" />
           </div>
         </div>
       </CardHeader>
-      <CardContent style={{ height }} className="pt-6">
+      <CardContent className="h-[400px] pt-6 pr-6">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={chartData}
@@ -137,14 +116,14 @@ export function MultiEaChart({ data: externalData, currency: externalCurrency, t
               bottom: 5,
             }}
           >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted/20" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted/30" />
             <XAxis 
-              dataKey={externalData ? "date" : "time"} 
+              dataKey="time" 
               hide={true}
             />
             <YAxis 
               tick={{ fontSize: 10, fontWeight: 500 }} 
-              tickFormatter={(val) => formatCurrency(val, currency).split(".")[0]}
+              tickFormatter={(val) => `${getCurrencySymbol(activeSession?.currency)}${val}`}
               axisLine={false}
               tickLine={false}
               className="fill-muted-foreground"
@@ -157,18 +136,18 @@ export function MultiEaChart({ data: externalData, currency: externalCurrency, t
                 boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
                 padding: '12px'
               }}
-              itemStyle={{ fontSize: '11px', fontWeight: 'bold', padding: '2px 0' }}
-              labelStyle={{ fontSize: '10px', fontWeight: '800', color: 'hsl(var(--muted-foreground))', marginBottom: '8px', textTransform: 'uppercase' }}
-              formatter={(value: any) => [formatCurrency(Number(value), currency), ""]}
+              itemStyle={{ fontSize: '12px', fontWeight: '600', padding: '2px 0' }}
+              labelStyle={{ fontSize: '11px', fontWeight: 'bold', color: 'hsl(var(--muted-foreground))', marginBottom: '8px' }}
+              formatter={(value: any) => formatCurrency(value, activeSession?.currency)}
             />
             <Legend 
               verticalAlign="top" 
               align="right" 
               iconType="circle"
               iconSize={8}
-              wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', color: 'hsl(var(--foreground))', paddingBottom: '20px' }}
+              wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', color: 'hsl(var(--foreground))', paddingBottom: '20px' }}
             />
-            {seriesNames.map((p, i) => (
+            {Object.keys(multiEaResults).map((p, i) => (
               <Line
                 key={p}
                 type="monotone"
@@ -177,8 +156,7 @@ export function MultiEaChart({ data: externalData, currency: externalCurrency, t
                 strokeWidth={3}
                 dot={false}
                 activeDot={{ r: 6, strokeWidth: 0 }}
-                isAnimationActive={true}
-                animationDuration={1500}
+                animationDuration={1000}
               />
             ))}
           </LineChart>

@@ -114,33 +114,22 @@ export function PerformanceFilters({
     <Card className="border-border/50 shadow-sm bg-card/50 backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-300">
       <CardContent className="p-4 flex flex-col gap-4">
         {/* Session Chips */}
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Filter size={10} className="text-primary/70" />
-              {t("performance.filters.sessions")}
-            </label>
-            {filters.selectedSessions.length > 0 && (
-              <button 
-                onClick={() => onChange({ ...filters, selectedSessions: [] })}
-                className="text-[10px] font-semibold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-              >
-                <X size={10} />
-                {t("performance.filters.reset")}
-              </button>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2 min-h-[36px]">
+        <div className="flex flex-col gap-2">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <Filter size={10} />
+            {t("performance.filters.sessions")}
+          </label>
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => onChange({ ...filters, selectedSessions: [] })}
               className={cn(
-                "inline-flex items-center px-4 py-2 rounded-full text-[11px] font-bold border transition-all duration-300 active:scale-95",
+                "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200",
                 isAllSessions
-                  ? "bg-primary/15 text-primary border-primary/30 shadow-[0_0_15px_-5px_rgba(var(--primary),0.3)]"
-                  : "bg-muted/30 text-muted-foreground border-border/50 hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+                  ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                  : "bg-muted/30 text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
               )}
             >
-              {isAllSessions && <Check size={12} className="mr-1.5 animate-in zoom-in duration-300" />}
+              {isAllSessions && <Check size={12} className="mr-1.5" />}
               {t("performance.filters.allSessions")}
             </button>
             {sessions.map((s) => {
@@ -150,17 +139,13 @@ export function PerformanceFilters({
                   key={s.value}
                   onClick={() => toggleSession(s.value)}
                   className={cn(
-                    "inline-flex items-center px-4 py-2 rounded-full text-[11px] font-bold border transition-all duration-300 active:scale-95 animate-in fade-in zoom-in slide-in-from-left-2",
+                    "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200",
                     active
-                      ? "bg-primary text-primary-foreground border-primary shadow-md"
-                      : "bg-muted/30 text-muted-foreground border-border/50 hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-muted/30 text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
                   )}
                 >
-                  {active ? (
-                    <X size={12} className="mr-1.5 animate-in spin-in-90 duration-300" />
-                  ) : (
-                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30 mr-2" />
-                  )}
+                  {active && <Check size={12} className="mr-1.5" />}
                   {s.label}
                 </button>
               );
