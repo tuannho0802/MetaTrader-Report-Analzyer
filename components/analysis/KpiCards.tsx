@@ -11,11 +11,17 @@ import { ReportDateCard } from "@/components/ReportDateCard"
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { formatCurrency } from "@/lib/formatCurrency"
 
-export function KpiCards() {
+interface KpiCardsProps {
+  descriptions?: Record<string, string>;
+  className?: string;
+}
+
+export function KpiCards({ descriptions, className }: KpiCardsProps) {
   const { sessions, activeSessionId } = useAnalysisStore()
   const activeSessions = sessions.filter(s => !s.archived)
   const activeSession = activeSessions.find(s => s.id === activeSessionId)
@@ -66,6 +72,7 @@ export function KpiCards() {
 
   const kpis = [
     {
+      id: "netProfit",
       title: t('analysis.netProfit'),
       value: formatCurrency(totalProfit, activeSession?.currency || 'USD'),
       icon: totalProfit >= 0 ? TrendingUp : TrendingDown,
@@ -73,6 +80,7 @@ export function KpiCards() {
       color: totalProfit >= 0 ? "text-emerald-400" : "text-rose-400"
     },
     {
+      id: "winRate",
       title: t('analysis.winRate'),
       value: `${winRate.toFixed(1)}%`,
       icon: PieChart,
@@ -80,6 +88,7 @@ export function KpiCards() {
       color: "text-blue-400"
     },
     {
+      id: "maxDrawdown",
       title: t('analysis.maxDrawdown'),
       value: `-${drawdown.percent.toFixed(1)}%`,
       subValue: `-${formatCurrency(drawdown.amount, activeSession?.currency || 'USD')}`,
@@ -89,6 +98,7 @@ export function KpiCards() {
       tooltip: t('analysis.maxDrawdown')
     },
     {
+      id: "totalTrades",
       title: t('analysis.totalTrades'),
       value: tradeCount.toString(),
       icon: Activity,
@@ -96,6 +106,7 @@ export function KpiCards() {
       color: "text-amber-400"
     },
     {
+      id: "profitFactor",
       title: t('analysis.profitFactor'),
       value: profitFactor,
       icon: Layers,
@@ -105,22 +116,24 @@ export function KpiCards() {
   ]
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <div className={cn("grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6", className)}>
       <ReportDateCard className="h-full flex flex-col justify-center" />
       {kpis.map((kpi, i) => (
         <Card key={i} className="overflow-hidden border border-border/50 shadow-sm bg-card/50 backdrop-blur-sm transition-all hover:shadow-md hover:border-border">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-5">
             <div className="flex items-center gap-1">
               <CardTitle className="text-sm font-semibold tracking-wide uppercase text-muted-foreground">{kpi.title}</CardTitle>
-              {kpi.tooltip && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-[200px] text-[11px] leading-snug">
-                    {kpi.tooltip}
-                  </TooltipContent>
-                </Tooltip>
+              {(kpi.tooltip || (kpi as any).id && descriptions?.[(kpi as any).id]) && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[200px] text-[11px] leading-snug">
+                      {(kpi as any).id && descriptions?.[(kpi as any).id] || kpi.tooltip}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </div>
             <div className={cn("p-2 rounded-lg bg-muted/30", kpi.color.replace('text-', 'bg-').replace('-400', '-400/10'))}>
@@ -137,7 +150,7 @@ export function KpiCards() {
               </div>
             )}
             <p className="text-[11px] text-muted-foreground mt-2 font-medium">
-              {kpi.description}
+              {(kpi as any).id && descriptions?.[(kpi as any).id] || kpi.description}
             </p>
           </CardContent>
         </Card>

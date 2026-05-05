@@ -8,8 +8,10 @@ import { Trade, EquitySeries, MetricsRow } from "@/lib/types";
 import { calculateMetrics, calculateEquity } from "@/lib/comparison";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { cn } from "@/lib/utils";
+import { exportPerformanceCSV } from "@/lib/exportComparison";
 
 import { PerformanceFilters, FilterState } from "./PerformanceFilters";
+import { MultiEaChart } from "@/components/analysis/MultiEaChart";
 import { ComparisonDrawdownChart } from "@/components/compare/ComparisonDrawdownChart";
 import { ComparisonHistogram } from "@/components/compare/ComparisonHistogram";
 import { MonthlyReturnsTable } from "@/components/compare/MonthlyReturnsTable";
@@ -23,15 +25,11 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   TrendingUp,
   TrendingDown,
@@ -41,9 +39,10 @@ import {
   Layers,
   Zap,
   Target,
-  BarChart2,
+  BarChart3,
   Download,
   AlertCircle,
+  Info,
 } from "lucide-react";
 
 const COLORS = [
@@ -61,157 +60,53 @@ const COLORS = [
 function KpiCard({
   title,
   value,
-  sub,
+  description,
   icon: Icon,
   color,
+  loading = false,
+  tooltip,
 }: {
   title: string;
-  value: string;
-  sub?: string;
+  value: string | number;
+  description: string;
   icon: React.ElementType;
   color: string;
+  loading?: boolean;
+  tooltip?: string;
 }) {
+  const displayValue = value === null || value === undefined || (value === 0 && loading) ? "–" : value;
+
   return (
-    <Card className="overflow-hidden border border-border/50 shadow-sm bg-card/50 backdrop-blur-sm transition-all hover:shadow-md hover:border-border">
+    <Card className="overflow-hidden border border-border/50 shadow-sm bg-card/50 backdrop-blur-sm transition-all hover:shadow-md hover:border-border group animate-in fade-in duration-500">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-5">
-        <CardTitle className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">
-          {title}
-        </CardTitle>
-        <div className={cn("p-2 rounded-lg", color.replace("text-", "bg-").replace("-400", "-400/10"))}>
+        <div className="flex items-center gap-1.5">
+          <CardTitle className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">
+            {title}
+          </CardTitle>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="p-0.5 rounded-full hover:bg-muted/50 cursor-help transition-colors">
+                  <Info size={10} className="text-muted-foreground/50 hover:text-muted-foreground transition-colors" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[200px] text-[11px] leading-relaxed p-3">
+                {tooltip || description}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        <div className={cn("p-2 rounded-lg transition-colors group-hover:bg-opacity-20", color.replace("text-", "bg-").replace("-400", "-400/10"))}>
           <Icon className={cn("h-4 w-4", color)} />
         </div>
       </CardHeader>
       <CardContent className="p-5 pt-0">
-        <div className={cn("text-2xl font-bold tracking-tight", color)}>{value}</div>
-        {sub && <p className="text-[11px] text-muted-foreground mt-1 font-medium">{sub}</p>}
-      </CardContent>
-    </Card>
-  );
-}
-
-/* ─── Equity chart ─── */
-function EquityChart({
-  series,
-  currency,
-}: {
-  series: EquitySeries[];
-  currency: string;
-}) {
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
-  const gridColor = isDark ? "#333" : "#e5e7eb";
-  const textColor = isDark ? "#9ca3af" : "#6b7280";
-
-  const chartData = useMemo(() => {
-    if (series.length === 0) return [];
-    // Merge all series dates
-    const dateSet = new Set<string>();
-    series.forEach((s) => s.data.forEach((d) => dateSet.add(d.date.split(" ")[0])));
-    const sortedDates = Array.from(dateSet).sort(
-      (a, b) => new Date(a.replace(/\./g, "/")).getTime() - new Date(b.replace(/\./g, "/")).getTime()
-    );
-
-    // Build date → equity per series map
-    const seriesMaps = series.map((s) => {
-      const m = new Map<string, number>();
-      // Forward-fill per point
-      let last = 0;
-      const sorted = [...s.data].sort(
-        (a, b) => new Date(a.date.replace(/\./g, "/")).getTime() - new Date(b.date.replace(/\./g, "/")).getTime()
-      );
-      sorted.forEach((d) => {
-        last = d.equity;
-        m.set(d.date.split(" ")[0], d.equity);
-      });
-      return { name: s.name, map: m, last };
-    });
-
-    // Forward-fill
-    const lastVal: Record<string, number> = {};
-    return sortedDates.map((date) => {
-      const row: Record<string, string | number> = { date };
-      seriesMaps.forEach((sm) => {
-        if (sm.map.has(date)) {
-          lastVal[sm.name] = sm.map.get(date)!;
-        }
-        row[sm.name] = lastVal[sm.name] ?? 0;
-      });
-      return row;
-    });
-  }, [series]);
-
-  if (series.length === 0 || chartData.length === 0) return null;
-
-  return (
-    <Card className="border-border/50 shadow-lg overflow-hidden">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-xl">Equity Curve</CardTitle>
-            <CardDescription className="text-xs">Cumulative profit over time</CardDescription>
-          </div>
-          <div className="p-2 bg-primary/5 rounded-lg border border-primary/10">
-            <TrendingUp size={18} className="text-primary" />
-          </div>
+        <div className={cn("text-2xl font-black tracking-tight tabular-nums", displayValue === "–" ? "text-muted-foreground/30" : color)}>
+          {displayValue}
         </div>
-      </CardHeader>
-      <CardContent className="pt-4">
-        <div className="bg-card rounded-lg p-4 border border-border/20">
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
-              <XAxis
-                dataKey="date"
-                fontSize={10}
-                tickLine={false}
-                axisLine={{ stroke: gridColor }}
-                tick={{ fill: textColor }}
-                minTickGap={30}
-              />
-              <YAxis
-                fontSize={10}
-                tickLine={false}
-                axisLine={{ stroke: gridColor }}
-                tick={{ fill: textColor }}
-                tickFormatter={(v) =>
-                  formatCurrency(v, currency)
-                    .replace(/[^0-9\-.,kKmM$€£]/g, "")
-                    .slice(0, 8)
-                }
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "12px",
-                  boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
-                  padding: "12px",
-                  fontSize: "12px",
-                }}
-                formatter={(value: any) => [formatCurrency(Number(value), currency), ""]}
-              />
-              <Legend
-                verticalAlign="top"
-                align="right"
-                iconType="circle"
-                iconSize={8}
-                wrapperStyle={{ fontSize: "12px", fontWeight: "bold", paddingBottom: "16px" }}
-              />
-              {series.map((s, i) => (
-                <Line
-                  key={s.name}
-                  type="monotone"
-                  dataKey={s.name}
-                  stroke={s.color || COLORS[i % COLORS.length]}
-                  strokeWidth={2.5}
-                  dot={false}
-                  activeDot={{ r: 5, strokeWidth: 0 }}
-                  isAnimationActive={false}
-                />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <p className="text-[10px] text-muted-foreground mt-2 font-medium line-clamp-2 opacity-70 group-hover:opacity-100 transition-opacity leading-snug">
+          {description}
+        </p>
       </CardContent>
     </Card>
   );
@@ -224,8 +119,8 @@ export function PerformanceDashboard() {
 
   const [filters, setFilters] = useState<FilterState>({
     selectedSessions: [],
-    startDate: "",
-    endDate: "",
+    startDate: undefined,
+    endDate: undefined,
     selectedEA: "all",
   });
 
@@ -259,25 +154,26 @@ export function PerformanceDashboard() {
     return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
   }, [targetSessions]);
 
-  // Filter trades per session, applying date range + EA filter
-  const { tradesByEA, allFilteredTrades, currency } = useMemo(() => {
+  // Filter trades per series (Session-based or EA-based)
+  const { tradesBySeries, allFilteredTrades, currency } = useMemo(() => {
     const currency = targetSessions[0]?.currency || "USD";
-    const start = filters.startDate ? new Date(filters.startDate) : null;
-    if (start) start.setHours(0, 0, 0, 0);
-    const end = filters.endDate ? new Date(filters.endDate) : null;
-    if (end) end.setHours(23, 59, 59, 999);
+    const start = filters.startDate;
+    const end = filters.endDate;
 
-    const tradesByEA: Record<string, Trade[]> = {};
+    const tradesBySeries: Record<string, Trade[]> = {};
+    const isSingleSession = targetSessions.length === 1;
 
     targetSessions.forEach((session) => {
       let trades = session.allTrades || [];
 
       // Date filter
-      if (start && end) {
-        trades = trades.filter((t) => {
-          const d = new Date(t.closeTime.replace(/\./g, "/"));
-          return d >= start && d <= end;
-        });
+      if (start) {
+        trades = trades.filter((t) => new Date(t.closeTime.replace(/\./g, "/")) >= start);
+      }
+      if (end) {
+        const adjustedEnd = new Date(end);
+        adjustedEnd.setHours(23, 59, 59, 999);
+        trades = trades.filter((t) => new Date(t.closeTime.replace(/\./g, "/")) <= adjustedEnd);
       }
 
       // EA filter
@@ -287,18 +183,26 @@ export function PerformanceDashboard() {
         );
       }
 
-      trades.forEach((t) => {
-        const eaKey = t.eaId || t.comment || "Unknown";
-        const label = isNaN(Number(eaKey))
-          ? `${eaKey} (${session.name || session.fileName})`
-          : `EA #${eaKey} (${session.name || session.fileName})`;
-        if (!tradesByEA[label]) tradesByEA[label] = [];
-        tradesByEA[label].push(t);
-      });
+      if (trades.length === 0) return;
+
+      if (isSingleSession && filters.selectedEA === "all") {
+        // If single session and no EA filter, group by EA to show detail
+        trades.forEach((t) => {
+          const eaKey = t.eaId || t.comment || "Unknown";
+          const label = isNaN(Number(eaKey)) ? eaKey : `EA #${eaKey}`;
+          if (!tradesBySeries[label]) tradesBySeries[label] = [];
+          tradesBySeries[label].push(t);
+        });
+      } else {
+        // Multiple sessions or EA filter active -> group by Session
+        const label = session.name || session.fileName;
+        if (!tradesBySeries[label]) tradesBySeries[label] = [];
+        tradesBySeries[label].push(...trades);
+      }
     });
 
-    const allFilteredTrades = Object.values(tradesByEA).flat();
-    return { tradesByEA, allFilteredTrades, currency };
+    const allFilteredTrades = Object.values(tradesBySeries).flat();
+    return { tradesBySeries, allFilteredTrades, currency };
   }, [targetSessions, filters.startDate, filters.endDate, filters.selectedEA]);
 
   // Aggregate metrics (all filtered trades combined)
@@ -307,61 +211,80 @@ export function PerformanceDashboard() {
     return calculateMetrics("Portfolio", allFilteredTrades, currency);
   }, [allFilteredTrades, currency]);
 
-  // EquitySeries per EA for charts
+  // EquitySeries per series for charts
   const equitySeries: EquitySeries[] = useMemo(() => {
-    return Object.entries(tradesByEA).map(([name, trades], i) => ({
+    return Object.entries(tradesBySeries).map(([name, trades], i) => ({
       name,
       data: calculateEquity(trades),
       color: COLORS[i % COLORS.length],
       currency,
     }));
-  }, [tradesByEA, currency]);
+  }, [tradesBySeries, currency]);
 
   // CSV export
   const handleExport = () => {
-    if (!aggregateMetrics && Object.keys(tradesByEA).length === 0) return;
-
-    const rows: MetricsRow[] = Object.entries(tradesByEA).map(([name, trades]) =>
+    const rows: MetricsRow[] = Object.entries(tradesBySeries).map(([name, trades]) =>
       calculateMetrics(name, trades, currency)
     );
     if (rows.length === 0 && aggregateMetrics) rows.push(aggregateMetrics);
-
-    const headers = [
-      "EA", "Net Profit", "Win Rate %", "Trade Count", "Profit Factor",
-      "Max Drawdown %", "Sharpe Ratio", "Expectancy", "Recovery Factor",
-      "Profit/Day", "Avg Profit/Trade", "Best Trade", "Worst Trade",
-    ];
-    const csvRows = rows.map((r) =>
-      [
-        r.name, r.totalProfit, r.winRate, r.tradeCount, r.profitFactor,
-        r.maxDrawdown, r.sharpeRatio ?? "N/A", r.expectancy, r.recoveryFactor,
-        r.profitPerDay, r.avgProfitPerTrade, r.bestTrade, r.worstTrade,
-      ].join(",")
-    );
-
-    const blob = new Blob([headers.join(",") + "\n" + csvRows.join("\n")], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `performance_report_${new Date().toISOString().split("T")[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    exportPerformanceCSV(rows, currency);
   };
 
-  // ─── Empty state ───
+  // Merge multiple series into one chart data format { date, EA1: value, EA2: value... }
+  const mergedEquityData = useMemo(() => {
+    if (equitySeries.length === 0) return [];
+    
+    const dateSet = new Set<string>();
+    equitySeries.forEach((s) => s.data.forEach((d) => dateSet.add(d.date.split(" ")[0])));
+    const sortedDates = Array.from(dateSet).sort(
+      (a, b) => new Date(a.replace(/\./g, "/")).getTime() - new Date(b.replace(/\./g, "/")).getTime()
+    );
+
+    const seriesMaps = equitySeries.map((s) => {
+      const m = new Map<string, number>();
+      let last = 0;
+      const sorted = [...s.data].sort(
+        (a, b) => new Date(a.date.replace(/\./g, "/")).getTime() - new Date(b.date.replace(/\./g, "/")).getTime()
+      );
+      sorted.forEach((d) => {
+        last = d.equity;
+        m.set(d.date.split(" ")[0], d.equity);
+      });
+      return { name: s.name, map: m, last };
+    });
+
+    const lastVal: Record<string, number> = {};
+    return sortedDates.map((date) => {
+      const row: Record<string, string | number> = { date };
+      seriesMaps.forEach((sm) => {
+        if (sm.map.has(date)) {
+          lastVal[sm.name] = sm.map.get(date)!;
+        }
+        row[sm.name] = lastVal[sm.name] ?? 0;
+      });
+      return row;
+    });
+  }, [equitySeries]);
+
+  // ─── Empty state (no sessions at all) ───
   if (activeSessions.length === 0) {
     return (
-      <Card className="border-border/50 shadow-lg animate-in fade-in zoom-in duration-500">
-        <CardContent className="flex flex-col items-center justify-center py-24 gap-4">
-          <div className="p-4 bg-muted/30 rounded-full">
-            <BarChart2 size={36} className="text-muted-foreground" />
+      <Card className="border-border/50 shadow-xl bg-card/50 backdrop-blur-sm animate-in fade-in zoom-in duration-700">
+        <CardContent className="flex flex-col items-center justify-center py-32 gap-6">
+          <div className="p-6 bg-primary/5 rounded-full ring-1 ring-primary/20 animate-pulse">
+            <BarChart3 size={48} className="text-primary" />
           </div>
-          <h3 className="font-bold text-lg">No Reports Uploaded</h3>
-          <p className="text-muted-foreground text-sm text-center max-w-sm">
-            Upload an MT4 or MT5 report from the Dashboard to start analyzing performance.
-          </p>
+          <div className="text-center space-y-2">
+            <h3 className="font-black text-2xl tracking-tight">
+              {t("performance.empty.noData").split(".")[0]}
+            </h3>
+            <p className="text-muted-foreground text-sm max-w-xs mx-auto font-medium leading-relaxed">
+              {t("performance.empty.noData")}
+            </p>
+          </div>
+          <Button variant="outline" className="mt-4 rounded-full px-8 font-bold border-primary/20 hover:bg-primary/5 transition-all" onClick={() => window.location.href = "/"}>
+            {t("common.dashboard")}
+          </Button>
         </CardContent>
       </Card>
     );
@@ -370,22 +293,36 @@ export function PerformanceDashboard() {
   const m = aggregateMetrics;
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Filters */}
-      <PerformanceFilters
-        sessions={sessionOptions}
-        eaOptions={eaOptions}
-        filters={filters}
-        onChange={setFilters}
-      />
+    <div className="space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-6 duration-700">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <PerformanceFilters
+          sessions={sessionOptions}
+          eaOptions={eaOptions}
+          filters={filters}
+          onChange={setFilters}
+        />
+        {m && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            className="rounded-full gap-2 border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all font-bold px-5 h-11 shrink-0 shadow-sm"
+          >
+            <Download size={16} />
+            {t("performance.export")}
+          </Button>
+        )}
+      </div>
 
       {/* No trades after filtering */}
       {allFilteredTrades.length === 0 && (
-        <Card className="border-dashed border-2 border-border/50">
-          <CardContent className="flex flex-col items-center justify-center py-16 gap-3">
-            <AlertCircle size={28} className="text-muted-foreground" />
-            <p className="text-muted-foreground text-sm font-medium">
-              No trades match the current filters.
+        <Card className="border-dashed border-2 border-border/40 bg-muted/5">
+          <CardContent className="flex flex-col items-center justify-center py-24 gap-4">
+            <div className="p-4 bg-muted/20 rounded-full">
+              <AlertCircle size={32} className="text-muted-foreground/60" />
+            </div>
+            <p className="text-muted-foreground text-sm font-bold uppercase tracking-widest">
+              {t("performance.empty.noResults")}
             </p>
           </CardContent>
         </Card>
@@ -394,58 +331,68 @@ export function PerformanceDashboard() {
       {m && (
         <>
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
             <KpiCard
-              title="Net Profit"
+              title={t("performance.kpi.netProfit")}
               value={formatCurrency(m.totalProfit, currency)}
-              sub={`${m.tradeCount} trades`}
+              description={t("performance.kpi.netProfitDesc")}
+              tooltip={t("performance.kpi.netProfitDesc")}
               icon={m.totalProfit >= 0 ? TrendingUp : TrendingDown}
               color={m.totalProfit >= 0 ? "text-emerald-400" : "text-rose-400"}
             />
             <KpiCard
-              title="Win Rate"
+              title={t("performance.kpi.winRate")}
               value={`${m.winRate}%`}
-              sub={`${Math.round((m.winRate / 100) * m.tradeCount)} wins`}
+              description={t("performance.kpi.winRateDesc")}
+              tooltip={t("performance.kpi.winRateDesc")}
               icon={PieChart}
               color="text-blue-400"
             />
             <KpiCard
-              title="Max Drawdown"
+              title={t("performance.kpi.maxDrawdown")}
               value={`${m.maxDrawdown.toFixed(1)}%`}
+              description={t("performance.kpi.maxDrawdownDesc")}
+              tooltip={t("performance.kpi.maxDrawdownDesc")}
               icon={ArrowDownCircle}
               color="text-rose-400"
             />
             <KpiCard
-              title="Profit Factor"
-              value={m.profitFactor >= 9999 ? "∞" : m.profitFactor.toString()}
+              title={t("performance.kpi.profitFactor")}
+              value={m.profitFactor >= 999 ? "∞" : m.profitFactor.toFixed(2)}
+              description={t("performance.kpi.profitFactorDesc")}
+              tooltip={t("performance.kpi.profitFactorDesc")}
               icon={Layers}
               color="text-purple-400"
             />
             <KpiCard
-              title="Sharpe Ratio"
-              value={m.sharpeRatio !== null ? m.sharpeRatio.toString() : "N/A"}
-              sub="Risk-adjusted return"
+              title={t("performance.kpi.sharpeRatio")}
+              value={m.sharpeRatio !== null ? m.sharpeRatio.toFixed(2) : "–"}
+              description={t("performance.kpi.sharpeRatioDesc")}
+              tooltip={t("performance.kpi.sharpeRatioDesc")}
               icon={Zap}
               color="text-amber-400"
             />
             <KpiCard
-              title="Expectancy"
+              title={t("performance.kpi.expectancy")}
               value={formatCurrency(m.expectancy, currency)}
-              sub="Avg P&L per trade"
+              description={t("performance.kpi.expectancyDesc")}
+              tooltip={t("performance.kpi.expectancyDesc")}
               icon={Target}
               color={m.expectancy >= 0 ? "text-emerald-400" : "text-rose-400"}
             />
             <KpiCard
-              title="Recovery Factor"
-              value={m.recoveryFactor >= 9999 ? "∞" : m.recoveryFactor.toFixed(2)}
-              sub="Profit / Max DD"
+              title={t("performance.kpi.recoveryFactor")}
+              value={m.recoveryFactor >= 999 ? "∞" : m.recoveryFactor.toFixed(2)}
+              description={t("performance.kpi.recoveryFactorDesc")}
+              tooltip={t("performance.kpi.recoveryFactorDesc")}
               icon={Activity}
               color="text-indigo-400"
             />
             <KpiCard
-              title="Profit / Day"
+              title={t("performance.kpi.profitPerDay")}
               value={formatCurrency(m.profitPerDay, currency)}
-              sub="Avg daily profit"
+              description={t("performance.kpi.profitPerDayDesc")}
+              tooltip={t("performance.kpi.profitPerDayDesc")}
               icon={TrendingUp}
               color={m.profitPerDay >= 0 ? "text-teal-400" : "text-rose-400"}
             />
@@ -453,28 +400,34 @@ export function PerformanceDashboard() {
 
           {/* Equity + Drawdown */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <EquityChart series={equitySeries} currency={currency} />
-            <ComparisonDrawdownChart series={equitySeries} height={300} />
+            <MultiEaChart 
+              data={mergedEquityData}
+              currency={currency} 
+              title={t("performance.charts.equityCurve")}
+              description={t("performance.charts.equityCurveDesc")}
+              height={350}
+            />
+            <ComparisonDrawdownChart series={equitySeries} height={350} />
           </div>
 
           {/* Profit Distribution */}
-          <ComparisonHistogram series={equitySeries} trades={tradesByEA} height={280} />
+          <ComparisonHistogram series={equitySeries} trades={tradesBySeries} height={300} />
 
           {/* Monthly Returns */}
-          <MonthlyReturnsTable tradesByEa={tradesByEA} currency={currency} />
-
-          {/* Export button */}
-          <div className="flex justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              className="gap-2 border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-colors"
-            >
-              <Download size={14} />
-              Export CSV
-            </Button>
-          </div>
+          <Card className="border-border/50 shadow-lg bg-card/30 backdrop-blur-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-bold">{t("performance.charts.monthlyReturns")}</CardTitle>
+              <CardDescription className="text-xs">{t("performance.charts.monthlyReturnsDesc")}</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="overflow-x-auto pb-4">
+                <MonthlyReturnsTable tradesByEa={tradesBySeries} currency={currency} />
+              </div>
+              <p className="mt-4 text-[10px] text-muted-foreground italic font-medium border-t border-border/40 pt-2">
+                {t("performance.charts.monthlyReturnsDesc")}
+              </p>
+            </CardContent>
+          </Card>
         </>
       )}
     </div>

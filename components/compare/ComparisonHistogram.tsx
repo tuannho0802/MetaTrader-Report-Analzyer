@@ -32,23 +32,30 @@ export function ComparisonHistogram({ series, trades, height = 300, hiddenSeries
   const chartData = useMemo(() => {
     if (!trades || Object.keys(trades).length === 0 || series.length === 0) return null;
 
+    const allTrades = Object.values(trades).flat();
+    if (allTrades.length < 5) return { error: "notEnoughData" };
+
     let minProfit = Infinity;
     let maxProfit = -Infinity;
 
-    // Find global min and max profit across all trades of all EAs
-    Object.values(trades).forEach(eaTrades => {
-      eaTrades.forEach(trade => {
-        if (trade.profit < minProfit) minProfit = trade.profit;
-        if (trade.profit > maxProfit) maxProfit = trade.profit;
-      });
+    // Find global min and max profit
+    allTrades.forEach(trade => {
+      if (trade.profit < minProfit) minProfit = trade.profit;
+      if (trade.profit > maxProfit) maxProfit = trade.profit;
     });
 
     if (minProfit === Infinity || maxProfit === -Infinity) return null;
 
-    // Calculate bin size and ranges (around 18 bins for clarity)
-    const binCount = 18;
-    let binSize = (maxProfit - minProfit) / binCount;
-    if (binSize === 0) binSize = 1;
+    // If all profits are the same, expand range to avoid division by zero or single bin
+    if (minProfit === maxProfit) {
+      minProfit -= 1;
+      maxProfit += 1;
+    }
+
+    // Calculate bin size and ranges (around 15 bins for better balance)
+    const binCount = 15;
+    const range = maxProfit - minProfit;
+    const binSize = range / binCount;
 
     const currency = series[0]?.currency || "";
 
@@ -78,28 +85,36 @@ export function ComparisonHistogram({ series, trades, height = 300, hiddenSeries
     }
 
     // Populate bins
-    Object.entries(trades).forEach(([eaName, eaTrades]) => {
-      eaTrades.forEach(trade => {
+    Object.entries(trades).forEach(([seriesName, seriesTrades]) => {
+      seriesTrades.forEach(trade => {
         // Find which bin this trade belongs to
-        const binIndex = Math.min(
-          Math.floor((trade.profit - minProfit) / binSize),
-          binCount // ensure it doesn't go out of bounds for the max value
-        );
-        if (bins[binIndex] && bins[binIndex][eaName] !== undefined) {
-          bins[binIndex][eaName] += 1;
+        let binIndex = Math.floor((trade.profit - minProfit) / binSize);
+        // Clamp index
+        binIndex = Math.max(0, Math.min(binIndex, binCount - 1));
+        
+        if (bins[binIndex] && bins[binIndex][seriesName] !== undefined) {
+          bins[binIndex][seriesName] += 1;
         }
       });
     });
 
     const totalTradesMap: Record<string, number> = {};
-    Object.entries(trades).forEach(([eaName, eaTrades]) => {
-      totalTradesMap[eaName] = eaTrades.length;
+    Object.entries(trades).forEach(([seriesName, seriesTrades]) => {
+      totalTradesMap[seriesName] = seriesTrades.length;
     });
 
     return { bins, totalTradesMap };
   }, [trades, series]);
 
-  if (!chartData || chartData.bins.length === 0) return null;
+  if (!chartData) return null;
+
+  if ('error' in chartData) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground bg-muted/5 rounded-lg border border-dashed border-border">
+        <p className="text-sm font-medium">{t('performance.charts.notEnoughData')}</p>
+      </div>
+    );
+  }
 
   const { bins, totalTradesMap } = chartData;
 

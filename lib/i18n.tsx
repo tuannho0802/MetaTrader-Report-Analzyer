@@ -342,6 +342,53 @@ export const translations = {
         explanation: "Explanation",
       },
     },
+    performance: {
+      title: "Performance",
+      subtitle: "Aggregate performance across all your uploaded sessions",
+      filters: {
+        sessions: "Sessions",
+        allSessions: "All sessions",
+        dateRange: "Date range",
+        startDate: "Start date",
+        endDate: "End date",
+        ea: "Expert Advisor",
+        allEa: "All EA",
+        reset: "Reset filters"
+      },
+      kpi: {
+        netProfit: "Net Profit",
+        winRate: "Win Rate",
+        maxDrawdown: "Max Drawdown",
+        profitFactor: "Profit Factor",
+        sharpeRatio: "Sharpe Ratio",
+        expectancy: "Expectancy",
+        recoveryFactor: "Recovery Factor",
+        profitPerDay: "Profit / Day",
+        netProfitDesc: "Total profit/loss across all filtered trades",
+        winRateDesc: "Percentage of winning trades",
+        maxDrawdownDesc: "Largest peak-to-valley decline relative to equity",
+        profitFactorDesc: "Gross profit divided by gross loss",
+        sharpeRatioDesc: "Risk-adjusted return (using 0% risk-free rate)",
+        expectancyDesc: "Average profit per trade",
+        recoveryFactorDesc: "Net profit divided by max drawdown amount",
+        profitPerDayDesc: "Average daily profit over the filtered period"
+      },
+      charts: {
+        equityCurve: "Equity Curve",
+        equityCurveDesc: "Account balance growth over time. Hover for details.",
+        drawdown: "Drawdown",
+        drawdownDesc: "Relative drawdown shows percentage decline from the equity peak.",
+        profitDistribution: "Profit Distribution",
+        profitDistributionDesc: "Distribution of individual trade profits.",
+        monthlyReturns: "Monthly Returns",
+        monthlyReturnsDesc: "Green = profitable month, Red = losing month."
+      },
+      export: "Export CSV",
+      empty: {
+        noData: "No trading data uploaded yet. Go to Dashboard to import your MT4/MT5 report.",
+        noResults: "No trades match your filters."
+      }
+    },
   },
   vi: {
     common: {
@@ -491,7 +538,7 @@ export const translations = {
     filter: {
       title: "Lọc giao dịch",
       pattern: "Mẫu lọc",
-      mode: "Chế độ lọc",
+      mode: "Mẫu lọc",
       modeId: "Theo EA ID (Khuyên dùng)",
       modeComment: "Theo Comment (Mờ)",
       modeBoth: "Cả hai (ID VÀ Comment)",
@@ -636,7 +683,7 @@ export const translations = {
       accountBalance: "Số dư tài khoản (tính Rủi ro phá sản)",
       run: "Chạy mô phỏng",
       running: "Đang chạy…",
-      cancel: "Hủy",
+      cancel: "Cancel",
       profitDistribution: "Phân phối lợi nhuận cuối",
       profitDistributionDesc: "Biểu đồ tổng lợi nhuận qua các lần mô phỏng",
       drawdownDistribution: "Phân phối Drawdown tối đa",
@@ -686,7 +733,54 @@ export const translations = {
         metric: "Chỉ số",
         explanation: "Giải thích",
       },
-    }
+    },
+    performance: {
+      title: "Hiệu suất",
+      subtitle: "Hiệu suất tổng hợp từ tất cả các phiên đã tải lên",
+      filters: {
+        sessions: "Phiên giao dịch",
+        allSessions: "Tất cả các phiên",
+        dateRange: "Khoảng thời gian",
+        startDate: "Ngày bắt đầu",
+        endDate: "Ngày kết thúc",
+        ea: "Expert Advisor",
+        allEa: "Tất cả EA",
+        reset: "Đặt lại bộ lọc"
+      },
+      kpi: {
+        netProfit: "Lợi nhuận ròng",
+        winRate: "Tỷ lệ thắng",
+        maxDrawdown: "Sụt giảm tối đa",
+        profitFactor: "Hệ số lợi nhuận",
+        sharpeRatio: "Chỉ số Sharpe",
+        expectancy: "Kỳ vọng",
+        recoveryFactor: "Hệ số hồi phục",
+        profitPerDay: "Lợi nhuận / Ngày",
+        netProfitDesc: "Tổng lợi nhuận/lỗ của tất cả các giao dịch đã lọc",
+        winRateDesc: "Tỷ lệ phần trăm các giao dịch chiến thắng",
+        maxDrawdownDesc: "Mức sụt giảm từ đỉnh xuống đáy lớn nhất so với vốn chủ sở hữu",
+        profitFactorDesc: "Tổng lợi nhuận chia cho tổng lỗ",
+        sharpeRatioDesc: "Lợi nhuận điều chỉnh theo rủi ro (sử dụng tỷ suất không rủi ro 0%)",
+        expectancyDesc: "Lợi nhuận trung bình trên mỗi giao dịch",
+        recoveryFactorDesc: "Lợi nhuận ròng chia cho số tiền sụt giảm tối đa",
+        profitPerDayDesc: "Lợi nhuận hàng ngày trung bình trong khoảng thời gian đã lọc"
+      },
+      charts: {
+        equityCurve: "Đường cong vốn",
+        equityCurveDesc: "Sự tăng trưởng số dư tài khoản theo thời gian. Di chuột để xem chi tiết.",
+        drawdown: "Sụt giảm",
+        drawdownDesc: "Sụt giảm tương đối cho thấy tỷ lệ phần trăm sụt giảm từ đỉnh vốn.",
+        profitDistribution: "Phân bổ lợi nhuận",
+        profitDistributionDesc: "Phân bổ lợi nhuận của từng giao dịch.",
+        monthlyReturns: "Lợi nhuận hàng tháng",
+        monthlyReturnsDesc: "Xanh = tháng có lãi, Đỏ = tháng thua lỗ."
+      },
+      export: "Xuất CSV",
+      empty: {
+        noData: "Chưa có dữ liệu giao dịch nào được tải lên. Hãy vào Bảng điều khiển để nhập báo cáo MT4/MT5 của bạn.",
+        noResults: "Không có giao dịch nào khớp với bộ lọc của bạn."
+      }
+    },
   }
 };
 

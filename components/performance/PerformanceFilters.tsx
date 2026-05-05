@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,13 +11,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X, Filter, CalendarRange } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { X, Filter, Calendar as CalendarIcon, RotateCcw, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
+import { format } from "date-fns";
 
 export interface FilterState {
   selectedSessions: string[];
-  startDate: string;
-  endDate: string;
+  startDate: Date | undefined;
+  endDate: Date | undefined;
   selectedEA: string;
 }
 
@@ -44,6 +52,40 @@ export function PerformanceFilters({
   filters,
   onChange,
 }: PerformanceFiltersProps) {
+  const { t } = useTranslation();
+
+  // Local state for debouncing
+  const [localEA, setLocalEA] = useState(filters.selectedEA);
+  const [localStart, setLocalStart] = useState<Date | undefined>(filters.startDate);
+  const [localEnd, setLocalEnd] = useState<Date | undefined>(filters.endDate);
+
+  // Sync local state when external filters change (e.g. on reset)
+  useEffect(() => {
+    setLocalEA(filters.selectedEA);
+    setLocalStart(filters.startDate);
+    setLocalEnd(filters.endDate);
+  }, [filters.selectedEA, filters.startDate, filters.endDate]);
+
+  // Debounce effect for EA and Dates
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (
+        localEA !== filters.selectedEA ||
+        localStart !== filters.startDate ||
+        localEnd !== filters.endDate
+      ) {
+        onChange({
+          ...filters,
+          selectedEA: localEA,
+          startDate: localStart,
+          endDate: localEnd,
+        });
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [localEA, localStart, localEnd, filters, onChange]);
+
   const toggleSession = (id: string) => {
     const next = filters.selectedSessions.includes(id)
       ? filters.selectedSessions.filter((s) => s !== id)
@@ -51,27 +93,56 @@ export function PerformanceFilters({
     onChange({ ...filters, selectedSessions: next });
   };
 
+  const isAllSessions = filters.selectedSessions.length === 0;
+
+  const handleReset = () => {
+    onChange({
+      selectedSessions: [],
+      startDate: undefined,
+      endDate: undefined,
+      selectedEA: "all",
+    });
+  };
+
   const hasActiveFilters =
     filters.selectedSessions.length > 0 ||
-    filters.startDate ||
-    filters.endDate ||
-    filters.selectedEA !== "all";
-
-  const handleReset = () =>
-    onChange({ selectedSessions: [], startDate: "", endDate: "", selectedEA: "all" });
+    localStart !== undefined ||
+    localEnd !== undefined ||
+    localEA !== "all";
 
   return (
-    <Card className="border-border/50 shadow-sm bg-card/50 backdrop-blur-sm">
-      <CardContent className="p-4">
-        <div className="flex flex-wrap gap-3 items-start">
-          {/* Filter icon */}
-          <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground self-center shrink-0">
-            <Filter size={14} />
-            Filters
+    <Card className="border-border/50 shadow-sm bg-card/50 backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-300">
+      <CardContent className="p-4 flex flex-col gap-4">
+        {/* Session Chips */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Filter size={10} className="text-primary/70" />
+              {t("performance.filters.sessions")}
+            </label>
+            {filters.selectedSessions.length > 0 && (
+              <button 
+                onClick={() => onChange({ ...filters, selectedSessions: [] })}
+                className="text-[10px] font-semibold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+              >
+                <X size={10} />
+                {t("performance.filters.reset")}
+              </button>
+            )}
           </div>
-
-          {/* Session toggle chips */}
-          <div className="flex flex-wrap gap-2 flex-1">
+          <div className="flex flex-wrap gap-2 min-h-[36px]">
+            <button
+              onClick={() => onChange({ ...filters, selectedSessions: [] })}
+              className={cn(
+                "inline-flex items-center px-4 py-2 rounded-full text-[11px] font-bold border transition-all duration-300 active:scale-95",
+                isAllSessions
+                  ? "bg-primary/15 text-primary border-primary/30 shadow-[0_0_15px_-5px_rgba(var(--primary),0.3)]"
+                  : "bg-muted/30 text-muted-foreground border-border/50 hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+              )}
+            >
+              {isAllSessions && <Check size={12} className="mr-1.5 animate-in zoom-in duration-300" />}
+              {t("performance.filters.allSessions")}
+            </button>
             {sessions.map((s) => {
               const active = filters.selectedSessions.includes(s.value);
               return (
@@ -79,69 +150,127 @@ export function PerformanceFilters({
                   key={s.value}
                   onClick={() => toggleSession(s.value)}
                   className={cn(
-                    "inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold border transition-all",
+                    "inline-flex items-center px-4 py-2 rounded-full text-[11px] font-bold border transition-all duration-300 active:scale-95 animate-in fade-in zoom-in slide-in-from-left-2",
                     active
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                      : "bg-muted/30 text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                      ? "bg-primary text-primary-foreground border-primary shadow-md"
+                      : "bg-muted/30 text-muted-foreground border-border/50 hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
                   )}
                 >
+                  {active ? (
+                    <X size={12} className="mr-1.5 animate-in spin-in-90 duration-300" />
+                  ) : (
+                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30 mr-2" />
+                  )}
                   {s.label}
                 </button>
               );
             })}
           </div>
+        </div>
 
-          {/* Divider */}
-          <div className="hidden md:block w-px h-8 bg-border/60 self-center" />
-
-          {/* Date range */}
-          <div className="flex items-center gap-2">
-            <CalendarRange size={14} className="text-muted-foreground shrink-0" />
-            <input
-              type="date"
-              value={filters.startDate}
-              onChange={(e) => onChange({ ...filters, startDate: e.target.value })}
-              className="text-xs bg-background border border-border rounded-lg px-2 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
-            />
-            <span className="text-muted-foreground text-xs">–</span>
-            <input
-              type="date"
-              value={filters.endDate}
-              onChange={(e) => onChange({ ...filters, endDate: e.target.value })}
-              className="text-xs bg-background border border-border rounded-lg px-2 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
-            />
+        <div className="flex flex-wrap gap-4 items-end">
+          {/* Date range with Popover/Calendar */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <CalendarIcon size={10} />
+              {t("performance.filters.dateRange")}
+            </label>
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "h-9 px-3 text-xs font-medium bg-background border-border hover:bg-muted/50 transition-all",
+                      !localStart && "text-muted-foreground"
+                    )}
+                  >
+                    {localStart ? format(localStart, "PPP") : t("performance.filters.startDate")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={localStart}
+                    onSelect={setLocalStart}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <span className="text-muted-foreground text-xs">–</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                      "h-9 px-3 text-xs font-medium bg-background border-border hover:bg-muted/50 transition-all",
+                      !localEnd && "text-muted-foreground"
+                    )}
+                  >
+                    {localEnd ? format(localEnd, "PPP") : t("performance.filters.endDate")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={localEnd}
+                    onSelect={setLocalEnd}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              {(localStart || localEnd) && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    setLocalStart(undefined);
+                    setLocalEnd(undefined);
+                  }}
+                >
+                  <X size={14} />
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* EA dropdown */}
-          <Select
-            value={filters.selectedEA}
-            onValueChange={(v) => onChange({ ...filters, selectedEA: v ?? "all" })}
-          >
-            <SelectTrigger className="w-[180px] h-8 text-xs">
-              <SelectValue placeholder="All EAs" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All EAs</SelectItem>
-              {eaOptions.map((ea) => (
-                <SelectItem key={ea.value} value={ea.value}>
-                  {ea.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Check size={10} />
+              {t("performance.filters.ea")}
+            </label>
+            <Select value={localEA} onValueChange={(val) => setLocalEA(val ?? "all")}>
+              <SelectTrigger className="w-[200px] h-9 text-xs bg-background border-border hover:bg-muted/50 transition-all">
+                <SelectValue placeholder={t("performance.filters.allEa")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("performance.filters.allEa")}</SelectItem>
+                {eaOptions.map((ea) => (
+                  <SelectItem key={ea.value} value={ea.value}>
+                    {ea.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Reset */}
-          {hasActiveFilters && (
+          <div className="ml-auto">
             <Button
               variant="ghost"
               size="sm"
               onClick={handleReset}
-              className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+              disabled={!hasActiveFilters}
+              className="h-9 px-3 text-xs text-muted-foreground hover:text-rose-500 hover:bg-rose-500/5 gap-1.5 transition-all font-semibold"
             >
-              <X size={12} />
-              Reset
+              <RotateCcw size={14} />
+              {t("performance.filters.reset")}
             </Button>
-          )}
+          </div>
         </div>
       </CardContent>
     </Card>
