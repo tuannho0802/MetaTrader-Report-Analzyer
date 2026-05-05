@@ -9,7 +9,7 @@ const COLORS = [
   "#8b5cf6", // violet-500
 ];
 
-function calculateEquity(trades: Trade[]): { date: string; equity: number }[] {
+export function calculateEquity(trades: Trade[]): { date: string; equity: number }[] {
   const sorted = [...trades].sort((a, b) => 
     new Date(a.closeTime).getTime() - new Date(b.closeTime).getTime()
   );
@@ -24,7 +24,7 @@ function calculateEquity(trades: Trade[]): { date: string; equity: number }[] {
   });
 }
 
-function calculateMetrics(name: string, trades: Trade[], currency: string): MetricsRow {
+export function calculateMetrics(name: string, trades: Trade[], currency: string): MetricsRow {
   const totalProfit = trades.reduce((sum, t) => sum + t.profit, 0);
   const wins = trades.filter(t => t.profit > 0);
   const losses = trades.filter(t => t.profit <= 0);
