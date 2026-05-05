@@ -5,6 +5,7 @@ import { parseHTMLStatement, recalculateResult, parseMT4Date, isCommentMatch } f
 import { parseMT5Csv } from '../mt5Parser/parser';
 import { adaptMT5ToParseResult } from '../mt5Parser/adapter';
 import { db } from '../db';
+import { saveArchivedTrades, loadArchivedTrades, deleteArchivedTrades } from '../db/archivedTradesDb';
 
 
 interface AnalysisStore {
@@ -128,21 +129,82 @@ export const useAnalysisStore = create<AnalysisStore>()(
       },
 
       archiveSession: async (sessionId) => {
-        set(state => ({
-          sessions: state.sessions.map(s => 
-            s.id === sessionId ? { ...s, archived: true } : s
-          ),
-          activeSessionId: state.activeSessionId === sessionId ? null : state.activeSessionId
-        }));
+        const state = get();
+        const session = state.sessions.find(s => s.id === sessionId);
+        
+        if (!session || !session.allTrades || session.allTrades.length === 0) {
+          console.error('Cannot archive session without trades');
+          return;
+        }
+        
+        try {
+          await saveArchivedTrades(sessionId, session.allTrades);
+          
+          const totalProfit = session.allTrades.reduce((sum, t) => sum + t.profit, 0);
+          const archivedMetadata = {
+            tradesCount: session.allTrades.length,
+            totalProfit,
+            archivedAt: new Date().toISOString(),
+          };
+          
+          set(state => ({
+            sessions: state.sessions.map(s => 
+              s.id === sessionId 
+                ? { ...s, archived: true, allTrades: undefined, archivedMetadata }
+                : s
+            ),
+            activeSessionId: state.activeSessionId === sessionId ? null : state.activeSessionId,
+          }));
+          
+          console.log(`✅ Session ${session.name} archived.`);
+        } catch (error) {
+          console.error('❌ Archive failed:', error);
+          alert('Failed to archive session. Data will remain in memory.');
+          throw error;
+        }
       },
 
       restoreSession: async (sessionId) => {
-        set(state => ({
-          sessions: state.sessions.map(s => 
-            s.id === sessionId ? { ...s, archived: false } : s
-          ),
-          activeSessionId: sessionId
-        }));
+        const state = get();
+        const session = state.sessions.find(s => s.id === sessionId);
+        
+        if (!session || !session.archived) {
+          console.error('Cannot unarchive non-archived session');
+          return;
+        }
+        
+        try {
+          const trades = await loadArchivedTrades(sessionId);
+          
+          if (!trades || trades.length === 0) {
+            throw new Error('Archived trades not found in database. Data may be corrupted.');
+          }
+          
+          if (session.archivedMetadata && trades.length !== session.archivedMetadata.tradesCount) {
+            console.warn(
+              `⚠️ Trade count mismatch: metadata says ${session.archivedMetadata.tradesCount}, ` +
+              `but loaded ${trades.length} trades`
+            );
+          }
+          
+          set(state => ({
+            sessions: state.sessions.map(s => 
+              s.id === sessionId 
+                ? { ...s, archived: false, allTrades: trades, archivedMetadata: undefined }
+                : s
+            ),
+            activeSessionId: sessionId,
+          }));
+          
+          // Optionally delete from archivedTradesDb if we want to save DB space, but leaving it is fine too.
+          await deleteArchivedTrades(sessionId);
+          
+          console.log(`✅ Session ${session.name} unarchived.`);
+        } catch (error) {
+          console.error('❌ Unarchive failed:', error);
+          alert('Failed to restore archived session. Data may be lost.');
+          throw error;
+        }
       },
 
       deleteSession: async (sessionId) => {
@@ -150,6 +212,8 @@ export const useAnalysisStore = create<AnalysisStore>()(
           sessions: state.sessions.filter(s => s.id !== sessionId),
           activeSessionId: state.activeSessionId === sessionId ? null : state.activeSessionId
         }));
+        await deleteArchivedTrades(sessionId);
+        await db.statements.delete(sessionId);
       },
 
       toggleFavorite: (id) => {

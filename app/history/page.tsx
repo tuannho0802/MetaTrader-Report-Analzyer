@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
 import { useTranslation } from "@/lib/i18n";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -14,7 +14,9 @@ import {
   AlertTriangle,
   Star,
   Layers,
-  Inbox
+  Inbox,
+  Loader2,
+  ArchiveRestore
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -33,6 +35,7 @@ export default function HistoryPage() {
   const favoriteSessions = sessions.filter(s => s.favorite);
   const activeSessionsList = sessions.filter(s => !s.archived);
   const archivedSessionsList = sessions.filter(s => s.archived);
+  const [archiving, setArchiving] = useState<string | null>(null);
   
   const deletedSessionsList: any[] = []; 
 
@@ -80,21 +83,42 @@ export default function HistoryPage() {
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex flex-col items-end gap-1">
-                            <>
-                              <div className="text-xs">
-                                <span className="text-muted-foreground">Trades:</span>{' '}
-                                <span className="font-bold">{s.allTrades?.length || 0}</span>
-                              </div>
-                              <div className="text-xs">
-                                <span className="text-muted-foreground">Net Profit:</span>{' '}
-                                <span className={cn(
-                                  "font-bold",
-                                  (s.currentResult?.totalProfit || 0) >= 0 ? "text-emerald-500" : "text-rose-500"
-                                )}>
-                                  {formatCurrency(s.currentResult?.totalProfit || 0, s.currency || 'USD')}
-                                </span>
-                              </div>
-                            </>
+                            {isArchived && s.archivedMetadata ? (
+                              <>
+                                <div className="text-xs">
+                                  <span className="text-muted-foreground">Trades:</span>{' '}
+                                  <span className="font-bold">{s.archivedMetadata.tradesCount}</span>
+                                </div>
+                                <div className="text-xs">
+                                  <span className="text-muted-foreground">Net Profit:</span>{' '}
+                                  <span className={cn(
+                                    "font-bold",
+                                    s.archivedMetadata.totalProfit >= 0 ? "text-emerald-500" : "text-rose-500"
+                                  )}>
+                                    {formatCurrency(s.archivedMetadata.totalProfit, s.currency || 'USD')}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-muted-foreground italic">
+                                  Archived: {format(new Date(s.archivedMetadata.archivedAt), 'MMM dd, HH:mm')}
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="text-xs">
+                                  <span className="text-muted-foreground">Trades:</span>{' '}
+                                  <span className="font-bold">{s.allTrades?.length || 0}</span>
+                                </div>
+                                <div className="text-xs">
+                                  <span className="text-muted-foreground">Net Profit:</span>{' '}
+                                  <span className={cn(
+                                    "font-bold",
+                                    (s.currentResult?.totalProfit || 0) >= 0 ? "text-emerald-500" : "text-rose-500"
+                                  )}>
+                                    {formatCurrency(s.currentResult?.totalProfit || 0, s.currency || 'USD')}
+                                  </span>
+                                </div>
+                              </>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-muted-foreground text-[11px] font-medium">
@@ -123,25 +147,30 @@ export default function HistoryPage() {
                                   variant="ghost" 
                                   size="icon" 
                                   className="h-8 w-8 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10" 
+                                  disabled={archiving === s.id}
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     if (window.confirm("Are you sure you want to archive this session?")) {
+                                      setArchiving(s.id);
                                       try {
                                         await archiveSession(s.id);
                                       } catch (error) {
                                         console.error('Archive operation failed:', error);
                                         alert(`Failed to archive session`);
+                                      } finally {
+                                        setArchiving(null);
                                       }
                                     }
                                   }} 
                                   title={t('history.actions.archive')}
                                 >
-                                  <Archive className="h-4 w-4" />
+                                  {archiving === s.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
                                 </Button>
                                 <Button 
                                   variant="ghost" 
                                   size="icon" 
                                   className="h-8 w-8 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10" 
+                                  disabled={archiving === s.id}
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     if (window.confirm("Are you sure you want to delete this session?")) {
@@ -164,23 +193,28 @@ export default function HistoryPage() {
                                   variant="ghost" 
                                   size="icon" 
                                   className="h-8 w-8 rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10" 
+                                  disabled={archiving === s.id}
                                   onClick={async (e) => {
                                     e.stopPropagation();
+                                    setArchiving(s.id);
                                     try {
                                       await restoreSession(s.id);
                                     } catch (error) {
                                       console.error('Restore operation failed:', error);
                                       alert(`Failed to unarchive session`);
+                                    } finally {
+                                      setArchiving(null);
                                     }
                                   }} 
                                   title={t('history.actions.restore')}
                                 >
-                                  <RotateCcw className="h-4 w-4" />
+                                  {archiving === s.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArchiveRestore className="h-4 w-4" />}
                                 </Button>
                                 <Button 
                                   variant="ghost" 
                                   size="icon" 
                                   className="h-8 w-8 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10" 
+                                  disabled={archiving === s.id}
                                   onClick={async (e) => {
                                     e.stopPropagation();
                                     if (window.confirm("Are you sure you want to permanently delete this archived session?")) {

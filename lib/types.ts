@@ -63,6 +63,13 @@ export interface AnalysisSession {
   archived: boolean;
   deleted?: boolean;
   favorite?: boolean;
+  archivedMetadata?: SessionMetadata;
+}
+
+export interface SessionMetadata {
+  tradesCount: number;
+  totalProfit: number;
+  archivedAt: string;
 }
 export interface ComparisonResult {
   mode: 'same' | 'cross';
