@@ -404,14 +404,14 @@ export const useAnalysisStore = create<AnalysisStore>()(
           await db.settings.delete(name);
         },
       },
-      partialize: (state) => ({ 
+      partialize: (state: AnalysisStore): Partial<AnalysisStore> => ({ 
         sessions: state.sessions, 
         activeSessionId: state.activeSessionId 
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {
           state.isLoading = false;
-          // We don't set isHydrated here, initSessions will do it
+          state.initSessions(); // Ensure discovery and normalization runs after hydration
         }
       },
       version: 1
