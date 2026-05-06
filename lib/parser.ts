@@ -209,6 +209,13 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
       const swap = tds[12].textContent?.trim() || "";
       const profitStr = tds[13].textContent?.replace(/[^\d.-]/g, "") || "0";
       const profit = parseFloat(profitStr);
+      let balance: number | undefined = undefined;
+      if (tds.length >= 15) {
+        const balanceStr = tds[14].textContent?.replace(/[^\d.-]/g, "");
+        if (balanceStr) {
+          balance = parseFloat(balanceStr);
+        }
+      }
 
       let comment = "";
 
@@ -242,6 +249,7 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
         commission,
         swap,
         profit,
+        balance,
         comment,
         similarity: 0
       });

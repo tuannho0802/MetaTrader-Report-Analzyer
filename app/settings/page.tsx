@@ -27,10 +27,18 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 
+const SUPPORTED_CURRENCIES = ['USD', 'USC', 'EUR', 'GBP', 'AUD', 'VND', 'JPY'];
+
 export default function SettingsPage() {
-  const { language, setLanguage, maxTabs, setMaxTabs } = useSettingsStore();
+  const { 
+    language, setLanguage, 
+    maxTabs, setMaxTabs,
+    baseCurrency, setBaseCurrency,
+    autoConvertCurrency, setAutoConvertCurrency
+  } = useSettingsStore();
   const { reset, sessions } = useAnalysisStore();
   const totalSessionsCount = sessions.length;
   const { theme, setTheme } = useTheme();
@@ -103,6 +111,48 @@ export default function SettingsPage() {
                   <Monitor className="h-4 w-4" /> System
                 </Button>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Currency Settings */}
+        <Card className="border-border/50 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Database className="h-5 w-5 text-primary" />
+              {t('common.currencySettings')}
+            </CardTitle>
+            <CardDescription>{t('common.currencySettingsDesc')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label>{t('common.baseCurrency')}</Label>
+              <Select value={baseCurrency} onValueChange={(val) => val && setBaseCurrency(val)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_CURRENCIES.map(curr => (
+                    <SelectItem key={curr} value={curr}>{curr}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground italic">
+                All reports will be converted to this currency using live exchange rates.
+              </p>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>{t('common.autoConvert')}</Label>
+                <p className="text-[10px] text-muted-foreground italic">
+                  Automatically convert all monetary values to base currency
+                </p>
+              </div>
+              <Switch 
+                checked={autoConvertCurrency} 
+                onCheckedChange={setAutoConvertCurrency}
+              />
             </div>
           </CardContent>
         </Card>

@@ -13,6 +13,7 @@ export interface Trade {
   comment: string;
   eaId: string;  // Extracted from title attribute
   similarity: number; // % khớp để debug
+  balance?: number;
 }
 
 export type FilterMode = 'id' | 'comment' | 'both';
@@ -78,9 +79,16 @@ export interface ComparisonResult {
   tradesByEa?: Record<string, Trade[]>;
 }
 
+export interface EquityPoint {
+  time: string;
+  value: number;
+}
+
 export interface EquitySeries {
+  id?: string;
+  dataKey?: string;
   name: string;
-  data: { date: string; equity: number }[];
+  data: EquityPoint[];
   color: string;
   currency?: string;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
 import { useTranslation } from "@/lib/i18n";
 import { useTheme } from "next-themes";
@@ -9,6 +9,8 @@ import { calculateMetrics, calculateEquity } from "@/lib/comparison";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { cn } from "@/lib/utils";
 import { exportPerformanceCSV } from "@/lib/exportComparison";
+import { useSettingsStore } from "@/lib/store/useSettingsStore";
+import { fetchExchangeRates, convertCurrency } from "@/lib/exchangeRates";
 
 import { PerformanceFilters, FilterState } from "./PerformanceFilters";
 import { ComparisonDrawdownChart } from "@/components/compare/ComparisonDrawdownChart";
@@ -137,7 +139,7 @@ function EquityChart({
   const chartData = useMemo(() => {
     if (series.length === 0) return [];
     const dateSet = new Set<string>();
-    series.forEach((s) => s.data.forEach((d) => dateSet.add(d.date.split(" ")[0])));
+    series.forEach((s) => s.data.forEach((d) => dateSet.add(d.time.split(" ")[0])));
     const sortedDates = Array.from(dateSet).sort(
       (a, b) => new Date(a.replace(/\./g, "/")).getTime() - new Date(b.replace(/\./g, "/")).getTime()
     );
@@ -146,11 +148,11 @@ function EquityChart({
       const m = new Map<string, number>();
       let last = 0;
       const sorted = [...s.data].sort(
-        (a, b) => new Date(a.date.replace(/\./g, "/")).getTime() - new Date(b.date.replace(/\./g, "/")).getTime()
+        (a, b) => new Date(a.time.replace(/\./g, "/")).getTime() - new Date(b.time.replace(/\./g, "/")).getTime()
       );
       sorted.forEach((d) => {
-        last = d.equity;
-        m.set(d.date.split(" ")[0], d.equity);
+        last = d.value;
+        m.set(d.time.split(" ")[0], d.value);
       });
       return { name: s.name, map: m, last };
     });
@@ -158,11 +160,12 @@ function EquityChart({
     const lastVal: Record<string, number> = {};
     return sortedDates.map((date) => {
       const row: Record<string, string | number> = { date };
-      seriesMaps.forEach((sm) => {
+      seriesMaps.forEach((sm, i) => {
+        const key = series[i].dataKey || series[i].id || sm.name;
         if (sm.map.has(date)) {
-          lastVal[sm.name] = sm.map.get(date)!;
+          lastVal[key] = sm.map.get(date)!;
         }
-        row[sm.name] = lastVal[sm.name] ?? 0;
+        row[key] = lastVal[key] ?? 0;
       });
       return row;
     });
@@ -224,9 +227,10 @@ function EquityChart({
               />
               {series.map((s, i) => (
                 <Line
-                  key={s.name}
+                  key={s.id || s.name}
                   type="monotone"
-                  dataKey={s.name}
+                  dataKey={s.dataKey || s.id || s.name}
+                  name={s.name}
                   stroke={s.color || COLORS[i % COLORS.length]}
                   strokeWidth={3}
                   dot={false}
@@ -249,7 +253,16 @@ function EquityChart({
 /* ─── Main dashboard ─── */
 export function PerformanceDashboard() {
   const { sessions, isLoading } = useAnalysisStore();
+  const { baseCurrency, autoConvertCurrency } = useSettingsStore();
   const { t } = useTranslation();
+
+  const [exchangeRates, setExchangeRates] = useState<any>(null);
+  
+  useEffect(() => {
+    if (autoConvertCurrency) {
+      fetchExchangeRates(baseCurrency).then(setExchangeRates);
+    }
+  }, [baseCurrency, autoConvertCurrency]);
 
   const [filters, setFilters] = useState<FilterState>({
     selectedSessions: [],
@@ -288,16 +301,25 @@ export function PerformanceDashboard() {
     return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
   }, [targetSessions]);
 
-  // Filter trades per session, applying date range + EA filter
-  const { tradesByEA, allFilteredTrades, currency } = useMemo(() => {
-    const currency = targetSessions[0]?.currency || "USD";
+  // Check if we have mixed currencies without conversion
+  const hasMixedCurrencies = useMemo(() => {
+    if (autoConvertCurrency) return false;
+    const currencies = new Set(targetSessions.map(s => s.currency || 'USD'));
+    return currencies.size > 1;
+  }, [targetSessions, autoConvertCurrency]);
+
+  // Filter trades per session, applying date range + EA filter + currency conversion
+  const { tradesBySeries, allFilteredTrades, currency } = useMemo(() => {
+    const currency = autoConvertCurrency ? baseCurrency : (targetSessions[0]?.currency || "USD");
     const start = filters.startDate;
     const end = filters.endDate;
 
-    const tradesByEA: Record<string, Trade[]> = {};
+    const tradesBySeries: Record<string, Trade[]> = {};
+    const allFilteredTrades: Trade[] = [];
 
     targetSessions.forEach((session) => {
       let trades = session.allTrades || [];
+      const sessionCurrency = session.currency || "USD";
 
       // Date filter
       if (start) {
@@ -316,19 +338,37 @@ export function PerformanceDashboard() {
         );
       }
 
-      trades.forEach((t) => {
-        const eaKey = t.eaId || t.comment || "Unknown";
-        const label = isNaN(Number(eaKey))
-          ? `${eaKey} (${session.name || session.fileName})`
-          : `EA #${eaKey} (${session.name || session.fileName})`;
-        if (!tradesByEA[label]) tradesByEA[label] = [];
-        tradesByEA[label].push(t);
+      trades.forEach((trade) => {
+        const eaId = trade.eaId || trade.comment || "Unknown";
+        
+        // COMPOSITE KEY
+        const compositeId = `${session.id}::${eaId}`;
+        
+        if (!tradesBySeries[compositeId]) {
+          tradesBySeries[compositeId] = [];
+        }
+        
+        // CONVERT CURRENCY if enabled
+        let convertedTrade = trade;
+        if (autoConvertCurrency && exchangeRates && sessionCurrency !== baseCurrency) {
+          convertedTrade = {
+            ...trade,
+            profit: convertCurrency(trade.profit, sessionCurrency, baseCurrency, exchangeRates),
+            swap: String(convertCurrency(parseFloat(trade.swap) || 0, sessionCurrency, baseCurrency, exchangeRates)),
+            commission: String(convertCurrency(parseFloat(trade.commission) || 0, sessionCurrency, baseCurrency, exchangeRates)),
+            balance: trade.balance !== undefined 
+              ? convertCurrency(trade.balance, sessionCurrency, baseCurrency, exchangeRates)
+              : undefined
+          };
+        }
+        
+        tradesBySeries[compositeId].push(convertedTrade);
+        allFilteredTrades.push(convertedTrade);
       });
     });
 
-    const allFilteredTrades = Object.values(tradesByEA).flat();
-    return { tradesByEA, allFilteredTrades, currency };
-  }, [targetSessions, filters.startDate, filters.endDate, filters.selectedEA]);
+    return { tradesBySeries, allFilteredTrades, currency };
+  }, [targetSessions, filters.startDate, filters.endDate, filters.selectedEA, autoConvertCurrency, exchangeRates, baseCurrency]);
 
   // Aggregate metrics (all filtered trades combined)
   const aggregateMetrics: MetricsRow | null = useMemo(() => {
@@ -338,19 +378,35 @@ export function PerformanceDashboard() {
 
   // EquitySeries per EA for charts
   const equitySeries: EquitySeries[] = useMemo(() => {
-    return Object.entries(tradesByEA).map(([name, trades], i) => ({
-      name,
-      data: calculateEquity(trades),
-      color: COLORS[i % COLORS.length],
-      currency,
-    }));
-  }, [tradesByEA, currency]);
+    return Object.entries(tradesBySeries).map(([compositeId, trades], index) => {
+      const dataKey = compositeId.replace(/[^a-zA-Z0-9]/g, '_');
+      const [sessionId, eaId] = compositeId.split('::');
+      const session = targetSessions.find(s => s.id === sessionId);
+      const displayName = isNaN(Number(eaId))
+        ? `${eaId} (${session?.name || 'Unknown'})`
+        : `EA #${eaId} (${session?.name || 'Unknown'})`;
+
+      return {
+        id: compositeId,
+        dataKey,
+        name: displayName,
+        data: calculateEquity(trades, 0),
+        color: COLORS[index % COLORS.length],
+        currency: autoConvertCurrency ? baseCurrency : (session?.currency || 'USD')
+      };
+    });
+  }, [tradesBySeries, targetSessions, autoConvertCurrency, baseCurrency]);
 
   // CSV export
   const handleExport = () => {
-    const rows: MetricsRow[] = Object.entries(tradesByEA).map(([name, trades]) =>
-      calculateMetrics(name, trades, currency)
-    );
+    const rows: MetricsRow[] = Object.entries(tradesBySeries).map(([compositeId, trades]) => {
+      const [sessionId, eaId] = compositeId.split('::');
+      const session = targetSessions.find(s => s.id === sessionId);
+      const displayName = isNaN(Number(eaId))
+        ? `${eaId} (${session?.name || 'Unknown'})`
+        : `EA #${eaId} (${session?.name || 'Unknown'})`;
+      return calculateMetrics(displayName, trades, currency);
+    });
     if (rows.length === 0 && aggregateMetrics) rows.push(aggregateMetrics);
     exportPerformanceCSV(rows, currency);
   };
@@ -443,8 +499,8 @@ export function PerformanceDashboard() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
             <KpiCard
               title={t("performance.kpi.netProfit")}
-              value={formatCurrency(m.totalProfit, currency)}
-              description={t("performance.kpi.netProfitDesc")}
+              value={hasMixedCurrencies ? "—" : formatCurrency(m.totalProfit, currency)}
+              description={hasMixedCurrencies ? "Mixed currencies - convert in Settings" : t("performance.kpi.netProfitDesc")}
               icon={m.totalProfit >= 0 ? TrendingUp : TrendingDown}
               color={m.totalProfit >= 0 ? "text-emerald-400" : "text-rose-400"}
             />
@@ -478,8 +534,8 @@ export function PerformanceDashboard() {
             />
             <KpiCard
               title={t("performance.kpi.expectancy")}
-              value={formatCurrency(m.expectancy, currency)}
-              description={t("performance.kpi.expectancyDesc")}
+              value={hasMixedCurrencies ? "—" : formatCurrency(m.expectancy, currency)}
+              description={hasMixedCurrencies ? "Mixed currencies" : t("performance.kpi.expectancyDesc")}
               icon={Target}
               color={m.expectancy >= 0 ? "text-emerald-400" : "text-rose-400"}
             />
@@ -492,8 +548,8 @@ export function PerformanceDashboard() {
             />
             <KpiCard
               title={t("performance.kpi.profitPerDay")}
-              value={formatCurrency(m.profitPerDay, currency)}
-              description={t("performance.kpi.profitPerDayDesc")}
+              value={hasMixedCurrencies ? "—" : formatCurrency(m.profitPerDay, currency)}
+              description={hasMixedCurrencies ? "Mixed currencies" : t("performance.kpi.profitPerDayDesc")}
               icon={TrendingUp}
               color={m.profitPerDay >= 0 ? "text-teal-400" : "text-rose-400"}
             />
@@ -528,7 +584,7 @@ export function PerformanceDashboard() {
               <CardDescription className="text-xs">{t("performance.charts.profitDistributionDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="pt-4">
-              <ComparisonHistogram series={equitySeries} trades={tradesByEA} height={300} />
+              <ComparisonHistogram series={equitySeries} trades={tradesBySeries} height={300} />
               <p className="mt-4 text-[10px] text-muted-foreground italic font-medium">
                 {t("performance.charts.profitDistributionDesc")}
               </p>
@@ -543,7 +599,7 @@ export function PerformanceDashboard() {
             </CardHeader>
             <CardContent className="pt-4 overflow-hidden">
               <div className="overflow-x-auto pb-4">
-                <MonthlyReturnsTable tradesByEa={tradesByEA} currency={currency} />
+                <MonthlyReturnsTable tradesByEa={tradesBySeries} currency={currency} />
               </div>
               <p className="mt-4 text-[10px] text-muted-foreground italic font-medium">
                 {t("performance.charts.monthlyReturnsDesc")}

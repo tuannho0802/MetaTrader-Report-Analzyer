@@ -35,16 +35,16 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
     // First, convert each series into a list of drawdowns
     const seriesDrawdowns = series.map(s => {
       let maxEquity = 0;
-      dataKeys.push({ name: s.name, color: s.color });
+      dataKeys.push({ name: s.id || s.name, color: s.color });
       
       const drawdowns = s.data.map(point => {
-        if (point.equity > maxEquity) {
-          maxEquity = point.equity;
+        if (point.value > maxEquity) {
+          maxEquity = point.value;
         }
-        const dd = maxEquity > 0 ? ((point.equity - maxEquity) / maxEquity) * 100 : 0;
-        return { date: point.date, drawdown: dd };
+        const dd = maxEquity > 0 ? ((point.value - maxEquity) / maxEquity) * 100 : 0;
+        return { date: point.time, drawdown: dd };
       });
-      return { name: s.name, drawdowns };
+      return { id: s.id || s.name, name: s.name, drawdowns };
     });
 
     // Merge data by date
@@ -64,8 +64,9 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
         // We only want to keep the latest drawdown per day if multiple trades happen on the same day
         // For simplicity and to match the equity chart, we just overwrite.
         // If we want absolute minimum drawdown for that day, we should Math.min
-        if (currentObj[s.name] === undefined || point.drawdown < currentObj[s.name]) {
-            currentObj[s.name] = point.drawdown;
+        const key = s.id || s.name;
+        if (currentObj[key] === undefined || point.drawdown < currentObj[key]) {
+            currentObj[key] = point.drawdown;
             if (point.drawdown < minDd) minDd = point.drawdown;
         }
         
@@ -105,14 +106,14 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
       let maxDd = 0; // max drawdown is a negative number
       let minDate = '';
       s.data.forEach(d => {
-        if (d.equity > maxEq) maxEq = d.equity;
-        const dd = maxEq > 0 ? ((d.equity - maxEq) / maxEq) * 100 : 0;
+        if (d.value > maxEq) maxEq = d.value;
+        const dd = maxEq > 0 ? ((d.value - maxEq) / maxEq) * 100 : 0;
         if (dd < maxDd) {
           maxDd = dd;
-          minDate = d.date.split(" ")[0]; // using the date format stored in chartData
+          minDate = d.time.split(" ")[0]; // using the date format stored in chartData
         }
       });
-      if (minDate) t[s.name] = { date: minDate, value: maxDd };
+      if (minDate) t[s.id || s.name] = { date: minDate, value: maxDd };
     });
     return t;
   }, [series]);
@@ -130,17 +131,18 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
       <ul className="flex flex-wrap justify-center gap-4 mt-2">
         {payload.map((entry: any, index: number) => {
           const isHidden = hiddenSeries.has(entry.value);
+          const s = series.find(ser => (ser.id || ser.name) === entry.dataKey || ser.name === entry.value);
           return (
             <li 
               key={`item-${index}`} 
               className={`flex items-center gap-2 text-xs font-medium cursor-pointer transition-opacity ${isHidden ? 'opacity-40 line-through' : 'opacity-100 hover:opacity-80'}`}
-              onClick={() => onLegendClick?.(entry.value)}
+              onClick={() => onLegendClick?.(s?.name || entry.value)}
             >
               <div 
                 className="w-3 h-3 rounded-full" 
                 style={{ backgroundColor: entry.color }} 
               />
-              <span style={{ color: textColor }}>{entry.value}</span>
+              <span style={{ color: textColor }}>{s?.name || entry.value}</span>
             </li>
           );
         })}
@@ -175,7 +177,7 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
                 tickLine={false}
                 axisLine={false}
                 minTickGap={10}
-                domain={[Math.floor(minDrawdown - 5), 0]}
+                domain={[Math.max(Math.floor(minDrawdown - 5), -100), 0]}
               />
               <Tooltip
                 contentStyle={{ 
@@ -194,39 +196,42 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
                 cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }}
               />
               <Legend content={renderLegend} verticalAlign="top" height={36}/>
-              {dataKeys.map((key) => !hiddenSeries.has(key.name) && (
+              {series.map((s) => !hiddenSeries.has(s.name) && (
                 <Area
-                  key={key.name}
+                  key={s.id || s.name}
                   type="monotone"
-                  dataKey={key.name}
-                  stroke={key.color}
-                  fill={key.color}
+                  dataKey={s.id || s.name}
+                  name={s.name}
+                  stroke={s.color}
+                  fill={s.color}
                   fillOpacity={0.1}
                   strokeWidth={2}
                   activeDot={{ r: 4, strokeWidth: 0 }}
                   isAnimationActive={false}
                 />
               ))}
-              {dataKeys.map((key) => {
-                if (hiddenSeries.has(key.name)) return null;
-                const trough = troughs[key.name];
+              {series.map((s) => {
+                if (hiddenSeries.has(s.name)) return null;
+                const trough = troughs[s.id || s.name];
                 if (!trough || trough.value === 0) return null; // Don't show if no drawdown
                 
                 // Only render dot if the point actually exists in downsampled chartData
                 const exists = chartData.some(d => d.date === trough.date);
                 if (!exists) return null;
+                
+                const key = s.id || s.name;
 
                 return (
                   <ReferenceDot
-                    key={`trough-${key.name}`}
+                    key={`trough-${key}`}
                     x={trough.date}
                     y={trough.value}
                     r={4}
-                    fill={key.color}
+                    fill={s.color}
                     stroke="hsl(var(--background))"
                     strokeWidth={2}
                   >
-                    <Label value="Max DD" position="bottom" fill={key.color} fontSize={10} fontWeight="bold" />
+                    <Label value="Max DD" position="bottom" fill={s.color} fontSize={10} fontWeight="bold" />
                   </ReferenceDot>
                 );
               })}

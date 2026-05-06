@@ -71,7 +71,7 @@ export function ComparisonHistogram({ series, trades, height = 300, hiddenSeries
 
       // Initialize counts to 0 for each series
       series.forEach(s => {
-        binObj[s.name] = 0;
+        binObj[s.id || s.name] = 0;
       });
 
       bins.push(binObj);
@@ -114,17 +114,18 @@ export function ComparisonHistogram({ series, trades, height = 300, hiddenSeries
       <ul className="flex flex-wrap justify-center gap-4 mt-2">
         {payload.filter((entry: any) => entry.type !== 'none').map((entry: any, index: number) => {
           const isHidden = hiddenSeries.has(entry.value);
+          const s = series.find(ser => (ser.id || ser.name) === entry.dataKey || ser.name === entry.value);
           return (
             <li 
               key={`item-${index}`} 
               className={`flex items-center gap-2 text-xs font-medium cursor-pointer transition-opacity ${isHidden ? 'opacity-40 line-through' : 'opacity-100 hover:opacity-80'}`}
-              onClick={() => onLegendClick?.(entry.value)}
+              onClick={() => onLegendClick?.(s?.name || entry.value)}
             >
               <div 
                 className="w-3 h-3 rounded-full" 
                 style={{ backgroundColor: entry.color }} 
               />
-              <span style={{ color: textColor }}>{entry.value}</span>
+              <span style={{ color: textColor }}>{s?.name || entry.value}</span>
             </li>
           );
         })}
@@ -177,23 +178,26 @@ export function ComparisonHistogram({ series, trades, height = 300, hiddenSeries
                   const count = Number(value);
                   const total = totalTradesMap[name as string] || 1;
                   const pct = ((count / total) * 100).toFixed(1);
-                  return [`${count} ${t('dashboard.trades')} (${pct}%)`, name];
+                  const s = series.find(ser => (ser.id || ser.name) === name);
+                  return [`${count} ${t('dashboard.trades')} (${pct}%)`, s?.name || name];
                 }}
                 labelStyle={{ fontWeight: 'bold', marginBottom: '0.5rem' }}
                 cursor={{ fill: isDark ? '#374151' : '#f3f4f6' }}
               />
               <Legend content={renderLegend} verticalAlign="top" height={36}/>
               {series.map((s) => !hiddenSeries.has(s.name) && (
-                <React.Fragment key={s.name}>
+                <React.Fragment key={s.id || s.name}>
                   <Bar
-                    dataKey={s.name}
+                    dataKey={s.id || s.name}
+                    name={s.name}
                     fill={s.color}
                     radius={[4, 4, 0, 0]}
                     isAnimationActive={false}
                   />
                   <Line
                     type="monotone"
-                    dataKey={s.name}
+                    dataKey={s.id || s.name}
+                    name={s.name}
                     stroke={s.color}
                     strokeWidth={2}
                     dot={false}

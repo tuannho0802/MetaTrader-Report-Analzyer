@@ -1,4 +1,4 @@
-import { Trade, ComparisonResult, EquitySeries, MetricsRow } from "./types";
+import { Trade, ComparisonResult, EquitySeries, MetricsRow, EquityPoint } from "./types";
 
 const COLORS = [
   "#3b82f6", // blue-500
@@ -9,19 +9,67 @@ const COLORS = [
   "#8b5cf6", // violet-500
 ];
 
-export function calculateEquity(trades: Trade[]): { date: string; equity: number }[] {
-  const sorted = [...trades].sort((a, b) => 
-    new Date(a.closeTime).getTime() - new Date(b.closeTime).getTime()
-  );
 
-  let runningTotal = 0;
-  return sorted.map(t => {
-    runningTotal += t.profit;
-    return {
-      date: t.closeTime,
-      equity: Number(runningTotal.toFixed(2))
-    };
+export function calculateEquity(
+  trades: Trade[], 
+  initialBalance: number = 0
+): EquityPoint[] {
+  if (trades.length === 0) return [];
+  
+  // Sort by close time
+  const sorted = [...trades].sort((a, b) => {
+    const timeA = new Date(a.closeTime.replace(/\./g, '/')).getTime();
+    const timeB = new Date(b.closeTime.replace(/\./g, '/')).getTime();
+    return timeA - timeB;
   });
+  
+  const points: EquityPoint[] = [];
+  let runningBalance = initialBalance;
+  
+  // Add initial point
+  const firstDate = sorted[0].closeTime.split(' ')[0].replace(/\./g, '-');
+  points.push({ time: firstDate, value: runningBalance });
+  
+  // Build equity curve
+  sorted.forEach(trade => {
+    // PRIORITY 1: Use balance from report if available
+    if (trade.balance !== undefined) {
+      runningBalance = trade.balance;
+    } else {
+      // FALLBACK: Calculate from profit
+      runningBalance += trade.profit + (parseFloat(trade.swap) || 0) + (parseFloat(trade.commission) || 0);
+    }
+    
+    const date = trade.closeTime.split(' ')[0].replace(/\./g, '-');
+    points.push({ time: date, value: Number(runningBalance.toFixed(2)) });
+  });
+  
+  return points;
+}
+
+export function calculateDrawdown(equityPoints: EquityPoint[]): EquityPoint[] {
+  if (equityPoints.length === 0) return [];
+  
+  let peak = equityPoints[0].value;
+  const drawdownPoints: EquityPoint[] = [];
+  
+  equityPoints.forEach(point => {
+    // Update peak if current value is higher
+    if (point.value > peak) {
+      peak = point.value;
+    }
+    
+    // Calculate drawdown percentage
+    // Prevent division by zero
+    const drawdown = peak > 0 ? ((point.value - peak) / peak) * 100 : 0;
+    
+    drawdownPoints.push({
+      time: point.time,
+      value: Math.max(drawdown, -100)  // Cap at -100%
+    });
+  });
+  
+  return drawdownPoints;
 }
 
 export function calculateMetrics(name: string, trades: Trade[], currency: string): MetricsRow {

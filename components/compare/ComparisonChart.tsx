@@ -45,7 +45,7 @@ export function ComparisonChart({
 
     // Collect all unique date strings across all series
     const allDatesSet = new Set<string>()
-    series.forEach((s) => s.data.forEach((d) => allDatesSet.add(d.date)))
+    series.forEach((s) => s.data.forEach((d) => allDatesSet.add(d.time)))
 
     const sortedDates = Array.from(allDatesSet).sort(
       (a, b) => new Date(a).getTime() - new Date(b).getTime()
@@ -59,7 +59,7 @@ export function ComparisonChart({
     // Build lookup: seriesName → Map<date, equity>
     const lookups: Record<string, Map<string, number>> = {}
     series.forEach((s) => {
-      lookups[s.name] = new Map(s.data.map((d) => [d.date, d.equity]))
+      lookups[s.name] = new Map(s.data.map((d) => [d.time, d.value]))
     })
 
     const data = sortedDates.map((date) => {
@@ -89,9 +89,9 @@ export function ComparisonChart({
       let max = -Infinity;
       let maxDate = '';
       s.data.forEach(d => {
-        if (d.equity > max) {
-          max = d.equity;
-          maxDate = d.date;
+        if (d.value > max) {
+          max = d.value;
+          maxDate = d.time;
         }
       });
       if (maxDate) p[s.name] = { date: maxDate, value: max };

@@ -48,8 +48,11 @@ export function MonthlyReturnsTable({ tradesByEa, currency }: MonthlyReturnsTabl
     const resultMatrix: any[] = [];
     const totals: Record<string, number> = {};
 
-    Object.entries(tradesByEa).forEach(([eaName, eaTrades]) => {
-      const eaData: Record<string, any> = { eaName };
+    Object.entries(tradesByEa).forEach(([compositeId, eaTrades]) => {
+      const [sessionId, eaId] = compositeId.split('::');
+      // For display, we can just use the eaId or a descriptive name if available
+      // but the key for row mapping must be the compositeId
+      const eaData: Record<string, any> = { compositeId };
       let eaTotal = 0;
 
       sortedMonths.forEach(m => {
@@ -107,11 +110,16 @@ export function MonthlyReturnsTable({ tradesByEa, currency }: MonthlyReturnsTabl
               </TableRow>
             </TableHeader>
             <TableBody>
-              {matrix.map((row) => (
-                <TableRow key={row.eaName} className="hover:bg-muted/30 transition-colors">
-                  <TableCell className="px-4 py-4 font-bold text-sm whitespace-nowrap sticky left-0 bg-background z-10 shadow-[1px_0_0_0_hsl(var(--border))]">
-                    {row.eaName}
-                  </TableCell>
+              {matrix.map((row) => {
+                const displayName = row.compositeId.includes('::') 
+                  ? row.compositeId.split('::')[1] 
+                  : row.compositeId;
+                
+                return (
+                  <TableRow key={row.compositeId} className="hover:bg-muted/30 transition-colors">
+                    <TableCell className="px-4 py-4 font-bold text-sm whitespace-nowrap sticky left-0 bg-background z-10 shadow-[1px_0_0_0_hsl(var(--border))]">
+                      {displayName}
+                    </TableCell>
                   {months.map(m => (
                     <TableCell key={m} className={cn("px-4 py-4 text-right font-mono whitespace-nowrap", getCellClass(row[m]))}>
                       {row[m] > 0 ? "+" : ""}{formatCurrency(row[m], currency)}
@@ -120,18 +128,24 @@ export function MonthlyReturnsTable({ tradesByEa, currency }: MonthlyReturnsTabl
                   <TableCell className={cn("px-4 py-4 text-right font-mono font-bold whitespace-nowrap bg-muted/10", getCellClass(row.Total))}>
                     {row.Total > 0 ? "+" : ""}{formatCurrency(row.Total, currency)}
                   </TableCell>
-                </TableRow>
-              ))}
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </div>
 
         {/* Mobile View: List */}
         <div className="md:hidden flex flex-col space-y-4 p-4">
-          {matrix.map((row) => (
-            <div key={row.eaName} className="rounded-xl border border-border/50 bg-card p-4 shadow-sm space-y-3">
-              <div className="flex items-center justify-between border-b border-border/50 pb-2">
-                <span className="font-bold text-sm">{row.eaName}</span>
+          {matrix.map((row) => {
+            const displayName = row.compositeId.includes('::') 
+              ? row.compositeId.split('::')[1] 
+              : row.compositeId;
+
+            return (
+              <div key={row.compositeId} className="rounded-xl border border-border/50 bg-card p-4 shadow-sm space-y-3">
+                <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                  <span className="font-bold text-sm">{displayName}</span>
                 <span className={cn("font-bold font-mono text-sm", getCellClass(row.Total))}>
                   {row.Total > 0 ? "+" : ""}{formatCurrency(row.Total, currency)}
                 </span>
@@ -147,7 +161,7 @@ export function MonthlyReturnsTable({ tradesByEa, currency }: MonthlyReturnsTabl
                 ))}
               </div>
             </div>
-          ))}
+          )})}
         </div>
 
         <p className="mt-4 text-xs text-muted-foreground italic border-t border-border/40 pt-2 px-4 pb-4">
