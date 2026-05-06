@@ -18,7 +18,8 @@ interface AnalysisStore {
   statusMsg: string;
   errorMsg: string;
   file: File | null;
-  isHydrated: boolean;
+  isLoading: boolean;
+  isHydrated: boolean; // Keep for backward compatibility if needed, but we'll use isLoading mostly
 
   // Actions
   setFile: (file: File | null) => void;
@@ -34,7 +35,7 @@ interface AnalysisStore {
   redo: () => void;
   processMultiEa: (patterns: string[], threshold: number, startDate: string, endDate: string) => void;
   reset: () => Promise<void>;
-
+  initSessions: () => Promise<void>;
 }
 
 export const useAnalysisStore = create<AnalysisStore>()(
@@ -46,6 +47,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
       statusMsg: '',
       errorMsg: '',
       file: null,
+      isLoading: true,
       isHydrated: false,
 
 
@@ -118,9 +120,118 @@ export const useAnalysisStore = create<AnalysisStore>()(
       },
 
       loadCachedSessions: async () => {
+        const { initSessions } = get();
+        await initSessions();
+      },
+
+      initSessions: async () => {
+        if (get().isLoading && get().sessions.length > 0) return; // Already loading
+        
+        set({ isLoading: true, statusMsg: 'Loading workspace...' });
         try {
-          set({ isHydrated: true });
-        } catch (err) { set({ isHydrated: true }); }
+          const { sessions } = get();
+          
+          // 1. Get all records from statements store (Active sessions)
+          const allStatements = await db.statements.toArray();
+          
+          // 2. Discover sessions that are in DB but NOT in Zustand state
+          const zustandIds = new Set(sessions.map(s => s.id));
+          const discoveredSessions: AnalysisSession[] = [];
+
+          for (const record of allStatements) {
+            if (!zustandIds.has(record.id)) {
+              try {
+                const trades = JSON.parse(record.tradesJson);
+                const defaultFilter: FilterParams = {
+                  commentPattern: '',
+                  threshold: 0,
+                  startDate: new Date(0),
+                  endDate: new Date(2100, 0, 1),
+                  filterMode: 'comment',
+                };
+                
+                const result = recalculateResult(trades, defaultFilter);
+                
+                discoveredSessions.push({
+                  id: record.id,
+                  name: record.fileName.replace(/\.(html?|csv)$/i, ''),
+                  fileName: record.fileName,
+                  filter: defaultFilter,
+                  history: [defaultFilter],
+                  historyIndex: 0,
+                  currentResult: result,
+                  allTrades: trades,
+                  multiEaResults: {},
+                  currency: result.currency || 'USD',
+                  startDate: result.startDate,
+                  endDate: result.endDate,
+                  createdAt: record.uploadedAt || Date.now(),
+                  archived: false,
+                  favorite: false
+                });
+              } catch (e) {
+                console.warn(`[Store] Failed to parse discovered session ${record.id}:`, e);
+              }
+            }
+          }
+
+          // 3. Normalize existing sessions (Handle schema migrations/missing fields)
+          const normalizedSessions = sessions.map(session => {
+            const trades = session.allTrades || [];
+            
+            // Migration: if trades is missing but session is active, try to load from DB
+            if (!session.archived && (!trades || trades.length === 0)) {
+               const record = allStatements.find(r => r.id === session.id);
+               if (record) {
+                 try {
+                   session.allTrades = JSON.parse(record.tradesJson);
+                 } catch (e) {}
+               }
+            }
+
+            // Ensure currentResult is populated
+            if (!session.currentResult && session.allTrades) {
+              session.currentResult = recalculateResult(session.allTrades, session.filter);
+            }
+
+            // Default currency
+            if (!session.currency) {
+              session.currency = session.currentResult?.currency || 'USD';
+            }
+
+            return {
+              ...session,
+              multiEaResults: session.multiEaResults || {},
+              favorite: session.favorite ?? false,
+              archived: session.archived ?? false,
+            };
+          });
+
+          const finalSessions = [...normalizedSessions, ...discoveredSessions];
+          let finalActiveId = get().activeSessionId;
+
+          if (!finalActiveId && finalSessions.length > 0) {
+            const activeOnly = finalSessions.filter(s => !s.archived);
+            if (activeOnly.length > 0) {
+              finalActiveId = activeOnly.sort((a, b) => b.createdAt - a.createdAt)[0].id;
+            } else {
+              finalActiveId = finalSessions.sort((a, b) => b.createdAt - a.createdAt)[0].id;
+            }
+          }
+          
+          set({ 
+            sessions: finalSessions, 
+            activeSessionId: finalActiveId,
+            isLoading: false, 
+            isHydrated: true,
+            statusMsg: '' 
+          });
+          
+          console.log(`[Store] Initialized. Total sessions: ${finalSessions.length} (${discoveredSessions.length} discovered from DB)`);
+        } catch (err) {
+          console.error('[Store] Initialization failed:', err);
+          set({ isLoading: false, isHydrated: true, statusMsg: '' });
+        }
       },
 
       setActiveSession: (id) => {
@@ -292,6 +403,16 @@ export const useAnalysisStore = create<AnalysisStore>()(
         removeItem: async (name) => {
           await db.settings.delete(name);
         },
+      },
+      partialize: (state) => ({ 
+        sessions: state.sessions, 
+        activeSessionId: state.activeSessionId 
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.isLoading = false;
+          // We don't set isHydrated here, initSessions will do it
+        }
       },
       version: 1
     }

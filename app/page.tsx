@@ -31,6 +31,7 @@ export default function Home() {
     activeSessionId,
     archiveSession,
     setActiveSession,
+    isLoading,
   } = useAnalysisStore();
 
   const activeSessions = React.useMemo(() => {
@@ -47,7 +48,17 @@ export default function Home() {
 
   return (
     <>
-      {!hasData ? (
+      {isLoading ? (
+        <div className="space-y-8 animate-pulse">
+          <div className="h-10 bg-muted rounded-md w-1/4" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-32 bg-muted rounded-xl" />
+            ))}
+          </div>
+          <div className="h-64 bg-muted rounded-xl w-full" />
+        </div>
+      ) : !hasData ? (
         <div className="flex flex-col items-center justify-center min-h-[65vh] text-center space-y-8 animate-in fade-in zoom-in duration-700">
           <div className="relative">
             <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 animate-pulse" />

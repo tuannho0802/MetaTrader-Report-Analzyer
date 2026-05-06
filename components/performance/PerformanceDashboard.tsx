@@ -248,7 +248,7 @@ function EquityChart({
 
 /* ─── Main dashboard ─── */
 export function PerformanceDashboard() {
-  const { sessions } = useAnalysisStore();
+  const { sessions, isLoading } = useAnalysisStore();
   const { t } = useTranslation();
 
   const [filters, setFilters] = useState<FilterState>({
@@ -356,6 +356,26 @@ export function PerformanceDashboard() {
   };
 
   // ─── Empty state ───
+  if (isLoading) {
+    return (
+      <div className="space-y-8 pb-12 animate-in fade-in duration-500">
+        <div className="flex flex-col md:flex-row justify-between gap-6">
+          <div className="h-24 bg-muted animate-pulse rounded-xl w-full md:w-2/3" />
+          <div className="h-11 bg-muted animate-pulse rounded-full w-32" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="h-24 bg-muted animate-pulse rounded-xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="h-[450px] bg-muted animate-pulse rounded-xl shadow-sm" />
+          <div className="h-[450px] bg-muted animate-pulse rounded-xl shadow-sm" />
+        </div>
+      </div>
+    );
+  }
+
   if (activeSessions.length === 0) {
     return (
       <Card className="border-border/50 shadow-xl bg-card/50 backdrop-blur-sm animate-in fade-in zoom-in duration-700">
