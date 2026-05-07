@@ -74,7 +74,9 @@ export const useAnalysisStore = create<AnalysisStore>()(
           const newSession: AnalysisSession = {
             id: sessionId, name: sessionName, fileName, filter: params, history: [params], historyIndex: 0,
             currentResult: result, allTrades: allTradesResult.trades, multiEaResults: {},
-            currency: result.currency, startDate: result.startDate, endDate: result.endDate, createdAt: uploadedAt,
+            currency: result.currency, startDate: result.startDate, endDate: result.endDate, 
+            initialBalance: result.initialBalance,
+            createdAt: uploadedAt,
             archived: false,
             favorite: false
           };
@@ -105,7 +107,9 @@ export const useAnalysisStore = create<AnalysisStore>()(
           const newSession: AnalysisSession = {
             id: sessionId, name: sessionName, fileName, filter: params, history: [params], historyIndex: 0,
             currentResult: filteredResult, allTrades: parseResult.trades, multiEaResults: {},
-            currency: parseResult.currency, startDate: parseResult.startDate, endDate: parseResult.endDate, createdAt: uploadedAt,
+            currency: parseResult.currency, startDate: parseResult.startDate, endDate: parseResult.endDate, 
+            initialBalance: parseResult.initialBalance,
+            createdAt: uploadedAt,
             archived: false,
             favorite: false
           };
@@ -165,6 +169,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
                   currency: result.currency || 'USD',
                   startDate: result.startDate,
                   endDate: result.endDate,
+                  initialBalance: result.initialBalance,
                   createdAt: record.uploadedAt || Date.now(),
                   archived: false,
                   favorite: false

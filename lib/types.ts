@@ -34,6 +34,7 @@ export interface ParseResult {
   currency: string;
   startDate: string | null;
   endDate: string | null;
+  initialBalance?: number;
 }
 
 export interface FilterPreset {
@@ -60,6 +61,7 @@ export interface AnalysisSession {
   currency: string;
   startDate: string | null;
   endDate: string | null;
+  initialBalance?: number;
   createdAt: number;
   archived: boolean;
   deleted?: boolean;

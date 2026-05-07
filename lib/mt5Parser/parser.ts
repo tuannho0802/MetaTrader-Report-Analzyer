@@ -78,8 +78,8 @@ function parseAccountInfo(lines: string[]): MT5AccountInfo {
       case 'Server':           info.server           = value; break;
       case 'Account Currency': info.accountCurrency  = value; break;
       case 'Leverage':         info.leverage         = value; break;
-      case 'Current Balance':  info.currentBalance   = parseFloat(value) || 0; break;
-      case 'Current Equity':   info.currentEquity    = parseFloat(value) || 0; break;
+      case 'Current Balance':  info.currentBalance   = parseFloat(value.replace(/,/g, '')) || 0; break;
+      case 'Current Equity':   info.currentEquity    = parseFloat(value.replace(/,/g, '')) || 0; break;
     }
   }
 

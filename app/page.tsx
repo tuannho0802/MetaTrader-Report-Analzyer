@@ -140,7 +140,10 @@ export default function Home() {
                     <>
                       {/* 1. Statistics Cards */}
                       <section>
-                        <KpiCards />
+                        <KpiCards 
+                          analysis={session} 
+                          metrics={{ netProfit: session.currentResult?.totalProfit || 0 }} 
+                        />
                       </section>
 
                       {/* 2. Comparative Analysis Chart */}

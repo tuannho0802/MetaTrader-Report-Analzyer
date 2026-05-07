@@ -37,7 +37,8 @@ export function adaptMT5ToParseResult(report: MT5Report): ParseResult {
     totalFound: trades.length,
     currency: report.accountInfo.accountCurrency || 'USD',
     startDate: report.exportInfo.dateRangeFrom ? report.exportInfo.dateRangeFrom.split(' ')[0].replace(/\//g, '-') : null,
-    endDate: report.exportInfo.dateRangeTo ? report.exportInfo.dateRangeTo.split(' ')[0].replace(/\//g, '-') : null
+    endDate: report.exportInfo.dateRangeTo ? report.exportInfo.dateRangeTo.split(' ')[0].replace(/\//g, '-') : null,
+    initialBalance: report.accountInfo.currentBalance
   };
 
   // Fallback to deriving from trades if not available from export info

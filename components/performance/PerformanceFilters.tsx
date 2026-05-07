@@ -21,6 +21,10 @@ import { X, Filter, Calendar as CalendarIcon, RotateCcw, Check } from "lucide-re
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/lib/i18n";
 import { format } from "date-fns";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useSettingsStore } from "@/lib/store/useSettingsStore";
+import { RefreshCw } from "lucide-react";
 
 export interface FilterState {
   selectedSessions: string[];
@@ -53,6 +57,9 @@ export function PerformanceFilters({
   onChange,
 }: PerformanceFiltersProps) {
   const { t } = useTranslation();
+  const { autoConvertCurrency, setAutoConvertCurrency, baseCurrency } = useSettingsStore();
+
+  console.log('Toggle state:', autoConvertCurrency);
 
   // Local state for debouncing
   const [localEA, setLocalEA] = useState(filters.selectedEA);
@@ -241,6 +248,29 @@ export function PerformanceFilters({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Auto Convert Toggle */}
+          <div className="flex flex-col gap-2">
+             <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <RefreshCw size={10} />
+              {t("performance.filters.currencyMode") || "Currency Mode"}
+            </label>
+            <div className="flex items-center space-x-2 h-9 bg-background border border-border px-3 rounded-md">
+              <Switch 
+                id="auto-convert" 
+                checked={autoConvertCurrency} 
+                onCheckedChange={(val) => {
+                  console.log('Toggle state changed:', val);
+                  setAutoConvertCurrency(val);
+                }}
+              />
+              <Label htmlFor="auto-convert" className="text-xs cursor-pointer select-none">
+                {autoConvertCurrency 
+                  ? `Auto-convert to ${baseCurrency}` 
+                  : "Show original currency"}
+              </Label>
+            </div>
           </div>
 
           {/* Reset */}

@@ -177,12 +177,23 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
   const rows = targetTable.querySelectorAll("tr");
   const allExtractedTrades: Trade[] = [];
   let totalFound = 0;
+  let initialBalance = 0;
 
   for (let i = 0; i < rows.length; i++) {
     const tr = rows[i];
     const tds = tr.querySelectorAll("td");
 
     if (tr.textContent?.includes("Closed Transactions:")) continue;
+
+    // Check for Initial Balance row
+    const firstTd = tds[0];
+    const firstTdTitle = firstTd?.getAttribute("title") || "";
+    if (firstTdTitle.toLowerCase().includes("initial balance")) {
+      const lastTd = tds[tds.length - 1];
+      const balanceStr = lastTd.textContent?.replace(/\s/g, "").replace(/,/g, "") || "0";
+      initialBalance = parseFloat(balanceStr);
+      continue; // Skip processing as a trade
+    }
     
     if (tds.length >= 14 && tds.length <= 15) {
       const ticketText = tds[0].textContent?.trim() || "";
@@ -295,7 +306,8 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
     totalFound,
     currency,
     startDate,
-    endDate
+    endDate,
+    initialBalance
   };
 }
 

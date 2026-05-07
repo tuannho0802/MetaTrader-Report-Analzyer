@@ -22,7 +22,7 @@ export const useSettingsStore = create<SettingsState>()(
       maxTabs: 5,
       hasHydrated: false,
       baseCurrency: 'USD',
-      autoConvertCurrency: true,
+      autoConvertCurrency: false,
       setLanguage: (language) => set({ language }),
       setMaxTabs: (maxTabs) => set({ maxTabs }),
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
