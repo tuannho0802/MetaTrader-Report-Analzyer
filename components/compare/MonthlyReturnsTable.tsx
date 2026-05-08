@@ -10,17 +10,28 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Trade } from "@/lib/types"
+import { Trade, EquitySeries, AnalysisSession } from "@/lib/types"
 import { useTranslation } from "@/lib/i18n"
 import { formatCurrency } from "@/lib/formatCurrency"
-import { cn } from "@/lib/utils"
+import { cn, generateDisplayName } from "@/lib/utils"
 
 interface MonthlyReturnsTableProps {
+  series: EquitySeries[];
   tradesByEa: Record<string, Trade[]>;
   currency: string;
+  sessionsCount?: number;
+  displayMode?: 'ea' | 'session' | 'detail';
+  allSessions?: AnalysisSession[];
 }
 
-export function MonthlyReturnsTable({ tradesByEa, currency }: MonthlyReturnsTableProps) {
+export function MonthlyReturnsTable({ 
+  series, 
+  tradesByEa, 
+  currency, 
+  sessionsCount = 0,
+  displayMode = 'detail',
+  allSessions = []
+}: MonthlyReturnsTableProps) {
   const { t } = useTranslation()
 
   const { months, matrix, totals } = useMemo(() => {
@@ -111,14 +122,32 @@ export function MonthlyReturnsTable({ tradesByEa, currency }: MonthlyReturnsTabl
             </TableHeader>
             <TableBody>
               {matrix.map((row) => {
-                const displayName = row.compositeId.includes('::') 
-                  ? row.compositeId.split('::')[1] 
-                  : row.compositeId;
+                const s = series.find(ser => ser.id === row.compositeId);
+                const rawName = s?.name || row.compositeId;
                 
+                let mainLabel = rawName;
+                let subLabel = "";
+
+                if (row.compositeId.includes('::')) {
+                  const [sessionId, eaId] = row.compositeId.split('::');
+                  const session = allSessions.find(sess => sess.id === sessionId);
+                  const fullName = generateDisplayName(session, eaId, allSessions);
+                  
+                  mainLabel = eaId === "Unknown" ? "Unknown EA" : (isNaN(Number(eaId)) ? eaId : `EA #${eaId}`);
+                  const match = fullName.match(/\((.*)\)$/);
+                  subLabel = match ? match[1] : "";
+                }
                 return (
                   <TableRow key={row.compositeId} className="hover:bg-muted/30 transition-colors">
                     <TableCell className="px-4 py-4 font-bold text-sm whitespace-nowrap sticky left-0 bg-background z-10 shadow-[1px_0_0_0_hsl(var(--border))]">
-                      {displayName}
+                      <div className="flex flex-col">
+                        <span className="truncate max-w-[150px]">{mainLabel}</span>
+                        {subLabel && (
+                          <span className="text-[10px] text-muted-foreground font-normal mt-0.5 italic truncate max-w-[180px]">
+                            ({subLabel})
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                   {months.map(m => (
                     <TableCell key={m} className={cn("px-4 py-4 text-right font-mono whitespace-nowrap", getCellClass(row[m]))}>
@@ -138,14 +167,29 @@ export function MonthlyReturnsTable({ tradesByEa, currency }: MonthlyReturnsTabl
         {/* Mobile View: List */}
         <div className="md:hidden flex flex-col space-y-4 p-4">
           {matrix.map((row) => {
-            const displayName = row.compositeId.includes('::') 
-              ? row.compositeId.split('::')[1] 
-              : row.compositeId;
+            const s = series.find(ser => ser.id === row.compositeId);
+            const rawName = s?.name || row.compositeId;
+            
+            let mainLabel = rawName;
+            let subLabel = "";
+
+            if (row.compositeId.includes('::')) {
+              const [sessionId, eaId] = row.compositeId.split('::');
+              const session = allSessions.find(sess => sess.id === sessionId);
+              const fullName = generateDisplayName(session, eaId, allSessions);
+              
+              mainLabel = eaId === "Unknown" ? "Unknown EA" : (isNaN(Number(eaId)) ? eaId : `EA #${eaId}`);
+              const match = fullName.match(/\((.*)\)$/);
+              subLabel = match ? match[1] : "";
+            }
 
             return (
               <div key={row.compositeId} className="rounded-xl border border-border/50 bg-card p-4 shadow-sm space-y-3">
                 <div className="flex items-center justify-between border-b border-border/50 pb-2">
-                  <span className="font-bold text-sm">{displayName}</span>
+                  <div className="flex flex-col overflow-hidden">
+                    <span className="font-bold text-sm truncate">{mainLabel}</span>
+                    {subLabel && <span className="text-[10px] text-muted-foreground italic truncate">({subLabel})</span>}
+                  </div>
                 <span className={cn("font-bold font-mono text-sm", getCellClass(row.Total))}>
                   {row.Total > 0 ? "+" : ""}{formatCurrency(row.Total, currency)}
                 </span>

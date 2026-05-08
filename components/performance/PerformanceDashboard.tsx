@@ -55,9 +55,10 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
+import { generateSeriesKey, generateDisplayName } from "@/lib/utils";
 
 const COLORS = [
   "#3b82f6",
@@ -89,32 +90,52 @@ function KpiCard({
   const displayValue = value === null || value === undefined || value === 0 && loading ? "–" : value;
 
   return (
-    <Card className="overflow-hidden border border-border/50 shadow-sm bg-card/50 backdrop-blur-sm transition-all hover:shadow-md hover:border-border group animate-in fade-in duration-500">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-5">
+    <Card className="group relative overflow-hidden border border-border/50 shadow-sm bg-card/30 backdrop-blur-md transition-all duration-300 hover:shadow-xl hover:border-primary/20 hover:bg-card/50 group animate-in fade-in duration-500">
+      {/* Subtle glow effect on hover */}
+      <div className={cn(
+        "absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none",
+        "bg-gradient-to-br from-transparent via-transparent",
+        color.includes("emerald") && "to-emerald-500/5",
+        color.includes("rose") && "to-rose-500/5",
+        color.includes("blue") && "to-blue-500/5",
+        color.includes("purple") && "to-purple-500/5",
+        color.includes("amber") && "to-amber-500/5",
+        color.includes("teal") && "to-teal-500/5",
+        color.includes("indigo") && "to-indigo-500/5",
+        color.includes("primary") && "to-primary/5"
+      )} />
+
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-5 relative z-10">
         <div className="flex items-center gap-1.5">
-          <CardTitle className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">
+          <CardTitle className="text-[10px] font-extrabold tracking-widest uppercase text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">
             {title}
           </CardTitle>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Info size={10} className="text-muted-foreground/50 cursor-help hover:text-muted-foreground transition-colors" />
+                <Info size={10} className="text-muted-foreground/40 cursor-help hover:text-muted-foreground transition-colors" />
               </TooltipTrigger>
-              <TooltipContent className="max-w-[200px] text-[11px]">
+              <TooltipContent className="max-w-[200px] text-[11px] font-medium p-3 rounded-xl border-border/50 shadow-2xl backdrop-blur-xl">
                 {description}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
-        <div className={cn("p-2 rounded-lg transition-colors group-hover:bg-opacity-20", color.replace("text-", "bg-").replace("-400", "-400/10"))}>
+        <div className={cn(
+          "p-2 rounded-xl transition-all duration-300 group-hover:scale-110",
+          color.replace("text-", "bg-").replace("-400", "-400/10")
+        )}>
           <Icon className={cn("h-4 w-4", color)} />
         </div>
       </CardHeader>
-      <CardContent className="p-5 pt-0">
-        <div className={cn("text-2xl font-black tracking-tight", displayValue === "–" ? "text-muted-foreground/30" : color)}>
+      <CardContent className="p-5 pt-0 relative z-10">
+        <div className={cn(
+          "text-2xl font-black tracking-tight transition-all duration-300 group-hover:translate-x-1",
+          displayValue === "–" ? "text-muted-foreground/30" : color
+        )}>
           {displayValue}
         </div>
-        <p className="text-[10px] text-muted-foreground mt-1 font-medium line-clamp-1 opacity-70 group-hover:opacity-100 transition-opacity">
+        <p className="text-[10px] text-muted-foreground mt-1.5 font-medium line-clamp-1 opacity-50 group-hover:opacity-100 transition-opacity">
           {description}
         </p>
       </CardContent>
@@ -132,29 +153,43 @@ const ScrollableLegend = React.memo(function ScrollableLegend({
   visibleKeys: Set<string>;
   onToggle: (key: string) => void;
 }) {
-  const isScrollable = series.length > 8;
+  const [showAll, setShowAll] = useState(false);
+  const MAX_VISIBLE = 15;
+  const visibleItems = showAll ? series : series.slice(0, MAX_VISIBLE);
+
   return (
-    <div className={cn(
-      'flex flex-wrap gap-x-4 gap-y-1.5 mt-3',
-      isScrollable && 'max-h-[130px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-border'
-    )}>
-      {series.map((s) => {
-        const key = s.dataKey || s.id || s.name;
-        const isHidden = !visibleKeys.has(key);
-        return (
-          <button
-            key={key}
-            onClick={() => onToggle(key)}
-            className={cn(
-              'flex items-center gap-1.5 text-[10px] font-bold transition-opacity hover:opacity-80',
-              isHidden && 'opacity-30'
-            )}
-          >
-            <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-            <span className="truncate max-w-[140px]">{s.name}</span>
-          </button>
-        );
-      })}
+    <div className="space-y-3 mt-3">
+      <div className={cn(
+        'flex flex-wrap gap-x-4 gap-y-1.5',
+        showAll && 'max-h-[250px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-border'
+      )}>
+        {visibleItems.map((s) => {
+          const key = s.dataKey || s.id || s.name;
+          const isHidden = !visibleKeys.has(key);
+          return (
+            <button
+              key={key}
+              onClick={() => onToggle(key)}
+              className={cn(
+                'flex items-center gap-1.5 text-[10px] font-bold transition-opacity hover:opacity-80',
+                isHidden && 'opacity-30'
+              )}
+            >
+              <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+              <span className="truncate max-w-[140px]">{s.name}</span>
+            </button>
+          );
+        })}
+      </div>
+      
+      {series.length > MAX_VISIBLE && (
+        <button 
+          onClick={() => setShowAll(!showAll)}
+          className="text-[10px] font-extrabold text-primary hover:underline transition-all flex items-center gap-1 uppercase tracking-wider"
+        >
+          {showAll ? 'Show less' : `Show ${series.length - MAX_VISIBLE} more`}
+        </button>
+      )}
     </div>
   );
 });
@@ -162,11 +197,17 @@ const ScrollableLegend = React.memo(function ScrollableLegend({
 /* ─── Equity chart ─── */
 function EquityChart({
   series,
+  visibleKeys,
+  onToggle,
+  onToggleAll,
   currency,
   title,
   description,
 }: {
   series: EquitySeries[];
+  visibleKeys: Set<string>;
+  onToggle: (key: string) => void;
+  onToggleAll: (show: boolean) => void;
   currency: string;
   title: string;
   description: string;
@@ -176,25 +217,10 @@ function EquityChart({
   const gridColor = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
   const textColor = isDark ? "#9ca3af" : "#6b7280";
 
-  // Track per-series visibility (all visible by default)
-  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(() =>
-    new Set(series.map(s => s.dataKey || s.id || s.name))
-  );
+  // Rule 6: Control animation based on series count
+  const shouldAnimate = series.length <= 10;
 
-  // Reset visibility when series change (mode switch)
-  useEffect(() => {
-    setVisibleKeys(new Set(series.map(s => s.dataKey || s.id || s.name)));
-  }, [series]);
-
-  const toggleKey = (key: string) => {
-    setVisibleKeys(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
-  };
-
-  const visibleSeries = series.filter(s => visibleKeys.has(s.dataKey || s.id || s.name));
+  const visibleSeries = series.filter(s => visibleKeys.has(s.id || s.name));
 
   const chartData = useMemo(() => {
     if (visibleSeries.length === 0) return [];
@@ -221,7 +247,7 @@ function EquityChart({
     return sortedDates.map((date) => {
       const row: Record<string, string | number> = { date };
       seriesMaps.forEach((sm, i) => {
-        const key = visibleSeries[i].dataKey || visibleSeries[i].id || sm.name;
+        const key = visibleSeries[i].id || sm.name;
         if (sm.map.has(date)) {
           lastVal[key] = sm.map.get(date)!;
         }
@@ -244,10 +270,7 @@ function EquityChart({
           <div className="flex items-center gap-2">
             {series.length > 1 && (
               <button
-                onClick={() => {
-                  const allKeys = new Set(series.map(s => s.dataKey || s.id || s.name));
-                  setVisibleKeys(prev => prev.size === series.length ? new Set() : allKeys);
-                }}
+                onClick={() => onToggleAll(visibleKeys.size !== series.length)}
                 className="text-[10px] font-bold text-muted-foreground border border-border/50 rounded-full px-2.5 py-1 hover:bg-muted/50 transition-colors"
               >
                 {visibleKeys.size === series.length ? 'Hide all' : 'Show all'}
@@ -258,7 +281,7 @@ function EquityChart({
             </div>
           </div>
         </div>
-        <ScrollableLegend series={series} visibleKeys={visibleKeys} onToggle={toggleKey} />
+        <ScrollableLegend series={series} visibleKeys={visibleKeys} onToggle={onToggle} />
       </CardHeader>
       <CardContent className="pt-2">
         <div className="h-[320px] w-full">
@@ -287,22 +310,24 @@ function EquityChart({
                   borderRadius: "12px",
                   boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)",
                   padding: "12px",
+                  backdropFilter: "blur(8px)",
                 }}
                 itemStyle={{ fontSize: '11px', fontWeight: 'bold', padding: '2px 0' }}
                 labelStyle={{ fontSize: '10px', fontWeight: '800', color: 'hsl(var(--muted-foreground))', marginBottom: '8px', textTransform: 'uppercase' }}
-                formatter={(value: any) => [formatCurrency(Number(value), currency), ""]}
+                formatter={(value: any, name: any) => [formatCurrency(Number(value), currency), String(name || "")]}
               />
               {visibleSeries.map((s, i) => (
                 <Line
                   key={s.id || s.name}
                   type="monotone"
-                  dataKey={s.dataKey || s.id || s.name}
+                  dataKey={s.id || s.name}
                   name={s.name}
                   stroke={s.color || COLORS[i % COLORS.length]}
                   strokeWidth={2.5}
                   dot={false}
                   activeDot={{ r: 5, strokeWidth: 0 }}
-                  isAnimationActive={false}
+                  isAnimationActive={shouldAnimate}
+                  animationDuration={shouldAnimate ? 800 : 0}
                 />
               ))}
             </LineChart>
@@ -372,6 +397,34 @@ export function PerformanceDashboard() {
     };
   }, [baseCurrency, autoConvertCurrency, setExchangeRatesStore]);
 
+  const [isCalculating, setIsCalculating] = useState(false);
+  const [processedData, setProcessedData] = useState<{
+    equitySeries: EquitySeries[];
+    tradesForCharts: Record<string, Trade[]>;
+    aggregateMetrics: MetricsRow | null;
+    currency: string;
+    convertedBalances: { initialBalance: number; finalBalance: number };
+    rawTradesBySeries: Record<string, Trade[]>;
+    allSessionEASeries: EquitySeries[];
+  } | null>(null);
+
+  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+
+  // Reset visibility when equitySeries changes (mode switch)
+  useEffect(() => {
+    if (processedData?.equitySeries) {
+      setVisibleKeys(new Set(processedData.equitySeries.map(s => s.id || s.name)));
+    }
+  }, [processedData?.equitySeries]);
+
+  const toggleKey = (key: string) => {
+    setVisibleKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
   const [filters, setFilters] = useState<FilterState>({
     selectedSessions: [],
     startDate: undefined,
@@ -416,187 +469,186 @@ export function PerformanceDashboard() {
     return currencies.size > 1;
   }, [targetSessions, autoConvertCurrency]);
 
-  // Filter trades per session, applying date range + EA filter + currency conversion
-  const { tradesBySeries, allFilteredTrades, currency, convertedBalances } = useMemo(() => {
-    const displayCurrency = autoConvertCurrency ? baseCurrency : (targetSessions[0]?.currency || "USD");
-    const start = filters.startDate;
-    const end = filters.endDate;
-
-    const tradesBySeries: Record<string, Trade[]> = {};
-    const allFilteredTrades: Trade[] = [];
-    
-    // Convert balances
-    let totalInitial = 0;
-    let totalFinal = 0;
-
-    targetSessions.forEach((session) => {
-      let trades = session.allTrades || [];
-      const sessionCurrency = session.currency || "USD";
-
-      // Convert session balances to display currency
-      if (autoConvertCurrency && exchangeRates) {
-        totalInitial += convertCurrency(session.initialBalance || 0, sessionCurrency, baseCurrency, exchangeRates);
-        totalFinal += convertCurrency(session.finalBalance || 0, sessionCurrency, baseCurrency, exchangeRates);
-      } else {
-        totalInitial += session.initialBalance || 0;
-        totalFinal += session.finalBalance || 0;
-      }
-
-      // Date filter
-      if (start) {
-        trades = trades.filter((t) => new Date(t.closeTime.replace(/\./g, "/")) >= start);
-      }
-      if (end) {
-        const adjustedEnd = new Date(end);
-        adjustedEnd.setHours(23, 59, 59, 999);
-        trades = trades.filter((t) => new Date(t.closeTime.replace(/\./g, "/")) <= adjustedEnd);
-      }
-
-      // EA filter
-      if (filters.selectedEA !== "all") {
-        trades = trades.filter(
-          (t) => (t.eaId || t.comment || "Unknown") === filters.selectedEA
-        );
-      }
-
-      trades.forEach((trade) => {
-        const eaId = trade.eaId || trade.comment || "Unknown";
-        const compositeId = `${session.id}::${eaId}`;
-        
-        if (!tradesBySeries[compositeId]) {
-          tradesBySeries[compositeId] = [];
-        }
-        
-        // CONVERT TRADE if enabled
-        const convertedTrade = (autoConvertCurrency && exchangeRates && sessionCurrency !== baseCurrency)
-          ? convertTrade(trade, sessionCurrency, baseCurrency, exchangeRates)
-          : trade;
-        
-        tradesBySeries[compositeId].push(convertedTrade);
-        allFilteredTrades.push(convertedTrade);
-      });
-    });
-
-    return { 
-      tradesBySeries, 
-      allFilteredTrades, 
-      currency: displayCurrency,
-      convertedBalances: { initialBalance: totalInitial, finalBalance: totalFinal }
-    };
-  }, [targetSessions, filters.startDate, filters.endDate, filters.selectedEA, autoConvertCurrency, exchangeRates, baseCurrency]);
-
-  const aggregateMetrics: MetricsRow | null = useMemo(() => {
-    if (allFilteredTrades.length === 0) return null;
-    return calculateMetrics("Portfolio", allFilteredTrades, currency, convertedBalances.initialBalance);
-  }, [allFilteredTrades, currency, convertedBalances.initialBalance]);
-
-  // ── Display mode ──────────────────────────────────────────────────────
-  const [displayMode, setDisplayMode] = useState<'ea' | 'session' | 'detail'>('ea');
+  // ── Async Data Processing ───────────────────────────────────────────
   const MAX_DETAIL_LINES = 15;
   const OTHERS_COLOR = '#94a3b8';
+  const [displayMode, setDisplayMode] = useState<'ea' | 'session' | 'detail'>('ea');
 
-  // Unified grouped trades for all charts (Histogram, Monthly Returns, Equity)
-  const displayTrades = useMemo(() => {
-    const result: Record<string, { trades: Trade[], name: string, color: string }> = {};
-    if (Object.keys(tradesBySeries).length === 0) return result;
-
-    // ── MODE: by EA ─────────────────────────────────────────────────────
-    if (displayMode === 'ea') {
-      const byEa = new Map<string, Trade[]>();
-      Object.entries(tradesBySeries).forEach(([compositeId, trades]) => {
-        const [, eaId] = compositeId.split('::');
-        const existing = byEa.get(eaId) || [];
-        byEa.set(eaId, [...existing, ...trades]);
-      });
-      Array.from(byEa.entries()).forEach(([eaId, trades], i) => {
-        const id = `ea_${eaId}`;
-        const name = isNaN(Number(eaId)) ? eaId : `EA #${eaId}`;
-        result[id] = { trades, name, color: COLORS[i % COLORS.length] };
-      });
-      return result;
+  useEffect(() => {
+    if (targetSessions.length === 0) {
+      setProcessedData(null);
+      return;
     }
 
-    // ── MODE: by Session ─────────────────────────────────────────────────
-    if (displayMode === 'session') {
-      const bySession = new Map<string, Trade[]>();
-      Object.entries(tradesBySeries).forEach(([compositeId, trades]) => {
-        const [sessionId] = compositeId.split('::');
-        const existing = bySession.get(sessionId) || [];
-        bySession.set(sessionId, [...existing, ...trades]);
-      });
-      Array.from(bySession.entries()).forEach(([sessionId, trades], i) => {
-        const session = targetSessions.find(s => s.id === sessionId);
-        const name = session?.name || session?.fileName || sessionId.slice(0, 8);
-        result[sessionId] = { trades, name, color: COLORS[i % COLORS.length] };
-      });
-      return result;
-    }
+    setIsCalculating(true);
+    
+    const ric = typeof window !== 'undefined' && (window as any).requestIdleCallback 
+      ? (window as any).requestIdleCallback 
+      : (cb: any) => setTimeout(cb, 1);
 
-    // ── MODE: detail (session × EA, max 15 + Others) ─────────────────────
-    const entries = Object.entries(tradesBySeries);
-    // Sort by abs profit desc
-    const sorted = entries.map(([compositeId, trades]) => ({
-      compositeId,
-      trades,
-      absProfit: Math.abs(trades.reduce((s, t) => s + (t.profit || 0), 0)),
-    })).sort((a, b) => b.absProfit - a.absProfit);
+    ric(() => {
+      try {
+        const displayCurrency = autoConvertCurrency ? baseCurrency : (targetSessions[0]?.currency || "USD");
+        const start = filters.startDate;
+        const end = filters.endDate;
 
-    const top = sorted.slice(0, MAX_DETAIL_LINES);
-    const rest = sorted.slice(MAX_DETAIL_LINES);
+        // 1. Initial Filtering & Composite Grouping (Session::EA)
+        const rawTradesBySeries: Record<string, Trade[]> = {};
+        const allFilteredTrades: Trade[] = [];
+        let totalInitial = 0;
+        let totalFinal = 0;
 
-    top.forEach(({ compositeId, trades }, i) => {
-      const [sessionId, eaId] = compositeId.split('::');
-      const session = targetSessions.find(s => s.id === sessionId);
-      const sessionName = session?.name || session?.fileName || sessionId.slice(0, 8);
-      const label = isNaN(Number(eaId)) ? eaId : `EA #${eaId}`;
-      const name = targetSessions.length > 1 ? `${sessionName} – ${label}` : label;
-      result[compositeId] = { trades, name, color: COLORS[i % COLORS.length] };
+        targetSessions.forEach((session) => {
+          let trades = session.allTrades || [];
+          const sessionCurrency = session.currency || "USD";
+
+          if (autoConvertCurrency && exchangeRates) {
+            totalInitial += convertCurrency(session.initialBalance || 0, sessionCurrency, baseCurrency, exchangeRates);
+            totalFinal += convertCurrency(session.finalBalance || 0, sessionCurrency, baseCurrency, exchangeRates);
+          } else {
+            totalInitial += session.initialBalance || 0;
+            totalFinal += session.finalBalance || 0;
+          }
+
+          if (start) trades = trades.filter((t) => new Date(t.closeTime.replace(/\./g, "/")) >= start);
+          if (end) {
+            const adjustedEnd = new Date(end);
+            adjustedEnd.setHours(23, 59, 59, 999);
+            trades = trades.filter((t) => new Date(t.closeTime.replace(/\./g, "/")) <= adjustedEnd);
+          }
+
+          if (filters.selectedEA !== "all") {
+            trades = trades.filter((t) => (t.eaId || t.comment || "Unknown") === filters.selectedEA);
+          }
+
+          trades.forEach((trade) => {
+            const eaId = trade.eaId || trade.comment || "Unknown";
+            const compositeId = generateSeriesKey(session.id, eaId);
+            
+            if (!rawTradesBySeries[compositeId]) rawTradesBySeries[compositeId] = [];
+            
+            const convertedTrade = (autoConvertCurrency && exchangeRates && sessionCurrency !== baseCurrency)
+              ? convertTrade(trade, sessionCurrency, baseCurrency, exchangeRates)
+              : trade;
+            
+            rawTradesBySeries[compositeId].push(convertedTrade);
+            allFilteredTrades.push(convertedTrade);
+          });
+        });
+
+        // 2. Secondary Grouping based on Display Mode
+        const finalGroupedTrades: Record<string, { trades: Trade[], name: string, color: string }> = {};
+
+        if (displayMode === 'ea') {
+          const byEa = new Map<string, Trade[]>();
+          Object.entries(rawTradesBySeries).forEach(([compositeId, trades]) => {
+            const [, eaId] = compositeId.split('::');
+            const existing = byEa.get(eaId) || [];
+            byEa.set(eaId, [...existing, ...trades]);
+          });
+          Array.from(byEa.entries()).forEach(([eaId, trades], i) => {
+            const id = `ea_${eaId}`;
+            const name = isNaN(Number(eaId)) ? eaId : `EA #${eaId}`;
+            finalGroupedTrades[id] = { trades, name, color: COLORS[i % COLORS.length] };
+          });
+        } else if (displayMode === 'session') {
+          const bySession = new Map<string, Trade[]>();
+          Object.entries(rawTradesBySeries).forEach(([compositeId, trades]) => {
+            const [sessionId] = compositeId.split('::');
+            const existing = bySession.get(sessionId) || [];
+            bySession.set(sessionId, [...existing, ...trades]);
+          });
+          Array.from(bySession.entries()).forEach(([sessionId, trades], i) => {
+            const session = targetSessions.find(s => s.id === sessionId);
+            const name = session?.name || session?.fileName || sessionId.slice(0, 8);
+            finalGroupedTrades[sessionId] = { trades, name, color: COLORS[i % COLORS.length] };
+          });
+        } else {
+          // DETAIL MODE: session x EA, sorted by profit, max 15 + others
+          const sortedEntries = Object.entries(rawTradesBySeries).map(([compositeId, trades]) => ({
+            compositeId,
+            trades,
+            absProfit: Math.abs(trades.reduce((s, t) => s + (t.profit || 0), 0)),
+          })).sort((a, b) => b.absProfit - a.absProfit);
+
+          const top = sortedEntries.slice(0, MAX_DETAIL_LINES);
+          const rest = sortedEntries.slice(MAX_DETAIL_LINES);
+
+          top.forEach(({ compositeId, trades }, i) => {
+            const [sessionId, eaId] = compositeId.split('::');
+            const session = targetSessions.find(s => s.id === sessionId)!;
+            const name = generateDisplayName(session, eaId, targetSessions);
+            finalGroupedTrades[compositeId] = { trades, name, color: COLORS[i % COLORS.length] };
+          });
+
+          if (rest.length > 0) {
+            const othersTrades = rest.flatMap(r => r.trades);
+            finalGroupedTrades['others'] = { 
+              trades: othersTrades, 
+              name: `Others (${rest.length} EA)`, 
+              color: OTHERS_COLOR 
+            };
+          }
+        }
+
+        // 3. Final metrics & series assembly
+        const tradesForCharts: Record<string, Trade[]> = {};
+        const equitySeries: EquitySeries[] = Object.entries(finalGroupedTrades).map(([id, group]) => {
+          tradesForCharts[id] = group.trades;
+          return {
+            id,
+            dataKey: id.replace(/[^a-zA-Z0-9]/g, '_'),
+            name: group.name,
+            data: calculateEquity(group.trades, 0),
+            color: group.color,
+            currency: displayCurrency
+          };
+        });
+
+        const aggregateMetrics = allFilteredTrades.length > 0 
+          ? calculateMetrics("Portfolio", allFilteredTrades, displayCurrency, totalInitial)
+          : null;
+
+        // 4. Create full session-EA series for the table (regardless of displayMode)
+        const allSessionEASeries: EquitySeries[] = Object.entries(rawTradesBySeries).map(([id, trades], i) => {
+          const [sessionId, eaId] = id.split('::');
+          const session = targetSessions.find(s => s.id === sessionId)!;
+          return {
+            id,
+            dataKey: id.replace(/[^a-zA-Z0-9]/g, '_'),
+            name: generateDisplayName(session, eaId, targetSessions),
+            data: [], // Data not needed for table
+            color: COLORS[i % COLORS.length],
+            currency: displayCurrency
+          };
+        });
+
+        setProcessedData({
+          equitySeries,
+          tradesForCharts,
+          aggregateMetrics,
+          currency: displayCurrency,
+          convertedBalances: { initialBalance: totalInitial, finalBalance: totalFinal },
+          rawTradesBySeries,
+          allSessionEASeries
+        });
+      } catch (err) {
+        console.error("Async calculation failed:", err);
+      } finally {
+        setIsCalculating(false);
+      }
     });
-
-    if (rest.length > 0) {
-      const othersTrades = rest.flatMap(r => r.trades);
-      result['others'] = { 
-        trades: othersTrades, 
-        name: `Others (${rest.length} EA)`, 
-        color: OTHERS_COLOR 
-      };
-    }
-    return result;
-  }, [tradesBySeries, targetSessions, displayMode]);
-
-  // EquitySeries derived from unified grouping
-  const equitySeries: EquitySeries[] = useMemo(() => {
-    return Object.entries(displayTrades).map(([id, group]) => {
-      const [sessionId] = id.split('::');
-      const session = targetSessions.find(s => s.id === sessionId);
-      return {
-        id,
-        dataKey: id.replace(/[^a-zA-Z0-9]/g, '_'),
-        name: group.name,
-        data: calculateEquity(group.trades, 0),
-        color: group.color,
-        currency: autoConvertCurrency ? baseCurrency : (session?.currency || targetSessions[0]?.currency || 'USD'),
-      };
-    });
-  }, [displayTrades, targetSessions, autoConvertCurrency, baseCurrency]);
-
-  // Extract trades object for components that need it
-  const tradesForCharts = useMemo(() => {
-    const res: Record<string, Trade[]> = {};
-    Object.entries(displayTrades).forEach(([id, group]) => {
-      res[id] = group.trades;
-    });
-    return res;
-  }, [displayTrades]);
+  }, [targetSessions, filters, displayMode, autoConvertCurrency, exchangeRates, baseCurrency]);
 
   // CSV export
   const handleExport = () => {
-    const rows: MetricsRow[] = Object.entries(tradesBySeries).map(([compositeId, trades]) => {
+    if (!processedData) return;
+    const { tradesForCharts, currency, aggregateMetrics } = processedData;
+
+    const rows: MetricsRow[] = Object.entries(tradesForCharts).map(([compositeId, trades]) => {
       const [sessionId, eaId] = compositeId.split('::');
       const session = targetSessions.find(s => s.id === sessionId);
-      const displayName = isNaN(Number(eaId))
-        ? `${eaId} (${session?.name || 'Unknown'})`
-        : `EA #${eaId} (${session?.name || 'Unknown'})`;
+      const displayName = generateDisplayName(session, eaId, targetSessions);
       
       // For individual EAs, we often start from 0 initial balance unless we have more info
       return calculateMetrics(displayName, trades, currency, 0);
@@ -639,7 +691,36 @@ export function PerformanceDashboard() {
     );
   }
 
-  const m = aggregateMetrics;
+  const m = processedData?.aggregateMetrics;
+  const equitySeries = processedData?.equitySeries || [];
+  const tradesForCharts = processedData?.tradesForCharts || {};
+  const currency = processedData?.currency || "USD";
+
+  if (isCalculating || isLoadingRates) {
+    return (
+      <div className="space-y-8 pb-12 animate-in fade-in duration-500">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div className="flex gap-4 w-full max-w-2xl">
+            <Skeleton className="h-12 w-1/3 rounded-full" />
+            <Skeleton className="h-12 w-1/3 rounded-full" />
+            <Skeleton className="h-12 w-1/3 rounded-full" />
+          </div>
+          <Skeleton className="h-11 w-32 rounded-full" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+          {[...Array(8)].map((_, i) => (
+            <Skeleton key={i} className="h-28 rounded-xl border border-border/50" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Skeleton className="h-[420px] rounded-xl border border-border/50" />
+          <Skeleton className="h-[420px] rounded-xl border border-border/50" />
+        </div>
+        <Skeleton className="h-[380px] rounded-xl border border-border/50" />
+        <Skeleton className="h-[450px] rounded-xl border border-border/50" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-6 duration-700">
@@ -655,7 +736,11 @@ export function PerformanceDashboard() {
           {/* Display Mode Pills */}
           <div className="flex items-center bg-muted/40 border border-border/50 rounded-full p-1 gap-0.5 text-xs font-bold">
             {(['ea', 'session', 'detail'] as const).map((mode) => {
-              const labels = { ea: t('performance.displayMode.ea'), session: t('performance.displayMode.session'), detail: t('performance.displayMode.detail') };
+              const labels = { 
+                ea: t('performance.displayMode.ea'), 
+                session: t('performance.displayMode.session'), 
+                detail: t('performance.displayMode.detail') 
+              };
               return (
                 <button
                   key={mode}
@@ -672,7 +757,7 @@ export function PerformanceDashboard() {
               );
             })}
           </div>
-          {m && (
+          {processedData && (
             <Button
               variant="outline"
               size="sm"
@@ -707,7 +792,7 @@ export function PerformanceDashboard() {
       )}
 
       {/* No trades after filtering */}
-      {allFilteredTrades.length === 0 && (
+      {(!processedData || equitySeries.length === 0) && (
         <Card className="border-dashed border-2 border-border/40 bg-muted/5">
           <CardContent className="flex flex-col items-center justify-center py-24 gap-4">
             <div className="p-4 bg-muted/20 rounded-full">
@@ -727,9 +812,10 @@ export function PerformanceDashboard() {
             <KpiCard
               title={t("performance.kpi.netProfit")}
               value={hasMixedCurrencies ? "—" : formatCurrency(m.totalProfit, currency)}
-              description={hasMixedCurrencies ? "Mixed currencies - convert in Settings" : t("performance.kpi.netProfitDesc")}
+              description={hasMixedCurrencies ? "Mixed currencies" : t("performance.kpi.netProfitDesc")}
               icon={m.totalProfit >= 0 ? TrendingUp : TrendingDown}
               color={m.totalProfit >= 0 ? "text-emerald-400" : "text-rose-400"}
+              loading={isCalculating}
             />
             <KpiCard
               title={t("performance.kpi.winRate")}
@@ -737,6 +823,7 @@ export function PerformanceDashboard() {
               description={t("performance.kpi.winRateDesc")}
               icon={PieChart}
               color="text-blue-400"
+              loading={isCalculating}
             />
             <KpiCard
               title={t("performance.kpi.maxDrawdown")}
@@ -744,6 +831,7 @@ export function PerformanceDashboard() {
               description={t("performance.kpi.maxDrawdownDesc")}
               icon={ArrowDownCircle}
               color="text-rose-400"
+              loading={isCalculating}
             />
             <KpiCard
               title={t("performance.kpi.profitFactor")}
@@ -751,6 +839,7 @@ export function PerformanceDashboard() {
               description={t("performance.kpi.profitFactorDesc")}
               icon={Layers}
               color="text-purple-400"
+              loading={isCalculating}
             />
             <KpiCard
               title={t("performance.kpi.sharpeRatio")}
@@ -758,13 +847,15 @@ export function PerformanceDashboard() {
               description={t("performance.kpi.sharpeRatioDesc")}
               icon={Zap}
               color="text-amber-400"
+              loading={isCalculating}
             />
             <KpiCard
               title={t("performance.kpi.expectancy")}
               value={hasMixedCurrencies ? "—" : formatCurrency(m.expectancy, currency)}
               description={hasMixedCurrencies ? "Mixed currencies" : t("performance.kpi.expectancyDesc")}
-              icon={Target}
+              icon={m.expectancy >= 0 ? TrendingUp : TrendingDown}
               color={m.expectancy >= 0 ? "text-emerald-400" : "text-rose-400"}
+              loading={isCalculating}
             />
             <KpiCard
               title={t("performance.kpi.recoveryFactor")}
@@ -772,6 +863,7 @@ export function PerformanceDashboard() {
               description={t("performance.kpi.recoveryFactorDesc")}
               icon={Activity}
               color="text-indigo-400"
+              loading={isCalculating}
             />
             <KpiCard
               title={t("performance.kpi.profitPerDay")}
@@ -779,6 +871,7 @@ export function PerformanceDashboard() {
               description={hasMixedCurrencies ? "Mixed currencies" : t("performance.kpi.profitPerDayDesc")}
               icon={TrendingUp}
               color={m.profitPerDay >= 0 ? "text-teal-400" : "text-rose-400"}
+              loading={isCalculating}
             />
           </div>
 
@@ -786,6 +879,9 @@ export function PerformanceDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <EquityChart 
               series={equitySeries} 
+              visibleKeys={visibleKeys}
+              onToggle={toggleKey}
+              onToggleAll={(show) => setVisibleKeys(show ? new Set(equitySeries.map(s => s.id || s.name)) : new Set())}
               currency={currency} 
               title={t("performance.charts.equityCurve")}
               description={t("performance.charts.equityCurveDesc")}
@@ -796,7 +892,12 @@ export function PerformanceDashboard() {
                 <CardDescription className="text-xs">{t("performance.charts.drawdownDesc")}</CardDescription>
               </CardHeader>
               <CardContent className="pt-4">
-                <ComparisonDrawdownChart series={equitySeries} height={350} />
+                <ComparisonDrawdownChart 
+                  series={equitySeries} 
+                  height={350} 
+                  hiddenSeries={new Set(equitySeries.filter(s => !visibleKeys.has(s.id || s.name)).map(s => s.id || s.name))}
+                  onLegendClick={toggleKey}
+                />
                 <p className="mt-4 text-[10px] text-muted-foreground italic font-medium">
                   {t("performance.charts.drawdownDesc")}
                 </p>
@@ -811,7 +912,16 @@ export function PerformanceDashboard() {
               <CardDescription className="text-xs">{t("performance.charts.profitDistributionDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="pt-4">
-              <ComparisonHistogram series={equitySeries} trades={tradesForCharts} height={300} />
+              <ComparisonHistogram 
+                series={equitySeries} 
+                trades={tradesForCharts} 
+                height={300} 
+                hiddenSeries={new Set(equitySeries.filter(s => !visibleKeys.has(s.id || s.name)).map(s => s.id || s.name))}
+                onLegendClick={(name) => {
+                  const id = equitySeries.find(s => s.name === name)?.id || name;
+                  toggleKey(id);
+                }}
+              />
               <p className="mt-4 text-[10px] text-muted-foreground italic font-medium">
                 {t("performance.charts.profitDistributionDesc")}
               </p>
@@ -826,7 +936,49 @@ export function PerformanceDashboard() {
             </CardHeader>
             <CardContent className="pt-4 overflow-hidden">
               <div className="overflow-x-auto pb-4">
-                <MonthlyReturnsTable tradesByEa={tradesForCharts} currency={currency} />
+                {(() => {
+                  if (!processedData) return null;
+                  
+                  // Monthly Returns should ALWAYS show separated Session-EA pairs
+                  // based on the user's urgent requirement, but filtered by visibleKeys if aggregated
+                  // Actually, let's follow Step 2 & 3: show individual rows.
+                  
+                  const { rawTradesBySeries, allSessionEASeries, currency, equitySeries, tradesForCharts } = processedData;
+
+                  // If in EA mode, we filter the raw series based on which EA is visible
+                  // If in Session mode, we filter based on which Session is visible
+                  // If in Detail mode, we use the raw series directly (filtered by visibleKeys)
+                  
+                  let tableSeries = allSessionEASeries;
+                  let tableTrades = rawTradesBySeries;
+
+                  if (displayMode === 'ea') {
+                    // Only show rows whose EA ID is in a visible aggregated EA series
+                    const visibleEAs = new Set(equitySeries.filter(s => visibleKeys.has(s.id || s.name)).map(s => (s.id || s.name).replace('ea_', '')));
+                    tableSeries = allSessionEASeries.filter(s => visibleEAs.has((s.id || '').split('::')[1]));
+                  } else if (displayMode === 'session') {
+                    const visibleSessions = new Set(equitySeries.filter(s => visibleKeys.has(s.id || s.name)).map(s => s.id || s.name));
+                    tableSeries = allSessionEASeries.filter(s => visibleSessions.has((s.id || '').split('::')[0]));
+                  } else {
+                    tableSeries = allSessionEASeries.filter(s => visibleKeys.has(s.id || s.name) || (visibleKeys.has('others') && !equitySeries.some(es => es.id === (s.id || s.name))));
+                  }
+                  
+                  tableTrades = Object.fromEntries(tableSeries.map(s => [s.id || '', rawTradesBySeries[s.id || '']]));
+
+                  console.log('[MonthlyReturns] tradesByEa keys:', Object.keys(tableTrades));
+                  console.log('[MonthlyReturns] tradesByEa sample:', Object.entries(tableTrades).slice(0,5).map(([k,v]) => ({key: k, count: v.length})));
+                  
+                  return (
+                    <MonthlyReturnsTable 
+                      series={tableSeries} 
+                      tradesByEa={tableTrades} 
+                      currency={currency} 
+                      sessionsCount={targetSessions.length}
+                      displayMode={displayMode}
+                      allSessions={targetSessions}
+                    />
+                  );
+                })()}
               </div>
               <p className="mt-4 text-[10px] text-muted-foreground italic font-medium">
                 {t("performance.charts.monthlyReturnsDesc")}

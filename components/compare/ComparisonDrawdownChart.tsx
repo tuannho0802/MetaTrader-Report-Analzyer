@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo } from "react"
+import React, { useMemo, useState } from "react"
 import {
   AreaChart,
   Area,
@@ -17,34 +17,46 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { EquitySeries } from "@/lib/types"
 import { useTranslation } from "@/lib/i18n"
 import { useTheme } from "next-themes"
+import { cn } from "@/lib/utils"
 
 interface ComparisonDrawdownChartProps {
   series: EquitySeries[];
   height?: number;
   hiddenSeries?: Set<string>;
-  onLegendClick?: (name: string) => void;
+  onLegendClick?: (id: string) => void;
 }
 
 export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = new Set(), onLegendClick }: ComparisonDrawdownChartProps) {
   const { t } = useTranslation()
   const { theme } = useTheme()
+  const [showAllLegend, setShowAllLegend] = useState(false);
+  const MAX_LEGEND = 15;
 
   const { chartData, dataKeys, minDrawdown } = useMemo(() => {
-    const dataKeys: { name: string; color: string }[] = []
+    const dataKeys: { id: string; name: string; color: string }[] = []
     
     // First, convert each series into a list of drawdowns
     const seriesDrawdowns = series.map(s => {
-      let maxEquity = 0;
-      dataKeys.push({ name: s.id || s.name, color: s.color });
+      let maxEquity = -Infinity;
+      const key = s.id || s.name;
+      dataKeys.push({ id: key, name: s.name, color: s.color });
       
       const drawdowns = s.data.map(point => {
         if (point.value > maxEquity) {
           maxEquity = point.value;
         }
-        const dd = maxEquity > 0 ? ((point.value - maxEquity) / maxEquity) * 100 : 0;
-        return { date: point.time, drawdown: dd };
+        
+        let dd = 0;
+        if (maxEquity > 0) {
+          dd = ((point.value - maxEquity) / maxEquity) * 100;
+        } else if (point.value < maxEquity) {
+          dd = -100;
+        }
+        
+        // Clamp -100% to 0%
+        return { date: point.time, drawdown: Math.max(-100, Math.min(0, dd)) };
       });
-      return { id: s.id || s.name, name: s.name, drawdowns };
+      return { id: key, name: s.name, drawdowns };
     });
 
     // Merge data by date
@@ -60,17 +72,12 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
         }
         
         const currentObj = mergedData.get(date)
+        const key = s.id;
         
-        // We only want to keep the latest drawdown per day if multiple trades happen on the same day
-        // For simplicity and to match the equity chart, we just overwrite.
-        // If we want absolute minimum drawdown for that day, we should Math.min
-        const key = s.id || s.name;
         if (currentObj[key] === undefined || point.drawdown < currentObj[key]) {
             currentObj[key] = point.drawdown;
             if (point.drawdown < minDd) minDd = point.drawdown;
         }
-        
-        mergedData.set(date, currentObj)
       })
     })
 
@@ -79,18 +86,14 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
       new Date(a.date.replace(/\./g, '/')).getTime() - new Date(b.date.replace(/\./g, '/')).getTime()
     )
 
-    // Forward fill missing data for each series so the area chart doesn't break
+    // Forward fill missing data
     const lastValues: Record<string, number> = {}
     finalData.forEach(row => {
-      dataKeys.forEach(key => {
-        if (row[key.name] === undefined) {
-          if (lastValues[key.name] !== undefined) {
-            row[key.name] = lastValues[key.name]
-          } else {
-            row[key.name] = 0 // default 0 before first trade
-          }
+      dataKeys.forEach(k => {
+        if (row[k.id] === undefined) {
+          row[k.id] = lastValues[k.id] ?? 0;
         } else {
-          lastValues[key.name] = row[key.name]
+          lastValues[k.id] = row[k.id];
         }
       })
     })
@@ -102,15 +105,24 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
   const troughs = useMemo(() => {
     const t: Record<string, { date: string, value: number }> = {};
     series.forEach(s => {
-      let maxEq = 0;
-      let maxDd = 0; // max drawdown is a negative number
+      let maxEq = -Infinity;
+      let maxDd = 0;
       let minDate = '';
+      
       s.data.forEach(d => {
         if (d.value > maxEq) maxEq = d.value;
-        const dd = maxEq > 0 ? ((d.value - maxEq) / maxEq) * 100 : 0;
-        if (dd < maxDd) {
-          maxDd = dd;
-          minDate = d.time.split(" ")[0]; // using the date format stored in chartData
+        
+        let dd = 0;
+        if (maxEq > 0) {
+          dd = ((d.value - maxEq) / maxEq) * 100;
+        } else if (d.value < maxEq) {
+          dd = -100;
+        }
+        
+        const clampedDd = Math.max(-100, Math.min(0, dd));
+        if (clampedDd < maxDd) {
+          maxDd = clampedDd;
+          minDate = d.time.split(" ")[0];
         }
       });
       if (minDate) t[s.id || s.name] = { date: minDate, value: maxDd };
@@ -121,127 +133,130 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
   if (chartData.length === 0) return null
 
   const isDark = theme === "dark"
-  const gridColor = isDark ? "#333" : "#e5e7eb"
+  const gridColor = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"
   const textColor = isDark ? "#9ca3af" : "#6b7280"
+  const shouldAnimate = series.length <= 10;
 
   // Custom Legend Renderer
   const renderLegend = (props: any) => {
     const { payload } = props;
+    const items = showAllLegend ? payload : payload.slice(0, MAX_LEGEND);
+    
     return (
-      <ul className="flex flex-wrap justify-center gap-4 mt-2">
-        {payload.map((entry: any, index: number) => {
-          const isHidden = hiddenSeries.has(entry.value);
-          const s = series.find(ser => (ser.id || ser.name) === entry.dataKey || ser.name === entry.value);
-          return (
-            <li 
-              key={`item-${index}`} 
-              className={`flex items-center gap-2 text-xs font-medium cursor-pointer transition-opacity ${isHidden ? 'opacity-40 line-through' : 'opacity-100 hover:opacity-80'}`}
-              onClick={() => onLegendClick?.(s?.name || entry.value)}
+      <div className="space-y-3 mb-6">
+        <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1.5">
+          {items.map((entry: any, index: number) => {
+            const isHidden = hiddenSeries.has(entry.dataKey);
+            const s = series.find(ser => (ser.id || ser.name) === entry.dataKey);
+            
+            return (
+              <li 
+                key={`item-${index}`} 
+                className={cn(
+                  "flex items-center gap-1.5 text-[10px] font-bold cursor-pointer transition-opacity",
+                  isHidden ? "opacity-30 line-through" : "hover:opacity-80"
+                )}
+                onClick={() => onLegendClick?.(entry.dataKey)}
+              >
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                <span style={{ color: textColor }}>{s?.name || entry.value}</span>
+              </li>
+            );
+          })}
+        </ul>
+        {payload.length > MAX_LEGEND && (
+          <div className="flex justify-center">
+            <button 
+              onClick={() => setShowAllLegend(!showAllLegend)}
+              className="text-[9px] font-black text-primary hover:underline uppercase tracking-widest"
             >
-              <div 
-                className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: entry.color }} 
-              />
-              <span style={{ color: textColor }}>{s?.name || entry.value}</span>
-            </li>
-          );
-        })}
-      </ul>
+              {showAllLegend ? 'Show less' : `Show ${payload.length - MAX_LEGEND} more`}
+            </button>
+          </div>
+        )}
+      </div>
     );
   };
 
   return (
-    <Card className="border-border/50 shadow-lg mt-6">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-base font-bold">{t('comparison.drawdown') || "Drawdown"}</CardTitle>
-        <CardDescription>{t('comparison.drawdownDesc')}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div style={{ height: height, width: '100%' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
-              <XAxis 
-                dataKey="date" 
-                tickFormatter={(val) => val.split(" ")[0]}
-                stroke={textColor}
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                minTickGap={30}
-              />
-              <YAxis 
-                tickFormatter={(val) => `${val.toFixed(1)}%`}
-                stroke={textColor}
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                minTickGap={10}
-                domain={[Math.max(Math.floor(minDrawdown - 5), -100), 0]}
-              />
-              <Tooltip
-                contentStyle={{ 
-                  backgroundColor: isDark ? '#1f2937' : '#ffffff',
-                  borderColor: isDark ? '#374151' : '#e5e7eb',
-                  color: isDark ? '#f9fafb' : '#111827',
-                  borderRadius: '0.5rem',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  fontSize: '12px'
-                }}
-                formatter={(value: any, name: any) => {
-                  const numValue = typeof value === 'number' ? value : Number(value) || 0;
-                  return [`${numValue.toFixed(2)}%`, name];
-                }}
-                labelStyle={{ fontWeight: 'bold', marginBottom: '0.5rem' }}
-                cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }}
-              />
-              <Legend content={renderLegend} verticalAlign="top" height={36}/>
-              {series.map((s) => !hiddenSeries.has(s.name) && (
-                <Area
-                  key={s.id || s.name}
-                  type="monotone"
-                  dataKey={s.id || s.name}
-                  name={s.name}
-                  stroke={s.color}
-                  fill={s.color}
-                  fillOpacity={0.1}
-                  strokeWidth={2}
-                  activeDot={{ r: 4, strokeWidth: 0 }}
-                  isAnimationActive={false}
-                />
-              ))}
-              {series.map((s) => {
-                if (hiddenSeries.has(s.name)) return null;
-                const trough = troughs[s.id || s.name];
-                if (!trough || trough.value === 0) return null; // Don't show if no drawdown
-                
-                // Only render dot if the point actually exists in downsampled chartData
-                const exists = chartData.some(d => d.date === trough.date);
-                if (!exists) return null;
-                
-                const key = s.id || s.name;
+    <div style={{ height: height, width: '100%' }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
+          <XAxis 
+            dataKey="date" 
+            tickFormatter={(val) => val.split(" ")[0]}
+            stroke={textColor}
+            fontSize={10}
+            tickLine={false}
+            axisLine={false}
+            minTickGap={40}
+          />
+          <YAxis 
+            tickFormatter={(val) => `${val.toFixed(0)}%`}
+            stroke={textColor}
+            fontSize={10}
+            tickLine={false}
+            axisLine={false}
+            domain={[Math.max(Math.floor(minDrawdown - 5), -100), 0]}
+          />
+          <Tooltip
+            contentStyle={{ 
+              backgroundColor: "hsl(var(--card))",
+              borderColor: "hsl(var(--border))",
+              color: "hsl(var(--foreground))",
+              borderRadius: '0.75rem',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+              fontSize: '11px'
+            }}
+            formatter={(value: any, name: any) => {
+              const numValue = Number(value) || 0;
+              const s = series.find(ser => (ser.id || ser.name) === name);
+              return [`${numValue.toFixed(2)}%`, s?.name || name];
+            }}
+            labelStyle={{ fontWeight: 'bold', marginBottom: '0.5rem', fontSize: '10px', textTransform: 'uppercase' }}
+            cursor={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1, strokeDasharray: '4 4' }}
+          />
+          <Legend content={renderLegend} verticalAlign="top" align="center" />
+          {series.map((s) => !hiddenSeries.has(s.id || s.name) && (
+            <Area
+              key={s.id || s.name}
+              type="monotone"
+              dataKey={s.id || s.name}
+              name={s.name}
+              stroke={s.color}
+              fill={s.color}
+              fillOpacity={0.05}
+              strokeWidth={2}
+              activeDot={{ r: 4, strokeWidth: 0 }}
+              isAnimationActive={shouldAnimate}
+              animationDuration={shouldAnimate ? 800 : 0}
+            />
+          ))}
+          {series.map((s) => {
+            if (hiddenSeries.has(s.id || s.name)) return null;
+            const trough = troughs[s.id || s.name];
+            if (!trough || trough.value === 0) return null;
+            
+            const exists = chartData.some(d => d.date === trough.date);
+            if (!exists) return null;
 
-                return (
-                  <ReferenceDot
-                    key={`trough-${key}`}
-                    x={trough.date}
-                    y={trough.value}
-                    r={4}
-                    fill={s.color}
-                    stroke="hsl(var(--background))"
-                    strokeWidth={2}
-                  >
-                    <Label value="Max DD" position="bottom" fill={s.color} fontSize={10} fontWeight="bold" />
-                  </ReferenceDot>
-                );
-              })}
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-        <p className="mt-4 text-xs text-muted-foreground italic border-t border-border/40 pt-2">
-          {t('comparison.drawdownChartNote')}
-        </p>
-      </CardContent>
-    </Card>
+            return (
+              <ReferenceDot
+                key={`trough-${s.id || s.name}`}
+                x={trough.date}
+                y={trough.value}
+                r={3}
+                fill={s.color}
+                stroke="hsl(var(--background))"
+                strokeWidth={2}
+              >
+                <Label value="MAX" position="bottom" fill={s.color} fontSize={9} fontWeight="900" />
+              </ReferenceDot>
+            );
+          })}
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   )
 }

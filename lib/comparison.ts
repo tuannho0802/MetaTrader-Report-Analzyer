@@ -60,12 +60,21 @@ export function calculateDrawdown(equityPoints: EquityPoint[]): EquityPoint[] {
     }
     
     // Calculate drawdown percentage
-    // Prevent division by zero
-    const drawdown = peak > 0 ? ((point.value - peak) / peak) * 100 : 0;
+    // Peak must be > 0 to have a meaningful drawdown %
+    let drawdown = 0;
+    if (peak > 0) {
+      drawdown = ((point.value - peak) / peak) * 100;
+    } else if (point.value < peak) {
+      // If peak is 0 or negative, any further drop is technically a 100% loss of initial 0 balance
+      drawdown = -100;
+    }
+    
+    // CRITICAL: Clamp -100% to 0% as per professional standards
+    const clampedDrawdown = Math.max(-100, Math.min(0, drawdown));
     
     drawdownPoints.push({
       time: point.time,
-      value: Math.max(drawdown, -100)  // Cap at -100%
+      value: Number(clampedDrawdown.toFixed(2))
     });
   });
   

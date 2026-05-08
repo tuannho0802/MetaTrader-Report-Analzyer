@@ -255,7 +255,12 @@ export function ComparisonResults({ data }: ComparisonResultsProps) {
           <ComparisonHistogram series={data.series} trades={data.tradesByEa || {}} height={380} hiddenSeries={hiddenSeries} onLegendClick={toggleSeries} />
         </TabsContent>
         <TabsContent value="monthly" className="mt-0">
-          <MonthlyReturnsTable tradesByEa={data.tradesByEa || {}} currency={data.series[0]?.currency || "USD"} />
+          <MonthlyReturnsTable 
+            series={data.series} 
+            tradesByEa={data.tradesByEa || {}} 
+            currency={data.series[0]?.currency || "USD"} 
+            sessionsCount={data.metrics.length}
+          />
         </TabsContent>
       </Tabs>
 
