@@ -40,6 +40,17 @@ The analysis engine calculates a wide range of institutional-grade metrics:
 - **Averages**: Avg Profit/Trade, Avg Win, Avg Loss, Best/Worst Trades.
 - **Distribution**: Long/Short rates, Profit per Day.
 
+### 4. Multi-Provider Currency Strategy
+To ensure accurate cross-currency analysis (e.g., converting VND or USC to USD), the system implements a 4-tier provider strategy in `lib/exchangeRates.ts`:
+1. **Primary (ExchangeRate-API)**: High coverage (160+ currencies) including VND, no API key required, updated daily.
+2. **Fallback 1 (Frankfurter)**: Reliable European Central Bank data for 30+ major currencies.
+3. **Fallback 2 (fawazahmed0/currency-api)**: Open-source CDN-based fallback for broad currency support.
+4. **Ultimate Fallback (Hardcoded)**: Accurate reference rates (e.g., 1 USD = 26,310 VND) embedded in the code for offline use.
+- **Cent Accounts (USC)**: 1 USD is hardcoded as 100 USC, with automatic routing through USD for all cross-currency conversions to ensure precision.
+- **User Alerts**: A global floating alert informs users if the system has dropped into fallback mode, ensuring data transparency.
+
+## System Data Flow
+
 ## System Data Flow
 
 ```mermaid

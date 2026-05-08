@@ -21,7 +21,11 @@ A professional, privacy-first trading journal and analytics tool for MetaTrader 
 - **Statistics Dashboard (/statistics)**: Aggregate EA leaderboard (ranked by profit), global equity trends, and top symbols analysis.
 - **Session Management (/history)**: Advanced workspace control with active, archived, and soft-deleted session support.
 - **True Archive Persistence**: Offloads archived report data (trades) to a secondary IndexedDB to keep RAM usage minimal and UI performance high even with thousands of trades.
-- **Dynamic Currency Detection**: Automatically handles and formats account currencies (USD, EUR, JPY, USC, etc.).
+- **Robust MT4 Parser**: Enhanced detection for initial balance, support for non-breaking spaces in numeric values, and fallback balance derivation from trade history.
+- **Multi-Provider Currency Conversion**: 
+  - Real-time exchange rates with a 4-tier fallback strategy (ExchangeRate-API, Frankfurter, fawazahmed0, and Hardcoded).
+  - Native support for **VND**, **USD**, **EUR**, **JPY**, and **USC** (Cent accounts).
+  - Offline mode with user-facing fallback alerts and hardcoded reference rates.
 - **Privacy-First Architecture**: Your trading data never leaves your computer, stored locally in IndexedDB (Dexie).
 - **Settings & Backup (/settings)**: Multi-language toggle, theme selection, and data management (backup/restore).
 

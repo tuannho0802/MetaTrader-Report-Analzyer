@@ -17,7 +17,7 @@ Contains the Next.js App Router structure.
 
 ### `/components`
 Modular UI components grouped by functional domain.
-- `/analysis`: Components for the primary report dashboard (e.g., `KpiCards.tsx`, `ReportDateCard.tsx`).
+- `/analysis`: Components for the primary report dashboard (e.g., `KpiCards.tsx`, `ReportDateCard.tsx`, `CurrencyFallbackAlert.tsx`).
 - `/compare`: Unified comparison system:
   - `EAComparator.tsx`: Main entry for comparison features.
   - `SameReportConfig.tsx` & `CrossReportConfig.tsx`: Mode-specific configurations.
@@ -43,7 +43,8 @@ The "brain" of the application, containing logic, state, and database interactio
 - `comparison.ts`: Mathematical utilities for calculating equity series and 16+ performance metrics (Sharpe Ratio, Recovery Factor, Profit per Day, etc.).
 - `types.ts`: Central source of truth for all data interfaces (Trade, Session, Filter, MetricsRow).
 - `i18n.tsx`: Central translation engine providing the `useTranslation` hook and bilingual dictionary (EN/VI).
-- `formatCurrency.ts`: Dynamic currency formatting utility supporting custom codes like "USC".
+- `exchangeRates.ts`: Multi-provider currency conversion engine with 4-tier fallback (ExchangeRate-API, Frankfurter, fawazahmed0, Hardcoded).
+- `formatCurrency.ts`: Dynamic currency formatting utility supporting custom codes like "USC" and "VND".
 - `exportComparison.ts`: Logic for generating and downloading comparison CSV reports.
 - `constants.ts`: Global application constants including `BASE_PATH` for static deployment.
 
