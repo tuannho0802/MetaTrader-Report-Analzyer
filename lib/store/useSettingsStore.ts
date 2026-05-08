@@ -10,13 +10,15 @@ interface SettingsState {
   autoConvertCurrency: boolean;
   exchangeRates: Record<string, number> | null;
   ratesLastFetched: number | null;
-  
+  isUsingFallbackRates: boolean;
+
   setLanguage: (lang: Language) => void;
   setMaxTabs: (n: number) => void;
   setHasHydrated: (b: boolean) => void;
   setBaseCurrency: (currency: string) => void;
   setAutoConvertCurrency: (enabled: boolean) => void;
   setExchangeRates: (rates: Record<string, number>) => void;
+  setUsingFallbackRates: (value: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -29,16 +31,18 @@ export const useSettingsStore = create<SettingsState>()(
       autoConvertCurrency: false,
       exchangeRates: null,
       ratesLastFetched: null,
-      
+      isUsingFallbackRates: false,
+
       setLanguage: (language) => set({ language }),
       setMaxTabs: (maxTabs) => set({ maxTabs }),
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
       setBaseCurrency: (baseCurrency) => set({ baseCurrency }),
       setAutoConvertCurrency: (autoConvertCurrency) => set({ autoConvertCurrency }),
-      setExchangeRates: (rates) => set({ 
+      setExchangeRates: (rates) => set({
         exchangeRates: rates,
         ratesLastFetched: Date.now()
       }),
+      setUsingFallbackRates: (isUsingFallbackRates) => set({ isUsingFallbackRates }),
     }),
     {
       name: 'settings-storage',

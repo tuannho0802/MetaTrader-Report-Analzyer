@@ -190,21 +190,33 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
 
     const type = tds[2]?.textContent?.trim().toLowerCase() || "";
     
-    // Check for Balance row
+    // Check for Balance/Credit row
     if (type === "balance" || type === "credit") {
-      // Find comment cell (colspan="10")
+      // Find comment text — look for a td with colspan="10" first,
+      // then fall back to the second-to-last cell (common in some MT4 variants).
       let commentText = "";
-      tds.forEach(td => {
-        if (td.getAttribute("colspan") === "10") {
-          commentText = td.textContent?.trim().toLowerCase() || "";
-        }
-      });
+      const tdArray = Array.from(tds);
+      const commentTd = tdArray.find(td => td.getAttribute("colspan") === "10");
+      if (commentTd) {
+        commentText = (commentTd.textContent || "").trim().toLowerCase();
+      } else if (tdArray.length >= 2) {
+        commentText = (tdArray[tdArray.length - 2]?.textContent || "").trim().toLowerCase();
+      }
 
-      const valueCell = tds[tds.length - 1];
-      const value = parseFloat(valueCell?.textContent?.replace(/[^\d.-]/g, "") || "0");
+      // Parse balance value — handle non-breaking spaces (\u00a0) and thousands separators
+      const valueCell = tdArray[tdArray.length - 1];
+      const rawValue = (valueCell?.textContent || "").replace(/[\u00a0\s,]/g, "");
+      const value = parseFloat(rawValue.replace(/[^\d.-]/g, "") || "0");
 
-      if (commentText.includes("initial balance")) {
+      const isInitialBalance =
+        commentText.includes("initial balance") ||
+        commentText.includes("initial deposit") ||
+        commentText.includes("starting balance") ||
+        commentText.includes("balance initial");
+
+      if (isInitialBalance && initialBalance === 0) {
         initialBalance = value;
+        console.log(`[Parser] Found initial balance: ${value} (comment: "${commentText}")`);
       } else {
         balanceOperations.push(value);
       }
@@ -283,7 +295,17 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
     }
   }
 
-  // Calculate finalBalance
+  // Fallback: derive initialBalance from the balance column of the first trade
+  // (first trade's balance = initialBalance + first trade's profit)
+  if (initialBalance === 0 && allExtractedTrades.length > 0) {
+    const firstTrade = allExtractedTrades[0];
+    if (firstTrade.balance !== undefined && !isNaN(firstTrade.balance)) {
+      initialBalance = firstTrade.balance - (firstTrade.profit || 0);
+      console.log(`[Parser] Fallback initial balance from first trade: ${initialBalance}`);
+    }
+  }
+
+  // Calculate finalBalance = initialBalance + all balance operations + all trade PnL
   let finalBalance = initialBalance;
   balanceOperations.forEach(val => {
     finalBalance += val;

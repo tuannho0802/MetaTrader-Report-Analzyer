@@ -9,6 +9,7 @@ import { Header } from "@/components/layout/Header";
 import { StoreHydrator } from "@/components/StoreHydrator";
 import { ClientProviders } from "@/components/providers/ClientProviders";
 import { HydrationMarker } from "@/components/HydrationMarker";
+import { CurrencyFallbackAlert } from "@/components/analysis/CurrencyFallbackAlert";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -74,6 +75,7 @@ export default function RootLayout({
               </TooltipProvider>
             </div>
           </ClientProviders>
+          <CurrencyFallbackAlert />
         </ThemeProvider>
       </body>
     </html>
