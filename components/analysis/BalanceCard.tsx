@@ -16,17 +16,17 @@ export function BalanceCard({ initialBalance, netProfit, currency }: BalanceCard
   
   return (
     <Card className="mb-4 border border-border/50 shadow-sm bg-card/50 backdrop-blur-sm overflow-hidden">
-      <CardHeader className="flex flex-row items-center gap-2 pb-2 p-5 bg-muted/20">
+      <CardHeader className="flex flex-row items-center gap-2 pb-2 p-4 bg-muted/20">
         <Wallet className="h-5 w-5 text-primary" />
         <CardTitle className="text-lg font-bold tracking-tight">Balance Overview</CardTitle>
       </CardHeader>
-      <CardContent className="p-5">
+      <CardContent className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           {/* Initial Balance */}
           <div className="flex flex-col">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Initial Balance</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold tracking-tight">
+              <span className="text-2xl sm:text-3xl font-extrabold tracking-tight break-all leading-tight">
                 {formatCurrency(initialBalance, currency)}
               </span>
             </div>
@@ -49,7 +49,7 @@ export function BalanceCard({ initialBalance, netProfit, currency }: BalanceCard
               </span>
             </span>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold tracking-tight text-primary">
+              <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary break-all leading-tight">
                 {formatCurrency(finalBalance, currency)}
               </span>
             </div>

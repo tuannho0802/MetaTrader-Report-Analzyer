@@ -10,7 +10,24 @@ import { formatCurrency } from "@/lib/formatCurrency";
 import { cn } from "@/lib/utils";
 import { exportPerformanceCSV } from "@/lib/exportComparison";
 import { useSettingsStore } from "@/lib/store/useSettingsStore";
-import { fetchExchangeRates, convertCurrency } from "@/lib/exchangeRates";
+import { fetchExchangeRates, convertCurrency, convertTrade } from "@/lib/exchangeRates";
+import { 
+  Loader2, 
+  AlertTriangle, 
+  AlertCircle, 
+  Download, 
+  TrendingUp, 
+  TrendingDown, 
+  Activity, 
+  PieChart, 
+  ArrowDownCircle, 
+  Layers, 
+  Zap, 
+  Target, 
+  BarChart3, 
+  Info 
+} from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 import { PerformanceFilters, FilterState } from "./PerformanceFilters";
 import { ComparisonDrawdownChart } from "@/components/compare/ComparisonDrawdownChart";
@@ -41,20 +58,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import {
-  TrendingUp,
-  TrendingDown,
-  Activity,
-  PieChart,
-  ArrowDownCircle,
-  Layers,
-  Zap,
-  Target,
-  BarChart3,
-  Download,
-  AlertCircle,
-  Info,
-} from "lucide-react";
 
 const COLORS = [
   "#3b82f6",
@@ -254,15 +257,60 @@ function EquityChart({
 export function PerformanceDashboard() {
   const { sessions, isLoading } = useAnalysisStore();
   const { baseCurrency, autoConvertCurrency } = useSettingsStore();
+  const setExchangeRatesStore = useSettingsStore(state => state.setExchangeRates);
   const { t } = useTranslation();
 
-  const [exchangeRates, setExchangeRates] = useState<any>(null);
+  // Exchange rates state
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number> | null>(null);
+  const [isLoadingRates, setIsLoadingRates] = useState(false);
+  const [ratesError, setRatesError] = useState<string | null>(null);
   
   useEffect(() => {
-    if (autoConvertCurrency) {
-      fetchExchangeRates(baseCurrency).then(setExchangeRates);
+    if (!autoConvertCurrency) {
+      setExchangeRates(null);
+      setRatesError(null);
+      return;
     }
-  }, [baseCurrency, autoConvertCurrency]);
+
+    let isMounted = true;
+
+    async function loadRates() {
+      setIsLoadingRates(true);
+      setRatesError(null);
+      
+      try {
+        const fetchedRates = await fetchExchangeRates(baseCurrency);
+        
+        if (isMounted) {
+          setExchangeRates(fetchedRates);
+          setExchangeRatesStore(fetchedRates);
+          console.log('[Dashboard] Exchange rates loaded:', Object.keys(fetchedRates).length, 'currencies');
+        }
+      } catch (error) {
+        if (isMounted) {
+          console.error('[Dashboard] Failed to load exchange rates:', error);
+          setRatesError(
+            'Unable to load live exchange rates. Using fallback rates. ' +
+            'Check your internet connection or disable browser extensions that block requests.'
+          );
+          
+          // Even on error, fetchExchangeRates returns fallback rates
+          const fallbackRates = await fetchExchangeRates(baseCurrency);
+          setExchangeRates(fallbackRates);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingRates(false);
+        }
+      }
+    }
+
+    loadRates();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [baseCurrency, autoConvertCurrency, setExchangeRatesStore]);
 
   const [filters, setFilters] = useState<FilterState>({
     selectedSessions: [],
@@ -309,17 +357,30 @@ export function PerformanceDashboard() {
   }, [targetSessions, autoConvertCurrency]);
 
   // Filter trades per session, applying date range + EA filter + currency conversion
-  const { tradesBySeries, allFilteredTrades, currency } = useMemo(() => {
-    const currency = autoConvertCurrency ? baseCurrency : (targetSessions[0]?.currency || "USD");
+  const { tradesBySeries, allFilteredTrades, currency, convertedBalances } = useMemo(() => {
+    const displayCurrency = autoConvertCurrency ? baseCurrency : (targetSessions[0]?.currency || "USD");
     const start = filters.startDate;
     const end = filters.endDate;
 
     const tradesBySeries: Record<string, Trade[]> = {};
     const allFilteredTrades: Trade[] = [];
+    
+    // Convert balances
+    let totalInitial = 0;
+    let totalFinal = 0;
 
     targetSessions.forEach((session) => {
       let trades = session.allTrades || [];
       const sessionCurrency = session.currency || "USD";
+
+      // Convert session balances to display currency
+      if (autoConvertCurrency && exchangeRates) {
+        totalInitial += convertCurrency(session.initialBalance || 0, sessionCurrency, baseCurrency, exchangeRates);
+        totalFinal += convertCurrency(session.finalBalance || 0, sessionCurrency, baseCurrency, exchangeRates);
+      } else {
+        totalInitial += session.initialBalance || 0;
+        totalFinal += session.finalBalance || 0;
+      }
 
       // Date filter
       if (start) {
@@ -340,41 +401,34 @@ export function PerformanceDashboard() {
 
       trades.forEach((trade) => {
         const eaId = trade.eaId || trade.comment || "Unknown";
-        
-        // COMPOSITE KEY
         const compositeId = `${session.id}::${eaId}`;
         
         if (!tradesBySeries[compositeId]) {
           tradesBySeries[compositeId] = [];
         }
         
-        // CONVERT CURRENCY if enabled
-        let convertedTrade = trade;
-        if (autoConvertCurrency && exchangeRates && sessionCurrency !== baseCurrency) {
-          convertedTrade = {
-            ...trade,
-            profit: convertCurrency(trade.profit, sessionCurrency, baseCurrency, exchangeRates),
-            swap: String(convertCurrency(parseFloat(trade.swap) || 0, sessionCurrency, baseCurrency, exchangeRates)),
-            commission: String(convertCurrency(parseFloat(trade.commission) || 0, sessionCurrency, baseCurrency, exchangeRates)),
-            balance: trade.balance !== undefined 
-              ? convertCurrency(trade.balance, sessionCurrency, baseCurrency, exchangeRates)
-              : undefined
-          };
-        }
+        // CONVERT TRADE if enabled
+        const convertedTrade = (autoConvertCurrency && exchangeRates && sessionCurrency !== baseCurrency)
+          ? convertTrade(trade, sessionCurrency, baseCurrency, exchangeRates)
+          : trade;
         
         tradesBySeries[compositeId].push(convertedTrade);
         allFilteredTrades.push(convertedTrade);
       });
     });
 
-    return { tradesBySeries, allFilteredTrades, currency };
+    return { 
+      tradesBySeries, 
+      allFilteredTrades, 
+      currency: displayCurrency,
+      convertedBalances: { initialBalance: totalInitial, finalBalance: totalFinal }
+    };
   }, [targetSessions, filters.startDate, filters.endDate, filters.selectedEA, autoConvertCurrency, exchangeRates, baseCurrency]);
 
-  // Aggregate metrics (all filtered trades combined)
   const aggregateMetrics: MetricsRow | null = useMemo(() => {
     if (allFilteredTrades.length === 0) return null;
-    return calculateMetrics("Portfolio", allFilteredTrades, currency);
-  }, [allFilteredTrades, currency]);
+    return calculateMetrics("Portfolio", allFilteredTrades, currency, convertedBalances.initialBalance);
+  }, [allFilteredTrades, currency, convertedBalances.initialBalance]);
 
   // EquitySeries per EA for charts
   const equitySeries: EquitySeries[] = useMemo(() => {
@@ -405,29 +459,21 @@ export function PerformanceDashboard() {
       const displayName = isNaN(Number(eaId))
         ? `${eaId} (${session?.name || 'Unknown'})`
         : `EA #${eaId} (${session?.name || 'Unknown'})`;
-      return calculateMetrics(displayName, trades, currency);
+      
+      // For individual EAs, we often start from 0 initial balance unless we have more info
+      return calculateMetrics(displayName, trades, currency, 0);
     });
     if (rows.length === 0 && aggregateMetrics) rows.push(aggregateMetrics);
     exportPerformanceCSV(rows, currency);
   };
 
-  // ─── Empty state ───
-  if (isLoading) {
+  if (isLoading || isLoadingRates) {
     return (
-      <div className="space-y-8 pb-12 animate-in fade-in duration-500">
-        <div className="flex flex-col md:flex-row justify-between gap-6">
-          <div className="h-24 bg-muted animate-pulse rounded-xl w-full md:w-2/3" />
-          <div className="h-11 bg-muted animate-pulse rounded-full w-32" />
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="h-24 bg-muted animate-pulse rounded-xl" />
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="h-[450px] bg-muted animate-pulse rounded-xl shadow-sm" />
-          <div className="h-[450px] bg-muted animate-pulse rounded-xl shadow-sm" />
-        </div>
+      <div className="flex flex-col items-center justify-center py-32 gap-4 animate-in fade-in duration-500">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-sm font-bold text-muted-foreground animate-pulse">
+          {isLoadingRates ? t("performance.currency.loadingRates") : "Loading workspace..."}
+        </p>
       </div>
     );
   }
@@ -478,6 +524,26 @@ export function PerformanceDashboard() {
           </Button>
         )}
       </div>
+
+      {ratesError && (
+        <Alert variant="warning" className="border-yellow-500/50 bg-yellow-500/10">
+          <AlertTriangle className="h-4 w-4 text-yellow-500" />
+          <AlertTitle>Exchange Rate Notice</AlertTitle>
+          <AlertDescription className="text-sm">
+            {ratesError}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {hasMixedCurrencies && !autoConvertCurrency && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Mixed Currencies Detected</AlertTitle>
+          <AlertDescription className="text-xs font-medium">
+            Multiple currencies found. Please enable **Auto-Convert Currency** in Settings for accurate portfolio aggregation.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* No trades after filtering */}
       {allFilteredTrades.length === 0 && (

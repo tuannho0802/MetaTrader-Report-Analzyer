@@ -76,6 +76,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
             currentResult: result, allTrades: allTradesResult.trades, multiEaResults: {},
             currency: result.currency, startDate: result.startDate, endDate: result.endDate, 
             initialBalance: result.initialBalance,
+            finalBalance: result.finalBalance,
             createdAt: uploadedAt,
             archived: false,
             favorite: false
@@ -84,7 +85,15 @@ export const useAnalysisStore = create<AnalysisStore>()(
             console.error('Cannot add session without trades');
             throw new Error('Invalid session: no trades data');
           }
-          await db.statements.put({ id: sessionId, fileName, uploadedAt, totalTrades: allTradesResult.trades.length, tradesJson: JSON.stringify(allTradesResult.trades) });
+          await db.statements.put({ 
+            id: sessionId, 
+            fileName, 
+            uploadedAt, 
+            totalTrades: allTradesResult.trades.length, 
+            tradesJson: JSON.stringify(allTradesResult.trades),
+            initialBalance: result.initialBalance,
+            finalBalance: result.finalBalance
+          });
           const updatedSessions = [...sessions, newSession];
           set({ sessions: updatedSessions, activeSessionId: sessionId, file: null, isProcessing: false, statusMsg: '' });
         } catch (err: any) { set({ errorMsg: err.message || 'Error', isProcessing: false, statusMsg: '' }); }
@@ -109,6 +118,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
             currentResult: filteredResult, allTrades: parseResult.trades, multiEaResults: {},
             currency: parseResult.currency, startDate: parseResult.startDate, endDate: parseResult.endDate, 
             initialBalance: parseResult.initialBalance,
+            finalBalance: parseResult.finalBalance,
             createdAt: uploadedAt,
             archived: false,
             favorite: false
@@ -117,7 +127,15 @@ export const useAnalysisStore = create<AnalysisStore>()(
             console.error('Cannot add session without trades');
             throw new Error('Invalid session: no trades data');
           }
-          await db.statements.put({ id: sessionId, fileName, uploadedAt, totalTrades: parseResult.trades.length, tradesJson: JSON.stringify(parseResult.trades) });
+          await db.statements.put({ 
+            id: sessionId, 
+            fileName, 
+            uploadedAt, 
+            totalTrades: parseResult.trades.length, 
+            tradesJson: JSON.stringify(parseResult.trades),
+            initialBalance: parseResult.initialBalance,
+            finalBalance: parseResult.finalBalance
+          });
           const updatedSessions = [...sessions, newSession];
           set({ sessions: updatedSessions, activeSessionId: sessionId, file: null, isProcessing: false, statusMsg: '' });
         } catch (err: any) { set({ errorMsg: err.message || 'Error', isProcessing: false, statusMsg: '' }); }
@@ -154,7 +172,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
                   filterMode: 'comment',
                 };
                 
-                const result = recalculateResult(trades, defaultFilter);
+                const result = recalculateResult(trades, defaultFilter, record.initialBalance, record.finalBalance);
                 
                 discoveredSessions.push({
                   id: record.id,
@@ -169,7 +187,8 @@ export const useAnalysisStore = create<AnalysisStore>()(
                   currency: result.currency || 'USD',
                   startDate: result.startDate,
                   endDate: result.endDate,
-                  initialBalance: result.initialBalance,
+                  initialBalance: record.initialBalance,
+                  finalBalance: record.finalBalance,
                   createdAt: record.uploadedAt || Date.now(),
                   archived: false,
                   favorite: false
@@ -344,7 +363,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
         if (!session || session.historyIndex <= 0) return;
         const newIdx = session.historyIndex - 1;
         const newF = session.history[newIdx];
-        const newR = recalculateResult(session.allTrades || [], newF);
+        const newR = recalculateResult(session.allTrades || [], newF, session.initialBalance, session.finalBalance);
         const updated = sessions.map(s => s.id === activeSessionId ? { ...s, filter: newF, historyIndex: newIdx, currentResult: newR } : s);
         set({ sessions: updated });
       },
@@ -355,7 +374,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
         if (!session || session.historyIndex >= session.history.length - 1) return;
         const newIdx = session.historyIndex + 1;
         const newF = session.history[newIdx];
-        const newR = recalculateResult(session.allTrades || [], newF);
+        const newR = recalculateResult(session.allTrades || [], newF, session.initialBalance, session.finalBalance);
         const updated = sessions.map(s => s.id === activeSessionId ? { ...s, filter: newF, historyIndex: newIdx, currentResult: newR } : s);
         set({ sessions: updated });
       },

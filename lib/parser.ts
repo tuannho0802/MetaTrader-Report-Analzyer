@@ -102,7 +102,7 @@ export function filterTrades(trades: Trade[], params: FilterParams): { filtered:
   return { filtered, totalProfit };
 }
 
-export function recalculateResult(allTrades: Trade[], params: FilterParams): ParseResult {
+export function recalculateResult(allTrades: Trade[], params: FilterParams, initialBalance?: number, finalBalance?: number): ParseResult {
   const { filtered, totalProfit } = filterTrades(allTrades, params);
   return {
     totalProfit,
@@ -110,7 +110,9 @@ export function recalculateResult(allTrades: Trade[], params: FilterParams): Par
     totalFound: allTrades.length,
     currency: params.currency || 'USD',
     startDate: (params as any).reportStartDate || null,
-    endDate: (params as any).reportEndDate || null
+    endDate: (params as any).reportEndDate || null,
+    initialBalance,
+    finalBalance
   };
 }
 
@@ -176,6 +178,7 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
 
   const rows = targetTable.querySelectorAll("tr");
   const allExtractedTrades: Trade[] = [];
+  const balanceOperations: number[] = [];
   let totalFound = 0;
   let initialBalance = 0;
 
@@ -185,22 +188,32 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
 
     if (tr.textContent?.includes("Closed Transactions:")) continue;
 
-    // Check for Initial Balance row
-    const firstTd = tds[0];
-    const firstTdTitle = firstTd?.getAttribute("title") || "";
-    if (firstTdTitle.toLowerCase().includes("initial balance")) {
-      const lastTd = tds[tds.length - 1];
-      const balanceStr = lastTd.textContent?.replace(/\s/g, "").replace(/,/g, "") || "0";
-      initialBalance = parseFloat(balanceStr);
-      continue; // Skip processing as a trade
-    }
+    const type = tds[2]?.textContent?.trim().toLowerCase() || "";
     
+    // Check for Balance row
+    if (type === "balance" || type === "credit") {
+      // Find comment cell (colspan="10")
+      let commentText = "";
+      tds.forEach(td => {
+        if (td.getAttribute("colspan") === "10") {
+          commentText = td.textContent?.trim().toLowerCase() || "";
+        }
+      });
+
+      const valueCell = tds[tds.length - 1];
+      const value = parseFloat(valueCell?.textContent?.replace(/[^\d.-]/g, "") || "0");
+
+      if (commentText.includes("initial balance")) {
+        initialBalance = value;
+      } else {
+        balanceOperations.push(value);
+      }
+      continue;
+    }
+
     if (tds.length >= 14 && tds.length <= 15) {
       const ticketText = tds[0].textContent?.trim() || "";
       if (!/^\d+$/.test(ticketText)) continue;
-
-      const type = tds[2].textContent?.trim().toLowerCase() || "";
-      if (type === "balance" || type === "credit") continue;
 
       totalFound++;
 
@@ -216,10 +229,13 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
       const openPrice = tds[5].textContent?.trim() || "";
       const closeTime = tds[8].textContent?.trim() || "";
       const closePrice = tds[9].textContent?.trim() || "";
-      const commission = tds[10].textContent?.trim() || "";
-      const swap = tds[12].textContent?.trim() || "";
+      const commissionStr = tds[10].textContent?.replace(/[^\d.-]/g, "") || "0";
+      const commission = parseFloat(commissionStr);
+      const swapStr = tds[12].textContent?.replace(/[^\d.-]/g, "") || "0";
+      const swap = parseFloat(swapStr);
       const profitStr = tds[13].textContent?.replace(/[^\d.-]/g, "") || "0";
       const profit = parseFloat(profitStr);
+      
       let balance: number | undefined = undefined;
       if (tds.length >= 15) {
         const balanceStr = tds[14].textContent?.replace(/[^\d.-]/g, "");
@@ -257,8 +273,8 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
         openPrice,
         closeTime,
         closePrice,
-        commission,
-        swap,
+        commission: commissionStr,
+        swap: swapStr,
         profit,
         balance,
         comment,
@@ -266,6 +282,18 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
       });
     }
   }
+
+  // Calculate finalBalance
+  let finalBalance = initialBalance;
+  balanceOperations.forEach(val => {
+    finalBalance += val;
+  });
+  allExtractedTrades.forEach(t => {
+    const p = t.profit || 0;
+    const c = parseFloat(t.commission?.replace(/[^\d.-]/g, "") || "0");
+    const s = parseFloat(t.swap?.replace(/[^\d.-]/g, "") || "0");
+    finalBalance += (p + c + s);
+  });
 
   // Fallback: If startDate or endDate is null, derive from trades
   if ((!startDate || !endDate) && allExtractedTrades.length > 0) {
@@ -307,7 +335,8 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
     currency,
     startDate,
     endDate,
-    initialBalance
+    initialBalance,
+    finalBalance
   };
 }
 

@@ -125,22 +125,24 @@ export default function SettingsPage() {
             <CardDescription>{t('common.currencySettingsDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label>{t('common.baseCurrency')}</Label>
-              <Select value={baseCurrency} onValueChange={(val) => val && setBaseCurrency(val)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SUPPORTED_CURRENCIES.map(curr => (
-                    <SelectItem key={curr} value={curr}>{curr}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-[10px] text-muted-foreground italic">
-                All reports will be converted to this currency using live exchange rates.
-              </p>
-            </div>
+            {autoConvertCurrency && (
+              <div className="space-y-2">
+                <Label>{t('common.baseCurrency')}</Label>
+                <Select value={baseCurrency} onValueChange={(val) => val && setBaseCurrency(val)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUPPORTED_CURRENCIES.map(curr => (
+                      <SelectItem key={curr} value={curr}>{curr}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground italic">
+                  All reports will be converted to this currency using live exchange rates.
+                </p>
+              </div>
+            )}
             
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">

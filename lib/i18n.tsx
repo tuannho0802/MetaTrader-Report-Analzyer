@@ -391,6 +391,16 @@ export const translations = {
       empty: {
         noData: "No trading data uploaded yet. Go to Dashboard to import your MT4/MT5 report.",
         noResults: "No trades match your filters."
+      },
+      currency: {
+        autoConvert: 'Auto-Convert Currency',
+        autoConvertDesc: 'Convert all reports to a single base currency',
+        baseCurrency: 'Base Currency',
+        convertedTo: 'Converted to',
+        loadingRates: 'Loading exchange rates...',
+        ratesFailed: 'Failed to load exchange rates',
+        mixedCurrencies: 'Multiple currencies detected',
+        enableConvert: 'Enable auto-convert for accurate aggregation',
       }
     },
   },
@@ -787,6 +797,16 @@ export const translations = {
       empty: {
         noData: "Chưa có dữ liệu giao dịch nào được tải lên. Hãy vào Bảng điều khiển để nhập báo cáo MT4/MT5 của bạn.",
         noResults: "Không có giao dịch nào khớp với bộ lọc của bạn."
+      },
+      currency: {
+        autoConvert: 'Tự động chuyển đổi tiền tệ',
+        autoConvertDesc: 'Chuyển đổi tất cả báo cáo về một loại tiền chung',
+        baseCurrency: 'Tiền tệ gốc',
+        convertedTo: 'Đã chuyển sang',
+        loadingRates: 'Đang tải tỷ giá...',
+        ratesFailed: 'Không thể tải tỷ giá',
+        mixedCurrencies: 'Phát hiện nhiều loại tiền tệ',
+        enableConvert: 'Bật tự động chuyển đổi để tổng hợp chính xác',
       }
     },
   }

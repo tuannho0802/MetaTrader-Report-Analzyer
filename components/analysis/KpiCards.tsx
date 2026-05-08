@@ -3,10 +3,9 @@
 import React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, TrendingDown, Layers, PieChart, Activity, ArrowDownCircle, Info } from "lucide-react"
-import { useAnalysisStore } from "@/lib/store/useAnalysisStore"
 import { useTranslation } from "@/lib/i18n"
 import { useSettingsStore } from "@/lib/store/useSettingsStore"
-import { cn, calculateDrawdown } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { ReportDateCard } from "@/components/ReportDateCard"
 import {
   Tooltip,
@@ -16,29 +15,36 @@ import {
 } from "@/components/ui/tooltip"
 import { formatCurrency } from "@/lib/formatCurrency"
 import { BalanceCard } from "./BalanceCard"
-import { AnalysisSession } from "@/lib/types"
+import { Trade } from "@/lib/types"
+import { Badge } from "@/components/ui/badge"
+import { calculateMetrics } from "@/lib/comparison"
 
 interface KpiCardsProps {
-  analysis?: AnalysisSession;
-  metrics?: {
-    netProfit: number;
-    totalProfit?: number; // fallback
-  };
+  trades: Trade[];
+  currency: string;
+  initialBalance: number;
+  finalBalance: number;
   descriptions?: Record<string, string>;
   className?: string;
+  isLoading?: boolean;
 }
 
-export function KpiCards({ analysis: propsAnalysis, metrics: propsMetrics, descriptions, className }: KpiCardsProps) {
-  const { sessions, activeSessionId } = useAnalysisStore()
-  const activeSessions = sessions.filter(s => !s.archived)
-  const activeSession = propsAnalysis || activeSessions.find(s => s.id === activeSessionId)
-  const currentResult = activeSession?.currentResult || null
+export function KpiCards({ 
+  trades, 
+  currency, 
+  initialBalance, 
+  finalBalance, 
+  descriptions, 
+  className,
+  isLoading = false 
+}: KpiCardsProps) {
+  const autoConvertCurrency = useSettingsStore(state => state.autoConvertCurrency)
+  const baseCurrency = useSettingsStore(state => state.baseCurrency)
   const { t } = useTranslation()
-  const { language } = useSettingsStore()
 
-  if (!currentResult) {
+  if (isLoading) {
     return (
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
         {[1, 2, 3, 4, 5, 6].map((i) => (
           <Card key={i} className="animate-pulse">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
@@ -55,59 +61,38 @@ export function KpiCards({ analysis: propsAnalysis, metrics: propsMetrics, descr
     )
   }
 
-  const { trades, totalProfit: storeTotalProfit } = currentResult
-  const totalProfit = propsMetrics ? propsMetrics.netProfit : storeTotalProfit
-  const tradeCount = trades.length
-  
-  // Win Rate calculation
-  const wins = trades.filter(t => t.profit > 0).length
-  const winRate = tradeCount > 0 ? (wins / tradeCount) * 100 : 0
-
-  // Profit Factor calculation
-  const grossProfit = trades.reduce((sum, t) => t.profit > 0 ? sum + t.profit : sum, 0)
-  const grossLoss = trades.reduce((sum, t) => t.profit < 0 ? sum + Math.abs(t.profit) : sum, 0)
-  
-  let profitFactor: string = "0.00"
-  if (tradeCount > 0) {
-    if (grossLoss === 0) {
-      profitFactor = grossProfit > 0 ? "∞" : "0.00"
-    } else {
-      profitFactor = (grossProfit / grossLoss).toFixed(2)
-    }
-  }
-
-  // Drawdown calculation
-  const drawdown = calculateDrawdown(trades);
+  // Calculate metrics using the shared utility
+  const m = calculateMetrics('Portfolio', trades, currency, initialBalance);
 
   const getFontSize = (val: string) => {
     const digits = val.replace(/[^\d]/g, "").length;
-    if (digits > 9) return "text-lg";
-    if (digits > 6) return "text-xl";
-    return "text-2xl";
+    if (digits > 12) return "text-sm sm:text-base font-bold break-all leading-tight";
+    if (digits > 9) return "text-base sm:text-lg font-bold break-all leading-tight";
+    if (digits > 6) return "text-lg sm:text-xl font-bold break-all leading-tight";
+    return "text-xl sm:text-2xl font-bold break-all leading-tight";
   };
 
   const kpis = [
     {
       id: "netProfit",
       title: t('analysis.netProfit'),
-      value: formatCurrency(totalProfit, activeSession?.currency || 'USD'),
-      icon: totalProfit >= 0 ? TrendingUp : TrendingDown,
+      value: formatCurrency(m.totalProfit, currency),
+      icon: m.totalProfit >= 0 ? TrendingUp : TrendingDown,
       description: t('analysis.netProfit'),
-      color: totalProfit >= 0 ? "text-emerald-400" : "text-rose-400"
+      color: m.totalProfit >= 0 ? "text-emerald-400" : "text-rose-400"
     },
     {
       id: "winRate",
       title: t('analysis.winRate'),
-      value: `${winRate.toFixed(1)}%`,
+      value: `${m.winRate}%`,
       icon: PieChart,
-      description: `${wins} wins / ${tradeCount} trades`,
+      description: `${trades.filter(t => t.profit > 0).length} wins / ${trades.length} trades`,
       color: "text-blue-400"
     },
     {
       id: "maxDrawdown",
       title: t('analysis.maxDrawdown'),
-      value: `-${drawdown.percent.toFixed(1)}%`,
-      subValue: `-${formatCurrency(drawdown.amount, activeSession?.currency || 'USD')}`,
+      value: `${m.maxDrawdown}%`,
       icon: ArrowDownCircle,
       description: t('analysis.maxDrawdown'),
       color: "text-rose-400",
@@ -116,7 +101,7 @@ export function KpiCards({ analysis: propsAnalysis, metrics: propsMetrics, descr
     {
       id: "totalTrades",
       title: t('analysis.totalTrades'),
-      value: tradeCount.toString(),
+      value: trades.length.toString(),
       icon: Activity,
       description: t('analysis.totalTrades'),
       color: "text-amber-400"
@@ -124,7 +109,7 @@ export function KpiCards({ analysis: propsAnalysis, metrics: propsMetrics, descr
     {
       id: "profitFactor",
       title: t('analysis.profitFactor'),
-      value: profitFactor,
+      value: m.profitFactor >= 999 ? "∞" : m.profitFactor.toFixed(2),
       icon: Layers,
       description: "Profit / Loss Ratio",
       color: "text-purple-400"
@@ -133,14 +118,23 @@ export function KpiCards({ analysis: propsAnalysis, metrics: propsMetrics, descr
 
   return (
     <div className={cn("space-y-4", className)}>
-      {/* Balance Overview - Full Width */}
-      <BalanceCard 
-        initialBalance={activeSession?.initialBalance || 0}
-        netProfit={totalProfit}
-        currency={activeSession?.currency || 'USD'}
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex-1">
+          <BalanceCard 
+            initialBalance={initialBalance}
+            netProfit={m.totalProfit}
+            currency={currency}
+          />
+        </div>
+        {autoConvertCurrency && (
+          <Badge variant="secondary" className="flex self-start sm:self-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary border-primary/20 shrink-0 font-bold tracking-tight">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            Converted to {baseCurrency}
+          </Badge>
+        )}
+      </div>
 
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
         <ReportDateCard className="h-full flex flex-col justify-center min-h-[120px]" />
         {kpis.map((kpi, i) => (
           <Card key={i} className="overflow-hidden border border-border/50 shadow-sm bg-card/50 backdrop-blur-sm transition-all hover:shadow-md hover:border-border min-h-[120px]">
@@ -165,7 +159,7 @@ export function KpiCards({ analysis: propsAnalysis, metrics: propsMetrics, descr
               </div>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <div className={cn(getFontSize(kpi.value), "font-bold tracking-tight truncate", (kpi.id === 'netProfit' || kpi.id === 'maxDrawdown') && kpi.color)}>
+              <div className={cn(getFontSize(kpi.value), "tracking-tight min-w-0", (kpi.id === 'netProfit' || kpi.id === 'maxDrawdown') && kpi.color)}>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -177,11 +171,6 @@ export function KpiCards({ analysis: propsAnalysis, metrics: propsMetrics, descr
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              {'subValue' in kpi && (
-                <div className="text-[11px] font-semibold text-muted-foreground mt-0.5 tabular-nums truncate">
-                  {kpi.subValue}
-                </div>
-              )}
               <p className="text-[10px] text-muted-foreground mt-1.5 font-medium line-clamp-1">
                 {(kpi as any).id && descriptions?.[(kpi as any).id] || kpi.description}
               </p>

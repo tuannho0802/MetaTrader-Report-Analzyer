@@ -8,6 +8,8 @@ interface StatementRecord {
   uploadedAt: number;
   totalTrades: number;
   tradesJson: string; // Stringified Trade[]
+  initialBalance?: number;
+  finalBalance?: number;
 }
 
 interface SettingRecord {
@@ -20,7 +22,7 @@ const db = new Dexie(INDEXEDDB_NAME) as Dexie & {
   settings: EntityTable<SettingRecord, 'key'>;
 };
 
-db.version(1).stores({
+db.version(2).stores({
   statements: 'id, fileName, uploadedAt',
   settings: 'key'
 });

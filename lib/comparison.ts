@@ -72,7 +72,7 @@ export function calculateDrawdown(equityPoints: EquityPoint[]): EquityPoint[] {
   return drawdownPoints;
 }
 
-export function calculateMetrics(name: string, trades: Trade[], currency: string): MetricsRow {
+export function calculateMetrics(name: string, trades: Trade[], currency: string, initialBalance: number = 0): MetricsRow {
   const totalProfit = trades.reduce((sum, t) => sum + t.profit, 0);
   const wins = trades.filter(t => t.profit > 0);
   const losses = trades.filter(t => t.profit <= 0);
@@ -83,10 +83,10 @@ export function calculateMetrics(name: string, trades: Trade[], currency: string
   const profitFactor = grossLoss === 0 ? (grossProfit > 0 ? 9999 : 0) : grossProfit / Math.abs(grossLoss);
 
   // Calculate Max Drawdown (Percentage and Absolute)
-  let maxEquity = 0;
+  let maxEquity = initialBalance;
   let maxDrawdown = 0; // %
   let maxDrawdownAbs = 0; // Absolute amount
-  let runningEquity = 0;
+  let runningEquity = initialBalance;
   
   // Need to sort trades to calculate drawdown correctly
   const sorted = [...trades].sort((a, b) => 
@@ -97,7 +97,13 @@ export function calculateMetrics(name: string, trades: Trade[], currency: string
   const uniqueDays = new Set<string>();
   
   for (const t of sorted) {
-    runningEquity += t.profit;
+    // Priority: Use trade balance if available (usually more accurate)
+    if (t.balance !== undefined) {
+      runningEquity = t.balance;
+    } else {
+      runningEquity += t.profit + (parseFloat(t.swap) || 0) + (parseFloat(t.commission) || 0);
+    }
+    
     profits.push(t.profit);
     
     // Track unique trading days based on close time
