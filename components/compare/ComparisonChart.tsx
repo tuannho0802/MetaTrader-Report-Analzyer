@@ -124,7 +124,7 @@ export function ComparisonChart({
             <XAxis dataKey="date" hide={true} />
             <YAxis
               tick={{ fontSize: 10, fontWeight: 500 }}
-              tickFormatter={(val) => `${getCurrencySymbol(series[0]?.currency)}${val}`}
+              tickFormatter={(val) => `${getCurrencySymbol(series[0]?.currency || 'USD')}${val}`}
               axisLine={false}
               tickLine={false}
               className="fill-muted-foreground"

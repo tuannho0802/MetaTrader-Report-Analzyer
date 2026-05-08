@@ -105,8 +105,9 @@ export function MultiEaChart() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="h-[400px] pt-6 pr-6">
-        <ResponsiveContainer width="100%" height="100%">
+      <CardContent className="pt-6 pr-6">
+        <div className="w-full min-h-[400px]">
+          <ResponsiveContainer width="100%" height={400}>
           <LineChart
             data={chartData}
             margin={{
@@ -123,7 +124,7 @@ export function MultiEaChart() {
             />
             <YAxis 
               tick={{ fontSize: 10, fontWeight: 500 }} 
-              tickFormatter={(val) => `${getCurrencySymbol(activeSession?.currency)}${val}`}
+              tickFormatter={(val) => `${getCurrencySymbol(activeSession?.currency || 'USD')}${val}`}
               axisLine={false}
               tickLine={false}
               className="fill-muted-foreground"
@@ -160,7 +161,8 @@ export function MultiEaChart() {
               />
             ))}
           </LineChart>
-        </ResponsiveContainer>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   )

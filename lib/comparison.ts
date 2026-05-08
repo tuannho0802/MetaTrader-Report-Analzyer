@@ -1,4 +1,5 @@
 import { Trade, ComparisonResult, EquitySeries, MetricsRow, EquityPoint } from "./types";
+import { parseMT4Date } from "./parser";
 
 const COLORS = [
   "#3b82f6", // blue-500
@@ -18,9 +19,10 @@ export function calculateEquity(
   
   // Sort by close time
   const sorted = [...trades].sort((a, b) => {
-    const timeA = new Date(a.closeTime.replace(/\./g, '/')).getTime();
-    const timeB = new Date(b.closeTime.replace(/\./g, '/')).getTime();
-    return timeA - timeB;
+    const dA = parseMT4Date(a.closeTime);
+    const dB = parseMT4Date(b.closeTime);
+    if (!dA || !dB) return 0;
+    return dA.getTime() - dB.getTime();
   });
   
   const points: EquityPoint[] = [];

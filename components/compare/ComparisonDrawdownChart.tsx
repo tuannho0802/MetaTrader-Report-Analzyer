@@ -179,8 +179,8 @@ export function ComparisonDrawdownChart({ series, height = 300, hiddenSeries = n
   };
 
   return (
-    <div style={{ height: height, width: '100%' }}>
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full" style={{ minHeight: height }}>
+      <ResponsiveContainer width="100%" height={height}>
         <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
           <XAxis 

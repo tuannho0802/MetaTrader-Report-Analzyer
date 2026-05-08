@@ -58,7 +58,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { generateSeriesKey, generateDisplayName } from "@/lib/utils";
+import { generateSeriesKey, generateDisplayName, parseMT4Date } from "@/lib/utils";
 
 const COLORS = [
   "#3b82f6",
@@ -510,11 +510,19 @@ export function PerformanceDashboard() {
             totalFinal += session.finalBalance || 0;
           }
 
-          if (start) trades = trades.filter((t) => new Date(t.closeTime.replace(/\./g, "/")) >= start);
+          if (start) {
+            trades = trades.filter((t) => {
+              const d = parseMT4Date(t.closeTime);
+              return d ? d >= start : true;
+            });
+          }
           if (end) {
             const adjustedEnd = new Date(end);
             adjustedEnd.setHours(23, 59, 59, 999);
-            trades = trades.filter((t) => new Date(t.closeTime.replace(/\./g, "/")) <= adjustedEnd);
+            trades = trades.filter((t) => {
+              const d = parseMT4Date(t.closeTime);
+              return d ? d <= adjustedEnd : true;
+            });
           }
 
           if (filters.selectedEA !== "all") {

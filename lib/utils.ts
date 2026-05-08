@@ -2,6 +2,7 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { Trade, AnalysisSession } from "./types"
 import { parseMT4Date } from "./parser"
+export { parseMT4Date }
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

@@ -59,7 +59,6 @@ export function PerformanceFilters({
   const { t } = useTranslation();
   const { autoConvertCurrency, setAutoConvertCurrency, baseCurrency } = useSettingsStore();
 
-  console.log('Toggle state:', autoConvertCurrency);
 
   // Local state for debouncing
   const [localEA, setLocalEA] = useState(filters.selectedEA);
@@ -261,7 +260,6 @@ export function PerformanceFilters({
                 id="auto-convert" 
                 checked={autoConvertCurrency} 
                 onCheckedChange={(val) => {
-                  console.log('Toggle state changed:', val);
                   setAutoConvertCurrency(val);
                 }}
               />
