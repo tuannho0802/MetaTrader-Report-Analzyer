@@ -401,6 +401,12 @@ export const translations = {
         ratesFailed: 'Failed to load exchange rates',
         mixedCurrencies: 'Multiple currencies detected',
         enableConvert: 'Enable auto-convert for accurate aggregation',
+      },
+      displayMode: {
+        ea: 'By EA',
+        session: 'By Session',
+        detail: 'Detail',
+        others: 'Others',
       }
     },
   },
@@ -807,6 +813,12 @@ export const translations = {
         ratesFailed: 'Không thể tải tỷ giá',
         mixedCurrencies: 'Phát hiện nhiều loại tiền tệ',
         enableConvert: 'Bật tự động chuyển đổi để tổng hợp chính xác',
+      },
+      displayMode: {
+        ea: 'Theo EA',
+        session: 'Theo phiên',
+        detail: 'Chi tiết',
+        others: 'Khác',
       }
     },
   }

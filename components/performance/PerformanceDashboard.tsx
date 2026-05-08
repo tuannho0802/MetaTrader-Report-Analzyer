@@ -122,6 +122,43 @@ function KpiCard({
   );
 }
 
+/* ─── Scrollable custom legend ─── */
+const ScrollableLegend = React.memo(function ScrollableLegend({
+  series,
+  visibleKeys,
+  onToggle,
+}: {
+  series: EquitySeries[];
+  visibleKeys: Set<string>;
+  onToggle: (key: string) => void;
+}) {
+  const isScrollable = series.length > 8;
+  return (
+    <div className={cn(
+      'flex flex-wrap gap-x-4 gap-y-1.5 mt-3',
+      isScrollable && 'max-h-[130px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-border'
+    )}>
+      {series.map((s) => {
+        const key = s.dataKey || s.id || s.name;
+        const isHidden = !visibleKeys.has(key);
+        return (
+          <button
+            key={key}
+            onClick={() => onToggle(key)}
+            className={cn(
+              'flex items-center gap-1.5 text-[10px] font-bold transition-opacity hover:opacity-80',
+              isHidden && 'opacity-30'
+            )}
+          >
+            <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+            <span className="truncate max-w-[140px]">{s.name}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+});
+
 /* ─── Equity chart ─── */
 function EquityChart({
   series,
@@ -139,15 +176,35 @@ function EquityChart({
   const gridColor = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
   const textColor = isDark ? "#9ca3af" : "#6b7280";
 
+  // Track per-series visibility (all visible by default)
+  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(() =>
+    new Set(series.map(s => s.dataKey || s.id || s.name))
+  );
+
+  // Reset visibility when series change (mode switch)
+  useEffect(() => {
+    setVisibleKeys(new Set(series.map(s => s.dataKey || s.id || s.name)));
+  }, [series]);
+
+  const toggleKey = (key: string) => {
+    setVisibleKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const visibleSeries = series.filter(s => visibleKeys.has(s.dataKey || s.id || s.name));
+
   const chartData = useMemo(() => {
-    if (series.length === 0) return [];
+    if (visibleSeries.length === 0) return [];
     const dateSet = new Set<string>();
-    series.forEach((s) => s.data.forEach((d) => dateSet.add(d.time.split(" ")[0])));
+    visibleSeries.forEach((s) => s.data.forEach((d) => dateSet.add(d.time.split(" ")[0])));
     const sortedDates = Array.from(dateSet).sort(
       (a, b) => new Date(a.replace(/\./g, "/")).getTime() - new Date(b.replace(/\./g, "/")).getTime()
     );
 
-    const seriesMaps = series.map((s) => {
+    const seriesMaps = visibleSeries.map((s) => {
       const m = new Map<string, number>();
       let last = 0;
       const sorted = [...s.data].sort(
@@ -164,7 +221,7 @@ function EquityChart({
     return sortedDates.map((date) => {
       const row: Record<string, string | number> = { date };
       seriesMaps.forEach((sm, i) => {
-        const key = series[i].dataKey || series[i].id || sm.name;
+        const key = visibleSeries[i].dataKey || visibleSeries[i].id || sm.name;
         if (sm.map.has(date)) {
           lastVal[key] = sm.map.get(date)!;
         }
@@ -172,9 +229,9 @@ function EquityChart({
       });
       return row;
     });
-  }, [series]);
+  }, [visibleSeries]);
 
-  if (series.length === 0 || chartData.length === 0) return null;
+  if (series.length === 0) return null;
 
   return (
     <Card className="border-border/50 shadow-lg overflow-hidden bg-card/30 backdrop-blur-sm">
@@ -184,13 +241,27 @@ function EquityChart({
             <CardTitle className="text-lg font-bold">{title}</CardTitle>
             <CardDescription className="text-xs">{description}</CardDescription>
           </div>
-          <div className="p-2 bg-primary/5 rounded-xl border border-primary/10">
-            <TrendingUp size={18} className="text-primary" />
+          <div className="flex items-center gap-2">
+            {series.length > 1 && (
+              <button
+                onClick={() => {
+                  const allKeys = new Set(series.map(s => s.dataKey || s.id || s.name));
+                  setVisibleKeys(prev => prev.size === series.length ? new Set() : allKeys);
+                }}
+                className="text-[10px] font-bold text-muted-foreground border border-border/50 rounded-full px-2.5 py-1 hover:bg-muted/50 transition-colors"
+              >
+                {visibleKeys.size === series.length ? 'Hide all' : 'Show all'}
+              </button>
+            )}
+            <div className="p-2 bg-primary/5 rounded-xl border border-primary/10">
+              <TrendingUp size={18} className="text-primary" />
+            </div>
           </div>
         </div>
+        <ScrollableLegend series={series} visibleKeys={visibleKeys} onToggle={toggleKey} />
       </CardHeader>
-      <CardContent className="pt-4">
-        <div className="h-[350px] w-full">
+      <CardContent className="pt-2">
+        <div className="h-[320px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
@@ -221,33 +292,22 @@ function EquityChart({
                 labelStyle={{ fontSize: '10px', fontWeight: '800', color: 'hsl(var(--muted-foreground))', marginBottom: '8px', textTransform: 'uppercase' }}
                 formatter={(value: any) => [formatCurrency(Number(value), currency), ""]}
               />
-              <Legend
-                verticalAlign="top"
-                align="right"
-                iconType="circle"
-                iconSize={8}
-                wrapperStyle={{ fontSize: "11px", fontWeight: "700", paddingBottom: "20px" }}
-              />
-              {series.map((s, i) => (
+              {visibleSeries.map((s, i) => (
                 <Line
                   key={s.id || s.name}
                   type="monotone"
                   dataKey={s.dataKey || s.id || s.name}
                   name={s.name}
                   stroke={s.color || COLORS[i % COLORS.length]}
-                  strokeWidth={3}
+                  strokeWidth={2.5}
                   dot={false}
-                  activeDot={{ r: 6, strokeWidth: 0 }}
-                  isAnimationActive={true}
-                  animationDuration={1500}
+                  activeDot={{ r: 5, strokeWidth: 0 }}
+                  isAnimationActive={false}
                 />
               ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
-        <p className="mt-4 text-[10px] text-muted-foreground italic font-medium">
-          {description}
-        </p>
       </CardContent>
     </Card>
   );
@@ -430,26 +490,104 @@ export function PerformanceDashboard() {
     return calculateMetrics("Portfolio", allFilteredTrades, currency, convertedBalances.initialBalance);
   }, [allFilteredTrades, currency, convertedBalances.initialBalance]);
 
-  // EquitySeries per EA for charts
-  const equitySeries: EquitySeries[] = useMemo(() => {
-    return Object.entries(tradesBySeries).map(([compositeId, trades], index) => {
-      const dataKey = compositeId.replace(/[^a-zA-Z0-9]/g, '_');
+  // ── Display mode ──────────────────────────────────────────────────────
+  const [displayMode, setDisplayMode] = useState<'ea' | 'session' | 'detail'>('ea');
+  const MAX_DETAIL_LINES = 15;
+  const OTHERS_COLOR = '#94a3b8';
+
+  // Unified grouped trades for all charts (Histogram, Monthly Returns, Equity)
+  const displayTrades = useMemo(() => {
+    const result: Record<string, { trades: Trade[], name: string, color: string }> = {};
+    if (Object.keys(tradesBySeries).length === 0) return result;
+
+    // ── MODE: by EA ─────────────────────────────────────────────────────
+    if (displayMode === 'ea') {
+      const byEa = new Map<string, Trade[]>();
+      Object.entries(tradesBySeries).forEach(([compositeId, trades]) => {
+        const [, eaId] = compositeId.split('::');
+        const existing = byEa.get(eaId) || [];
+        byEa.set(eaId, [...existing, ...trades]);
+      });
+      Array.from(byEa.entries()).forEach(([eaId, trades], i) => {
+        const id = `ea_${eaId}`;
+        const name = isNaN(Number(eaId)) ? eaId : `EA #${eaId}`;
+        result[id] = { trades, name, color: COLORS[i % COLORS.length] };
+      });
+      return result;
+    }
+
+    // ── MODE: by Session ─────────────────────────────────────────────────
+    if (displayMode === 'session') {
+      const bySession = new Map<string, Trade[]>();
+      Object.entries(tradesBySeries).forEach(([compositeId, trades]) => {
+        const [sessionId] = compositeId.split('::');
+        const existing = bySession.get(sessionId) || [];
+        bySession.set(sessionId, [...existing, ...trades]);
+      });
+      Array.from(bySession.entries()).forEach(([sessionId, trades], i) => {
+        const session = targetSessions.find(s => s.id === sessionId);
+        const name = session?.name || session?.fileName || sessionId.slice(0, 8);
+        result[sessionId] = { trades, name, color: COLORS[i % COLORS.length] };
+      });
+      return result;
+    }
+
+    // ── MODE: detail (session × EA, max 15 + Others) ─────────────────────
+    const entries = Object.entries(tradesBySeries);
+    // Sort by abs profit desc
+    const sorted = entries.map(([compositeId, trades]) => ({
+      compositeId,
+      trades,
+      absProfit: Math.abs(trades.reduce((s, t) => s + (t.profit || 0), 0)),
+    })).sort((a, b) => b.absProfit - a.absProfit);
+
+    const top = sorted.slice(0, MAX_DETAIL_LINES);
+    const rest = sorted.slice(MAX_DETAIL_LINES);
+
+    top.forEach(({ compositeId, trades }, i) => {
       const [sessionId, eaId] = compositeId.split('::');
       const session = targetSessions.find(s => s.id === sessionId);
-      const displayName = isNaN(Number(eaId))
-        ? `${eaId} (${session?.name || 'Unknown'})`
-        : `EA #${eaId} (${session?.name || 'Unknown'})`;
+      const sessionName = session?.name || session?.fileName || sessionId.slice(0, 8);
+      const label = isNaN(Number(eaId)) ? eaId : `EA #${eaId}`;
+      const name = targetSessions.length > 1 ? `${sessionName} – ${label}` : label;
+      result[compositeId] = { trades, name, color: COLORS[i % COLORS.length] };
+    });
 
+    if (rest.length > 0) {
+      const othersTrades = rest.flatMap(r => r.trades);
+      result['others'] = { 
+        trades: othersTrades, 
+        name: `Others (${rest.length} EA)`, 
+        color: OTHERS_COLOR 
+      };
+    }
+    return result;
+  }, [tradesBySeries, targetSessions, displayMode]);
+
+  // EquitySeries derived from unified grouping
+  const equitySeries: EquitySeries[] = useMemo(() => {
+    return Object.entries(displayTrades).map(([id, group]) => {
+      const [sessionId] = id.split('::');
+      const session = targetSessions.find(s => s.id === sessionId);
       return {
-        id: compositeId,
-        dataKey,
-        name: displayName,
-        data: calculateEquity(trades, 0),
-        color: COLORS[index % COLORS.length],
-        currency: autoConvertCurrency ? baseCurrency : (session?.currency || 'USD')
+        id,
+        dataKey: id.replace(/[^a-zA-Z0-9]/g, '_'),
+        name: group.name,
+        data: calculateEquity(group.trades, 0),
+        color: group.color,
+        currency: autoConvertCurrency ? baseCurrency : (session?.currency || targetSessions[0]?.currency || 'USD'),
       };
     });
-  }, [tradesBySeries, targetSessions, autoConvertCurrency, baseCurrency]);
+  }, [displayTrades, targetSessions, autoConvertCurrency, baseCurrency]);
+
+  // Extract trades object for components that need it
+  const tradesForCharts = useMemo(() => {
+    const res: Record<string, Trade[]> = {};
+    Object.entries(displayTrades).forEach(([id, group]) => {
+      res[id] = group.trades;
+    });
+    return res;
+  }, [displayTrades]);
 
   // CSV export
   const handleExport = () => {
@@ -505,24 +643,47 @@ export function PerformanceDashboard() {
 
   return (
     <div className="space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-6 duration-700">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      {/* ── Toolbar: filters + display mode + export ── */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <PerformanceFilters
           sessions={sessionOptions}
           eaOptions={eaOptions}
           filters={filters}
           onChange={setFilters}
         />
-        {m && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            className="rounded-full gap-2 border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all font-bold px-5 h-11 shrink-0 shadow-sm"
-          >
-            <Download size={16} />
-            {t("performance.export")}
-          </Button>
-        )}
+        <div className="flex items-center gap-3 shrink-0">
+          {/* Display Mode Pills */}
+          <div className="flex items-center bg-muted/40 border border-border/50 rounded-full p-1 gap-0.5 text-xs font-bold">
+            {(['ea', 'session', 'detail'] as const).map((mode) => {
+              const labels = { ea: t('performance.displayMode.ea'), session: t('performance.displayMode.session'), detail: t('performance.displayMode.detail') };
+              return (
+                <button
+                  key={mode}
+                  onClick={() => setDisplayMode(mode)}
+                  className={cn(
+                    'px-3 py-1.5 rounded-full transition-all',
+                    displayMode === mode
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                  )}
+                >
+                  {labels[mode]}
+                </button>
+              );
+            })}
+          </div>
+          {m && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              className="rounded-full gap-2 border-border/60 hover:border-primary/50 hover:bg-primary/5 transition-all font-bold px-5 h-11 shrink-0 shadow-sm"
+            >
+              <Download size={16} />
+              {t("performance.export")}
+            </Button>
+          )}
+        </div>
       </div>
 
       {ratesError && (
@@ -650,7 +811,7 @@ export function PerformanceDashboard() {
               <CardDescription className="text-xs">{t("performance.charts.profitDistributionDesc")}</CardDescription>
             </CardHeader>
             <CardContent className="pt-4">
-              <ComparisonHistogram series={equitySeries} trades={tradesBySeries} height={300} />
+              <ComparisonHistogram series={equitySeries} trades={tradesForCharts} height={300} />
               <p className="mt-4 text-[10px] text-muted-foreground italic font-medium">
                 {t("performance.charts.profitDistributionDesc")}
               </p>
@@ -665,7 +826,7 @@ export function PerformanceDashboard() {
             </CardHeader>
             <CardContent className="pt-4 overflow-hidden">
               <div className="overflow-x-auto pb-4">
-                <MonthlyReturnsTable tradesByEa={tradesBySeries} currency={currency} />
+                <MonthlyReturnsTable tradesByEa={tradesForCharts} currency={currency} />
               </div>
               <p className="mt-4 text-[10px] text-muted-foreground italic font-medium">
                 {t("performance.charts.monthlyReturnsDesc")}
