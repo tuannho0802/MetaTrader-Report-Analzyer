@@ -1,6 +1,6 @@
 // ============================================
-// EXCHANGE RATES SERVICE - Frankfurter API
-// Version 3 — cache busted, robust USC/VND logic
+// EXCHANGE RATES SERVICE - Multi-Provider Strategy
+// Version 5 — ExchangeRate-API > Frankfurter > fawazahmed0 > Hardcoded
 // ============================================
 
 import { Trade } from './types';
@@ -9,98 +9,135 @@ interface ExchangeRateCache {
   rates: Record<string, number>;
   timestamp: number;
   baseCurrency: string;
+  source: string;
 }
 
-// Bump version to bust any corrupted old cache
-const CACHE_KEY = 'exchange-rates-cache-v3';
+// v5: busts all previous caches
+const CACHE_KEY = 'exchange-rates-cache-v5';
 const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
 
-// Required currencies that must be present in a valid cache
+// Required currencies to consider cache valid
 const REQUIRED_CURRENCIES = ['USD', 'EUR', 'VND', 'USC'];
 
-// Hardcoded fallback rates (relative to USD = 1)
+// ============================================================
+// HARDCODED FALLBACK RATES (relative to USD = 1)
+// Updated May 2025 — used only when ALL APIs fail
+// ============================================================
 const HARDCODED_RATES: Record<string, number> = {
   USD: 1,
-  USC: 100,      // Custom: 1 USD = 100 USC
-  EUR: 0.92,
-  GBP: 0.79,
-  JPY: 149.5,
-  VND: 24500,
-  AUD: 1.52,
+  USC: 100,      // 1 USD = 100 USC (MetaTrader Cent Account)
+  EUR: 0.851,
+  GBP: 0.736,
+  JPY: 156.61,
+  CHF: 0.78,
+  AUD: 1.38,
   CAD: 1.36,
-  CHF: 0.88,
-  CNY: 7.24,
-  INR: 83.12,
+  NZD: 1.68,
+  SGD: 1.27,
+  CNY: 6.82,
+  KRW: 1454.18,
+  INR: 94.35,
+  VND: 26310,
 };
 
-// ============================================
+// ============================================================
 // PUBLIC API
-// ============================================
+// ============================================================
 
 /**
- * Fetch exchange rates from Frankfurter API.
- * Priority: Valid Cache → V2 API → V1 API → Stale Cache → Hardcoded.
- *
- * When hardcoded fallback is used, this function signals the store so the UI
- * can display a warning to the user.
+ * Fetch exchange rates with multi-provider fallback strategy:
+ *   1. Cache (localStorage, TTL 1 hour)
+ *   2. ExchangeRate-API (open.er-api.com)  ← supports VND, no key needed
+ *   3. Frankfurter (api.frankfurter.dev)   ← ECB data, ~30 currencies
+ *   4. fawazahmed0/currency-api (jsDelivr) ← broad coverage including VND
+ *   5. HARDCODED_RATES (offline fallback)
  */
 export async function fetchExchangeRates(
   baseCurrency: string = 'USD'
 ): Promise<Record<string, number>> {
-  // Special case: USC has no API — it's always hardcoded
+  // USC is always hardcoded — no external API tracks it
   if (baseCurrency === 'USC') {
     const rates = buildUscRates();
-    saveCache({ rates, timestamp: Date.now(), baseCurrency });
+    saveCache({ rates, timestamp: Date.now(), baseCurrency, source: 'usc-hardcoded' });
     return rates;
   }
 
-  // Check cache validity (version + required currencies)
+  // 1. Valid cache?
   const cached = getCache();
   if (cached && cached.baseCurrency === baseCurrency && isCacheValid(cached)) {
     const age = Date.now() - cached.timestamp;
     if (age < CACHE_DURATION) {
-      console.log(`[ExchangeRates] Using cached rates (${Object.keys(cached.rates).length} currencies)`);
+      console.log(
+        `[ExchangeRates] ✅ Using cached rates (source: ${cached.source}, ` +
+        `age: ${Math.round(age / 60000)}m, ${Object.keys(cached.rates).length} currencies)`
+      );
       return cached.rates;
     }
   }
 
-  // Try live API
-  try {
-    const rates = await fetchFromAPI(baseCurrency);
-    saveCache({ rates, timestamp: Date.now(), baseCurrency });
-    // Signal to UI that we now have live rates
-    signalFallback(false);
-    return rates;
-  } catch (error) {
-    console.error('[ExchangeRates] All APIs failed:', error);
+  // 2-4. Try each live provider in order
+  const providers: Array<{ name: string; fn: () => Promise<Record<string, number>> }> = [
+    { name: 'ExchangeRate-API',     fn: () => fetchFromOpenErApi(baseCurrency) },
+    { name: 'Frankfurter',          fn: () => fetchFromFrankfurter(baseCurrency) },
+    { name: 'fawazahmed0/currency-api', fn: () => fetchFromFawazAhmed(baseCurrency) },
+  ];
 
-    // Fallback 1: stale cache (any age)
-    if (cached && cached.baseCurrency === baseCurrency) {
-      console.warn('[ExchangeRates] Using stale cache as fallback');
-      signalFallback(true);
-      return cached.rates;
+  for (const provider of providers) {
+    console.log(`[ExchangeRates] Trying ${provider.name}...`);
+    try {
+      const rates = await provider.fn();
+
+      // Validate: must contain base, VND, and a reasonable number of currencies
+      if (!rates || !rates[baseCurrency] || Object.keys(rates).length < 10) {
+        throw new Error('Insufficient rates returned');
+      }
+
+      console.log(
+        `[ExchangeRates] ✅ Success from ${provider.name} ` +
+        `(${Object.keys(rates).length} currencies)`
+      );
+      console.log('[ExchangeRates] Sample rates:', {
+        USD: rates['USD'],
+        EUR: rates['EUR'],
+        VND: rates['VND'],
+        USC: rates['USC'],
+        [baseCurrency]: rates[baseCurrency],
+      });
+
+      saveCache({ rates, timestamp: Date.now(), baseCurrency, source: provider.name });
+      signalFallback(false);
+      return rates;
+    } catch (error) {
+      console.warn(`[ExchangeRates] ❌ Failed: ${provider.name}`, error);
     }
+  }
 
-    // Fallback 2: hardcoded rates
-    console.warn('[ExchangeRates] Using hardcoded fallback rates');
+  // 5. All APIs failed — use stale cache or hardcoded
+  if (cached && cached.baseCurrency === baseCurrency) {
+    console.warn(
+      `[ExchangeRates] ⚠️  All providers failed. Using stale cache ` +
+      `(source: ${cached.source}, ${Object.keys(cached.rates).length} currencies)`
+    );
     signalFallback(true);
-    return convertHardcodedRates(baseCurrency);
+    return cached.rates;
   }
+
+  console.warn('[ExchangeRates] ⚠️  All providers failed. Using HARDCODED_RATES.');
+  signalFallback(true);
+  return convertHardcodedRates(baseCurrency);
 }
 
-// ============================================
+// ============================================================
 // CONVERSION HELPERS
-// ============================================
+// ============================================================
 
 /**
  * Convert a monetary amount from one currency to another.
  *
- * All rates in `rates` are expressed relative to the SAME base:
- *   rates[base] = 1
- *   rates[X]    = how many X equal 1 base unit
+ * All `rates` values are relative to the same base:
+ *   rates[base] = 1,  rates[X] = "how many X per 1 base unit"
  *
- * Conversion formula:
- *   amount_in_to = amount_in_from / rates[from] * rates[to]
+ * Formula:  amount_in_to = (amount_in_from / rates[from]) × rates[to]
  */
 export function convertCurrency(
   amount: number,
@@ -110,23 +147,19 @@ export function convertCurrency(
 ): number {
   if (fromCurrency === toCurrency) return amount;
 
-  // ── Hardcoded USC ↔ USD (no API rate needed) ──────────────────────────
+  // ── Hardcoded USD ↔ USC (no API needed) ─────────────────────────────
   if (fromCurrency === 'USD' && toCurrency === 'USC') return amount * 100;
   if (fromCurrency === 'USC' && toCurrency === 'USD') return amount / 100;
 
-  // ── USC ↔ anything else: route through USD ────────────────────────────
+  // ── USC ↔ anything: route via USD ───────────────────────────────────
   if (fromCurrency === 'USC') {
-    // USC → USD → toCurrency
-    const usd = amount / 100;
-    return convertCurrency(usd, 'USD', toCurrency, rates);
+    return convertCurrency(amount / 100, 'USD', toCurrency, rates);
   }
   if (toCurrency === 'USC') {
-    // fromCurrency → USD → USC
-    const usd = convertCurrency(amount, fromCurrency, 'USD', rates);
-    return usd * 100;
+    return convertCurrency(amount, fromCurrency, 'USD', rates) * 100;
   }
 
-  // ── General case: use rates object ────────────────────────────────────
+  // ── General ─────────────────────────────────────────────────────────
   const fromRate = rates[fromCurrency];
   const toRate = rates[toCurrency];
 
@@ -135,17 +168,14 @@ export function convertCurrency(
       `[ExchangeRates] Cannot convert ${fromCurrency} → ${toCurrency}. ` +
       `Available: ${Object.keys(rates).sort().join(', ')}`
     );
-    // Graceful degradation: return original so UI shows something
-    return amount;
+    return amount; // graceful degradation
   }
 
-  // amount (in fromCurrency) → base: amount / fromRate
-  // base → toCurrency:                  × toRate
   return (amount / fromRate) * toRate;
 }
 
 /**
- * Convert a Trade object's monetary fields to the target currency.
+ * Convert all monetary fields of a Trade to the target currency.
  */
 export function convertTrade(
   trade: Trade,
@@ -171,117 +201,163 @@ export function convertTrade(
   };
 }
 
-// ============================================
-// INTERNAL — API FETCHING
-// ============================================
+// ============================================================
+// PROVIDER IMPLEMENTATIONS
+// ============================================================
 
-async function fetchFromAPI(baseCurrency: string): Promise<Record<string, number>> {
-  // ── Try V2 ────────────────────────────────────────────────────────────
+/**
+ * Provider 1: ExchangeRate-API (open.er-api.com)
+ * Response: { result, base_code, rates: { "VND": 26310, ... } }
+ * Supports VND, no API key, updated daily.
+ */
+async function fetchFromOpenErApi(base: string): Promise<Record<string, number>> {
+  const res = await fetch(
+    `https://open.er-api.com/v6/latest/${base}`,
+    { headers: { Accept: 'application/json' } }
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const data = await res.json();
+
+  if (data.result !== 'success' || !data.rates) {
+    throw new Error(`Unexpected response: ${JSON.stringify(data).slice(0, 100)}`);
+  }
+
+  const rates: Record<string, number> = { [base]: 1, ...data.rates };
+  ensureUsc(rates, base);
+  return rates;
+}
+
+/**
+ * Provider 2: Frankfurter (api.frankfurter.dev)
+ * V2 response: Array<{ date, base, quote, rate }>
+ * V1 response: { base, date, rates: { EUR: 0.92, ... } }
+ * ~30 major currencies from ECB — does NOT include VND.
+ */
+async function fetchFromFrankfurter(base: string): Promise<Record<string, number>> {
+  // Try V2 first
   try {
     const res = await fetch(
-      `https://api.frankfurter.dev/v2/rates?base=${baseCurrency}`,
+      `https://api.frankfurter.dev/v2/rates?base=${base}`,
       { headers: { Accept: 'application/json' } }
     );
-    if (!res.ok) throw new Error(`V2 status ${res.status}`);
+    if (!res.ok) throw new Error(`V2 HTTP ${res.status}`);
 
     const data = await res.json();
-    const rates: Record<string, number> = { [baseCurrency]: 1 };
+    const rates: Record<string, number> = { [base]: 1 };
 
-    // V2 returns Array<{ date, base, quote, rate }>
     if (Array.isArray(data)) {
+      // V2 array format: [{quote, rate}]
       for (const item of data) {
         if (item.quote && typeof item.rate === 'number') {
           rates[item.quote] = item.rate;
         }
       }
     } else if (data?.quotes && typeof data.quotes === 'object') {
-      // Some V2 builds return { quotes: { EUR: 0.92 } }
       Object.assign(rates, data.quotes);
+    } else if (data?.rates && typeof data.rates === 'object') {
+      Object.assign(rates, data.rates);
     }
 
-    ensureUsc(rates, baseCurrency);
-    console.log(`[ExchangeRates] V2 OK — ${Object.keys(rates).length} currencies`);
+    ensureUsc(rates, base);
     return rates;
-  } catch (v2Err) {
-    console.warn('[ExchangeRates] V2 failed →', v2Err);
-  }
-
-  // ── Try V1 ────────────────────────────────────────────────────────────
-  try {
+  } catch {
+    // V1 fallback
     const res = await fetch(
-      `https://api.frankfurter.dev/v1/latest?base=${baseCurrency}`,
+      `https://api.frankfurter.dev/v1/latest?base=${base}`,
       { headers: { Accept: 'application/json' } }
     );
-    if (!res.ok) throw new Error(`V1 status ${res.status}`);
+    if (!res.ok) throw new Error(`V1 HTTP ${res.status}`);
 
     const data = await res.json();
-    // V1: { base, date, rates: { EUR: 0.92, ... } }
-    const rates: Record<string, number> = { [baseCurrency]: 1, ...data.rates };
-    ensureUsc(rates, baseCurrency);
-    console.log(`[ExchangeRates] V1 OK — ${Object.keys(rates).length} currencies`);
+    if (!data.rates) throw new Error('No rates in V1 response');
+
+    const rates: Record<string, number> = { [base]: 1, ...data.rates };
+    ensureUsc(rates, base);
     return rates;
-  } catch (v1Err) {
-    console.error('[ExchangeRates] V1 failed →', v1Err);
-    throw new Error('Both V2 and V1 failed');
   }
 }
 
-// ============================================
-// INTERNAL — HELPERS
-// ============================================
+/**
+ * Provider 3: fawazahmed0/currency-api (via jsDelivr CDN)
+ * Response: { "date": "...", "usd": { "vnd": 26310, ... } }
+ * Supports VND and many others, sourced from multiple public APIs.
+ */
+async function fetchFromFawazAhmed(base: string): Promise<Record<string, number>> {
+  const baseLower = base.toLowerCase();
+  const res = await fetch(
+    `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${baseLower}.json`,
+    { headers: { Accept: 'application/json' } }
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-/** Ensure USC is always present and correct in the rates map. */
-function ensureUsc(rates: Record<string, number>, baseCurrency: string): void {
-  if (baseCurrency === 'USD') {
-    rates.USC = 100; // 1 USD = 100 USC
+  const data = await res.json();
+  const inner = data[baseLower];
+  if (!inner || typeof inner !== 'object') {
+    throw new Error(`No inner rates object for key "${baseLower}"`);
+  }
+
+  // Keys are lowercase — convert to uppercase
+  const rates: Record<string, number> = { [base]: 1 };
+  for (const [k, v] of Object.entries(inner)) {
+    if (typeof v === 'number') {
+      rates[k.toUpperCase()] = v;
+    }
+  }
+
+  ensureUsc(rates, base);
+  return rates;
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+/** Ensure USC is always present and correct. */
+function ensureUsc(rates: Record<string, number>, base: string): void {
+  if (base === 'USD') {
+    rates.USC = 100;
   } else if (rates.USD !== undefined) {
-    // rates.USD = how many USD per 1 base unit
-    // USC is 100× USD, so how many USC per 1 base = rates.USD * 100
     rates.USC = rates.USD * 100;
   } else if (!rates.USC) {
-    console.warn('[ExchangeRates] Cannot calculate USC (no USD rate available)');
+    console.warn('[ExchangeRates] Cannot calculate USC — no USD rate available');
   }
 }
 
-/** Return hardcoded rates re-based to baseCurrency. */
+/** Return HARDCODED_RATES re-based to `baseCurrency`. */
 function convertHardcodedRates(baseCurrency: string): Record<string, number> {
-  // HARDCODED_RATES are all USD-based (USD = 1)
   const baseUsdValue = HARDCODED_RATES[baseCurrency];
 
   if (!baseUsdValue) {
     console.warn(
-      `[ExchangeRates] Unknown base currency "${baseCurrency}", defaulting to USD rates`
+      `[ExchangeRates] Unknown base currency "${baseCurrency}", defaulting to USD`
     );
     return { ...HARDCODED_RATES };
   }
 
-  // Re-base: every rate becomes (rate / baseUsdValue)
-  // e.g. base=VND (24500), EUR=0.92 → 0.92/24500 ≈ 0.0000376
-  //   meaning "1 VND = 0.0000376 EUR" ✓
+  // All HARDCODED_RATES are USD-based.
+  // Re-base: rate_new = rate_usd / baseUsdValue
   const result: Record<string, number> = {};
   for (const [currency, usdRate] of Object.entries(HARDCODED_RATES)) {
     result[currency] = usdRate / baseUsdValue;
   }
-  // baseCurrency itself = 1
   result[baseCurrency] = 1;
   return result;
 }
 
-/** Build rates when baseCurrency = USC. */
+/** Build rates when baseCurrency = USC (1 USC = 0.01 USD). */
 function buildUscRates(): Record<string, number> {
-  // 1 USC = 0.01 USD
   const result: Record<string, number> = { USC: 1 };
   for (const [currency, usdRate] of Object.entries(HARDCODED_RATES)) {
-    // 1 USC = 0.01 USD → rate in currency = usdRate * 0.01
-    result[currency] = usdRate * 0.01;
+    result[currency] = usdRate * 0.01; // 1 USC = 0.01 USD → convert to other
   }
   result.USD = 0.01;
   return result;
 }
 
-/** Return true only if cache contains all required currencies. */
+/** True if cache contains all required currencies. */
 function isCacheValid(cache: ExchangeRateCache): boolean {
-  return REQUIRED_CURRENCIES.every((c) => cache.rates[c] !== undefined);
+  return REQUIRED_CURRENCIES.every(c => cache.rates[c] !== undefined);
 }
 
 function getCache(): ExchangeRateCache | null {
@@ -303,10 +379,10 @@ function saveCache(cache: ExchangeRateCache): void {
   }
 }
 
-/** Signal to the Zustand store whether we're using fallback rates. */
+/** Signal to Zustand store whether fallback rates are in use. */
 function signalFallback(isFallback: boolean): void {
   try {
-    // Dynamic import to avoid circular dependency issues
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { useSettingsStore } = require('./store/useSettingsStore');
     useSettingsStore.getState().setUsingFallbackRates(isFallback);
   } catch {
