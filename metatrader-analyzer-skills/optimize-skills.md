@@ -20,10 +20,12 @@ To prevent the main UI thread from freezing during heavy parsing, the applicatio
 
 | Technique | Status | Description |
 | :--- | :--- | :--- |
-| **Pagination** | Implemented | The `ResultsTable` restricts the UI to 50 rows per page to minimize DOM nodes. |
+| **Pagination** | Implemented | `ResultsTable` and `MonthlyReturnsTable` restrict the UI to 15-50 rows per page to minimize DOM nodes. |
 | **Substring Shortcut** | Implemented | The fuzzy match algorithm exits early with 100% if an exact substring match is found. |
 | **Memoization** | Implemented | `useMemo` is used extensively in charts and tables to prevent redundant calculations on theme or language changes. |
 | **IndexedDB Storage** | Implemented | Trade data is moved out of RAM and into IndexedDB, keeping the Zustand store lightweight. |
+| **Chart Lazy Loading** | Implemented | Charts on the `/performance` page use `dynamic` imports with a persistent `min-h-[400px]` skeleton to prevent layout shift during loading. |
+| **Worker Threads** | Implemented | The Monte Carlo simulation runs in a dedicated Web Worker (`montecarlo.worker.js`) to handle 10,000+ iterations without blocking the UI. |
 
 ### Visualization Optimizations (Recharts)
 To ensure smooth interaction even with large datasets in the EA Comparator:

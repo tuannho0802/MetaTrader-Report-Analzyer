@@ -20,9 +20,10 @@ MT4 statements often hide a shorter EA identifier within the `title` attribute o
 ### 3. Parsing Algorithm
 - **Robust Balance Extraction**:
   - **Keyword Support**: Detects "Initial balance", "Initial deposit", "Starting balance", and "Balance initial".
+  - **Universal Capture**: The parser extracts the initial balance from the raw report **before** applying any date filters. This ensures that even if a report is filtered to a specific month, the `Initial Balance` displayed in the dashboard remains accurate to the account's actual starting point.
   - **Flexible Layout**: Searches for `colspan="10"` cells or falls back to the second-to-last cell in the row to find comments.
   - **Numeric Cleaning**: Strips non-breaking spaces (`\u00a0`), spaces, and commas before parsing floats to handle regional formatting consistently across browsers.
-- **Derived Fallback**: If no balance row is found, the parser calculates the initial balance using the first trade's balance column: `InitialBalance = FirstTrade.Balance - FirstTrade.Profit`.
+- **Derived Fallback**: If no balance row is explicitly found, the parser calculates the initial balance using the first trade's balance column: `InitialBalance = FirstTrade.Balance - FirstTrade.Profit`.
 - **Date Range Extraction**: The parser looks for "Period:" or "From: ... To: ..." strings in the report header to determine the statement's coverage. If missing, it derives the range from the oldest and newest trade timestamps.
 
 ---

@@ -88,8 +88,15 @@ Shared time-series visualization for benchmarking strategies.
 - **Multi-Curve Equity**: Overlaid growth charts.
 - **Relative Drawdown**: Visualizing risk overlap.
 - **Distribution Histograms**: Trade outcome frequency analysis.
+- **Monthly Heatmaps**: Grid-based performance breakdown with pagination.
+
+### 4. Monte Carlo Simulation (/montecarlo)
+Predicts potential account growth and risk using randomized historical trade sequencing.
+- **Execution Strategy**: Offloads computation to a Web Worker to maintain 60FPS UI performance.
+- **Static Compatibility**: Uses specialized pathing for worker scripts to ensure reliability on GitHub Pages deployments.
 
 ## i18n & Theme Management
 - **Persistence**: Language and theme preferences are stored in `useSettingsStore`.
 - **Theme-Aware Charts**: Chart elements (ticks, labels, tooltips) dynamically resolve colors based on `resolvedTheme` to ensure accessibility in both dark and light modes.
-- **Localization**: Full EN/VI dictionary with recursive key resolution supporting nested namespaces.
+- **Localization**: Full EN/VI dictionary with root-level namespaces (`settings`, `history`, `performance`) for optimized key resolution.
+- **Unified Confirmations**: Standardized `ConfirmDialog` component replaces all `window.confirm` calls, providing a consistent, localized, and theme-aware user experience for destructive actions.

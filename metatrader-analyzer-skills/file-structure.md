@@ -12,21 +12,21 @@ Contains the Next.js App Router structure.
 - `compare/page.tsx`: Dedicated route for multi-EA performance comparison (Same/Cross report modes).
 - `explore/page.tsx`: Trade Explorer dashboard featuring hourly, daily, and monthly profit distribution charts.
 - `statistics/page.tsx`: Global statistics featuring EA Leaderboard, equity trends, top symbols, and commission/swap analysis.
+- `montecarlo/page.tsx`: Monte Carlo simulation interface for risk and growth prediction.
 - `history/page.tsx`: Session management interface for active, archived, and soft-deleted sessions.
-- `settings/page.tsx`: Application configuration (Language, Theme, Tab limits, Backup/Restore).
+- `settings/page.tsx`: Application configuration (Language, Theme, Tab limits, Data Management).
+
+### `/public`
+- `montecarlo.worker.js`: Dedicated Web Worker script for running intensive simulations off the main thread.
 
 ### `/components`
 Modular UI components grouped by functional domain.
 - `/analysis`: Components for the primary report dashboard (e.g., `KpiCards.tsx`, `ReportDateCard.tsx`, `CurrencyFallbackAlert.tsx`).
 - `/compare`: Unified comparison system:
   - `EAComparator.tsx`: Main entry for comparison features.
-  - `SameReportConfig.tsx` & `CrossReportConfig.tsx`: Mode-specific configurations.
-  - `ComparisonHistogram.tsx`: Visualizes trade profit distribution for multiple EAs.
-  - `ComparisonDrawdownChart.tsx`: Tracks relative account drawdown over time.
-  - `MonthlyReturnsTable.tsx`: Displays a heatmapped table of monthly performance.
-  - `ComparisonResults.tsx`: High-performance metrics table with highlight logic for 16+ key performance indicators.
+  - `MonthlyReturnsTable.tsx`: Displays a heatmapped table of monthly performance with pagination.
 - `/layout`: App shell components like `AppSidebar.tsx`, `Header.tsx`, and `ClientLayout.tsx`.
-- `/shared`: Common reusable components like `SessionSelector.tsx`, `ChartTooltip.tsx`.
+- `/shared`: Common reusable components like `SessionSelector.tsx`, `ChartTooltip.tsx`, and **`ConfirmDialog.tsx`** (unified localized confirmation system).
 - `/ui`: Low-level design system primitives (Buttons, Inputs, Selects) based on **Base UI** and **Shadcn UI**.
 - **Base Components**: `FileUploader.tsx`, `FilterForm.tsx`, and `ResultsTable.tsx` are the core building blocks of the report analysis view.
 

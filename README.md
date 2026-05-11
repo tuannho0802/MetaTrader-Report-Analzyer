@@ -27,7 +27,15 @@ A professional, privacy-first trading journal and analytics tool for MetaTrader 
   - Native support for **VND**, **USD**, **EUR**, **JPY**, and **USC** (Cent accounts).
   - Offline mode with user-facing fallback alerts and hardcoded reference rates.
 - **Privacy-First Architecture**: Your trading data never leaves your computer, stored locally in IndexedDB (Dexie).
-- **Settings & Backup (/settings)**: Multi-language toggle, theme selection, and data management (backup/restore).
+- **Monte Carlo Simulation (/montecarlo)**: 
+  - Predict future performance using randomized trade sequencing.
+  - **Off-Main-Thread Execution**: Utilizes Web Workers to perform 10,000+ iterations without freezing the UI.
+  - Interactive risk analysis (Bankruptcy probability, Confidence intervals).
+- **Settings & Data Management (/settings)**: 
+  - Multi-language toggle and professional Dark/Light/System theme selection.
+  - **Factory Reset**: "Clear All Data" logic that wipes IndexedDB and LocalStorage using aggressive regex-based cleanup.
+  - **Performance Optimization**: "Clear Cache" for exchange rates and temporary analysis data.
+- **Unified UX**: Replaced native browser alerts with a localized, themed `ConfirmDialog` for all destructive actions.
 
 ## 🛠️ Getting Started
 

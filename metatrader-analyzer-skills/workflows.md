@@ -20,6 +20,7 @@ This document maps the end-to-end user journey and the underlying data pipeline 
 7. **Session Management**: Use the **History** page to restore old sessions, archive completed ones (to save browser memory), or permanently delete data.
 8. **Review & Export**: 
    - Analyze **KPI Cards**, **Equity/Drawdown Curves**, and **Monthly Returns**.
+   - **Monte Carlo Simulation**: Run probability analysis to predict future performance and bankruptcy risk.
    - Download comparative results as **CSV**.
 
 ---
@@ -44,6 +45,11 @@ When filters change or a session is switched:
 - **Match Check**: Fuzzy matching (Dice Coefficient) or exact EA ID matching.
 - **16+ Deep Metrics**: Sharpe Ratio, Profit Factor, Max Drawdown, Expectancy, and Recovery Factor are recalculated on the fly.
 - **Aggregation**: Data is converted into time-series for charts and frequency bins for distributions.
+
+### 5. Web Worker Execution (Simulation)
+For performance-heavy tasks like Monte Carlo simulations:
+- **Off-loading**: Computation is moved to `public/montecarlo.worker.js`.
+- **Static Pathing**: Initialized using `new Worker(new URL('/montecarlo.worker.js', window.location.origin))`. This ensures the worker script is correctly located even on GitHub Pages subdirectories.
 
 ---
 
