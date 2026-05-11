@@ -215,7 +215,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
 
             // Ensure currentResult is populated
             if (!session.currentResult && session.allTrades) {
-              session.currentResult = recalculateResult(session.allTrades, session.filter);
+              session.currentResult = recalculateResult(session.allTrades, session.filter, session.initialBalance, session.finalBalance);
             }
 
             // Default currency
@@ -410,7 +410,7 @@ export const useAnalysisStore = create<AnalysisStore>()(
       }
     }),
     {
-      name: 'analysis-sessions-v3',
+      name: 'analysis-sessions-v4',
       storage: {
         getItem: async (name) => {
           const record = await db.settings.get(name);

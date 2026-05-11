@@ -44,9 +44,14 @@ export function SessionView({
   const displayCurrency = autoConvertCurrency ? baseCurrency : session.currency;
 
   const initialBalance = useMemo(() => {
-    if (!shouldConvert) return session.initialBalance || 0;
+    let balance = session.initialBalance;
+    if (balance === undefined || balance === null || balance === 0) {
+      console.warn(`[BalanceOverview] Missing initialBalance for session ${session.id}`);
+      balance = 0;
+    }
+    if (!shouldConvert) return balance;
     return convertCurrency(
-      session.initialBalance || 0,
+      balance,
       session.currency,
       baseCurrency,
       exchangeRates!

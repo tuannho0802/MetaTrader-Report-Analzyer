@@ -104,6 +104,9 @@ export function filterTrades(trades: Trade[], params: FilterParams): { filtered:
 
 export function recalculateResult(allTrades: Trade[], params: FilterParams, initialBalance?: number, finalBalance?: number): ParseResult {
   const { filtered, totalProfit } = filterTrades(allTrades, params);
+  if (initialBalance !== undefined) {
+    console.log(`[Recalculate] initialBalance preserved: ${initialBalance}`);
+  }
   return {
     totalProfit,
     trades: filtered,
@@ -295,8 +298,26 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
     }
   }
 
-  // Fallback: derive initialBalance from the balance column of the first trade
-  // (first trade's balance = initialBalance + first trade's profit)
+  // Fallback 1: derive initialBalance from Deposit/Withdrawal
+  if (initialBalance === 0) {
+    const allTds = doc.querySelectorAll("td");
+    for (let i = 0; i < allTds.length; i++) {
+      if (allTds[i].textContent?.includes("Deposit/Withdrawal:")) {
+        const nextTd = allTds[i].nextElementSibling;
+        if (nextTd) {
+          const rawValue = (nextTd.textContent || "").replace(/[\u00a0\s,]/g, "");
+          const value = parseFloat(rawValue.replace(/[^\d.-]/g, "") || "0");
+          if (!isNaN(value) && value !== 0) {
+            initialBalance = value;
+            console.log(`[Parser] Found initial balance from Deposit: ${value}`);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Fallback 2: derive initialBalance from the balance column of the first trade
   if (initialBalance === 0 && allExtractedTrades.length > 0) {
     const firstTrade = allExtractedTrades[0];
     if (firstTrade.balance !== undefined && !isNaN(firstTrade.balance)) {

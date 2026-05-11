@@ -34,7 +34,17 @@ export function useMonteCarlo() {
     return new Promise((resolve, reject) => {
       // ✅ CRITICAL: Handle basePath correctly for static export / GitHub Pages
       const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
-      const worker = new Worker(`${basePath}/montecarlo.worker.js`);
+      
+      let worker: Worker;
+      try {
+        worker = new Worker(`${basePath}/montecarlo.worker.js`);
+      } catch (err) {
+        const msg = 'Failed to load Monte Carlo worker. Please try refreshing the page.';
+        setError(msg);
+        setIsLoading(false);
+        return reject(new Error(msg));
+      }
+      
       workerRef.current = worker;
 
       worker.onmessage = (e: MessageEvent) => {

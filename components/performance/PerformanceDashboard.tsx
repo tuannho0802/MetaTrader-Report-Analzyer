@@ -502,6 +502,10 @@ export function PerformanceDashboard() {
           let trades = session.allTrades || [];
           const sessionCurrency = session.currency || "USD";
 
+          if (session.initialBalance === undefined || session.initialBalance === null || session.initialBalance === 0) {
+            console.warn(`[BalanceOverview] Missing initialBalance for session ${session.id}`);
+          }
+
           if (autoConvertCurrency && exchangeRates) {
             totalInitial += convertCurrency(session.initialBalance || 0, sessionCurrency, baseCurrency, exchangeRates);
             totalFinal += convertCurrency(session.finalBalance || 0, sessionCurrency, baseCurrency, exchangeRates);
