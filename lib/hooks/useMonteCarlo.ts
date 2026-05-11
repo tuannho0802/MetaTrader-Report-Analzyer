@@ -5,11 +5,14 @@ export interface SimulationParams {
   numSimulations: number;
   sampleSize: number;
   shuffle: boolean;
+  totalDays?: number;
 }
 
 export interface SimulationResults {
   profits: number[];
   drawdowns: number[];
+  sharpes?: number[];
+  sortinos?: number[];
 }
 
 export function useMonteCarlo() {
@@ -23,63 +26,79 @@ export function useMonteCarlo() {
   const runFallback = useCallback(async (params: SimulationParams): Promise<void> => {
     console.warn('[MonteCarlo] Falling back to main thread simulation');
     setIsFallback(true);
-    const { trades, numSimulations, sampleSize, shuffle } = params;
+    const { trades, numSimulations, sampleSize, shuffle, totalDays = 1 } = params;
     const profits: number[] = [];
     const drawdowns: number[] = [];
+    const sharpes: number[] = [];
+    const sortinos: number[] = [];
     const n = Math.min(sampleSize, trades.length);
+    const tradesPerDay = n / Math.max(1, totalDays);
 
-    if (!shuffle) {
+    const calculateMetrics = (pList: number[]) => {
       let equity = 0;
       let maxEquity = 0;
       let maxDrawdown = 0;
-      const sample = trades.slice(0, n);
+      let sumProfit = 0;
+      let sumSqProfit = 0;
+      let sumDownsideSqProfit = 0;
 
-      for (let k = 0; k < sample.length; k++) {
-        equity += sample[k].profit;
+      for (const p of pList) {
+        equity += p;
         if (equity > maxEquity) maxEquity = equity;
         const dd = maxEquity - equity;
         if (dd > maxDrawdown) maxDrawdown = dd;
+
+        sumProfit += p;
+        sumSqProfit += p * p;
+        if (p < 0) sumDownsideSqProfit += p * p;
       }
 
+      const mean = sumProfit / pList.length;
+      const variance = (sumSqProfit / pList.length) - (mean * mean);
+      const stdDev = Math.sqrt(Math.max(0, variance));
+      const downsideDev = Math.sqrt(Math.max(0, sumDownsideSqProfit / pList.length));
+
+      const sharpe = stdDev > 0 ? (mean / stdDev) * Math.sqrt(tradesPerDay) : 0;
+      const sortino = downsideDev > 0 ? (mean / downsideDev) * Math.sqrt(tradesPerDay) : 0;
+
+      return { profit: equity, maxDrawdown, sharpe, sortino };
+    };
+
+    if (!shuffle) {
+      const sample = trades.slice(0, n).map(t => t.profit);
+      const res = calculateMetrics(sample);
+
       for (let i = 0; i < numSimulations; i++) {
-        profits.push(equity);
-        drawdowns.push(maxDrawdown);
+        profits.push(res.profit);
+        drawdowns.push(res.maxDrawdown);
+        sharpes.push(res.sharpe);
+        sortinos.push(res.sortino);
       }
-      setResults({ profits, drawdowns });
+      setResults({ profits, drawdowns, sharpes, sortinos });
       setProgress(100);
       setIsLoading(false);
       return;
     }
 
-    // Process in chunks to avoid blocking UI
     const CHUNK_SIZE = 500;
     for (let i = 0; i < numSimulations; i += CHUNK_SIZE) {
       const end = Math.min(i + CHUNK_SIZE, numSimulations);
       for (let j = i; j < end; j++) {
-        // Bootstrap sample with replacement
         const sampleProfits = [];
         for (let s = 0; s < n; s++) {
           sampleProfits.push(trades[Math.floor(Math.random() * trades.length)].profit);
         }
-
-        let equity = 0;
-        let maxEquity = 0;
-        let maxDrawdown = 0;
-        for (const p of sampleProfits) {
-          equity += p;
-          if (equity > maxEquity) maxEquity = equity;
-          const dd = maxEquity - equity;
-          if (dd > maxDrawdown) maxDrawdown = dd;
-        }
-        profits.push(equity);
-        drawdowns.push(maxDrawdown);
+        const res = calculateMetrics(sampleProfits);
+        profits.push(res.profit);
+        drawdowns.push(res.maxDrawdown);
+        sharpes.push(res.sharpe);
+        sortinos.push(res.sortino);
       }
       setProgress((end / numSimulations) * 100);
-      // Yield to main thread
       await new Promise(resolve => setTimeout(resolve, 0));
     }
 
-    setResults({ profits, drawdowns });
+    setResults({ profits, drawdowns, sharpes, sortinos });
     setIsLoading(false);
   }, []);
 

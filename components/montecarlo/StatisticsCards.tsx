@@ -16,15 +16,24 @@ import {
   Target,
   Sigma,
   Percent,
+  TrendingUpDown,
+  Zap,
+  Scale,
+  Crosshair,
+  Timer,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface Props {
   results: {
     profits: number[];
     drawdowns: number[];
+    sharpes?: number[];
+    sortinos?: number[];
   };
   currency: string;
   accountBalance: number;
+  targetProfitPercent: number;
   isSequential?: boolean;
 }
 
@@ -34,13 +43,14 @@ interface MetricCard {
   sentiment: 'good' | 'bad' | 'neutral';
   icon: React.ElementType;
   isSequentialOnly?: boolean;
+  tooltipKey: string;
 }
 
-export function StatisticsCards({ results, currency, accountBalance, isSequential }: Props) {
+export function StatisticsCards({ results, currency, accountBalance, targetProfitPercent, isSequential }: Props) {
   const { t } = useTranslation();
 
   const stats = useMemo(() => {
-    const { profits, drawdowns } = results;
+    const { profits, drawdowns, sharpes = [], sortinos = [] } = results;
     const n = profits.length;
 
     const sortedProfits = [...profits].sort((a, b) => a - b);
@@ -50,6 +60,7 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
     const meanDrawdown = drawdowns.reduce((s, v) => s + v, 0) / n;
 
     const medianProfit = sortedProfits[Math.floor(n / 2)];
+    const medianDrawdown = sortedDrawdowns[Math.floor(n / 2)];
 
     const variance = profits.reduce((s, v) => s + Math.pow(v - meanProfit, 2), 0) / n;
     const stdDev = Math.sqrt(variance);
@@ -64,6 +75,18 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
     const probProfit = (profits.filter((p) => p > 0).length / n) * 100;
     const riskOfRuin = (drawdowns.filter((d) => d >= accountBalance).length / n) * 100;
 
+    const meanSharpe = sharpes.length > 0 ? sharpes.reduce((s, v) => s + v, 0) / sharpes.length : 0;
+    const meanSortino = sortinos.length > 0 ? sortinos.reduce((s, v) => s + v, 0) / sortinos.length : 0;
+    const calmarRatio = meanDrawdown > 0 ? meanProfit / meanDrawdown : 0;
+
+    const targetProfitAmount = accountBalance * (targetProfitPercent / 100);
+    const probTarget = (profits.filter(p => p >= targetProfitAmount).length / n) * 100;
+
+    const q10 = sortedProfits[Math.floor(n * 0.1)];
+    const q25 = sortedProfits[Math.floor(n * 0.25)];
+    const q75 = sortedProfits[Math.floor(n * 0.75)];
+    const q90 = sortedProfits[Math.floor(n * 0.9)];
+
     return {
       meanProfit,
       medianProfit,
@@ -73,11 +96,20 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
       ci95Lower,
       ci95Upper,
       meanDrawdown,
+      medianDrawdown,
       worstDrawdown,
       probProfit,
       riskOfRuin,
+      meanSharpe,
+      meanSortino,
+      calmarRatio,
+      probTarget,
+      q10,
+      q25,
+      q75,
+      q90,
     };
-  }, [results, accountBalance]);
+  }, [results, accountBalance, targetProfitPercent]);
 
   const allMetrics: MetricCard[] = [
     {
@@ -86,38 +118,42 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
       sentiment: stats.meanProfit >= 0 ? 'good' : 'bad',
       icon: TrendingUp,
       isSequentialOnly: true,
+      tooltipKey: 'monteCarlo.tooltip.meanProfit',
     },
     {
       label: t('monteCarlo.medianProfit'),
       value: formatCurrency(stats.medianProfit, currency),
       sentiment: stats.medianProfit >= 0 ? 'good' : 'bad',
       icon: Activity,
+      tooltipKey: 'monteCarlo.tooltip.medianProfit',
     },
     {
       label: t('monteCarlo.stdDev'),
       value: formatCurrency(stats.stdDev, currency),
       sentiment: 'neutral',
       icon: Sigma,
+      tooltipKey: 'monteCarlo.tooltip.stdDev',
     },
     {
-      label: t('monteCarlo.worstProfit'),
-      value: formatCurrency(stats.worstProfit, currency),
-      sentiment: stats.worstProfit >= 0 ? 'good' : 'bad',
-      icon: TrendingDown,
-      isSequentialOnly: true,
+      label: t('monteCarlo.sharpeRatio'),
+      value: stats.meanSharpe.toFixed(2),
+      sentiment: stats.meanSharpe > 1 ? 'good' : stats.meanSharpe > 0 ? 'neutral' : 'bad',
+      icon: Zap,
+      tooltipKey: 'monteCarlo.tooltip.sharpeRatio',
     },
     {
-      label: t('monteCarlo.bestProfit'),
-      value: formatCurrency(stats.bestProfit, currency),
-      sentiment: 'good',
-      icon: Target,
-      isSequentialOnly: true,
+      label: t('monteCarlo.sortinoRatio'),
+      value: stats.meanSortino.toFixed(2),
+      sentiment: stats.meanSortino > 1 ? 'good' : stats.meanSortino > 0 ? 'neutral' : 'bad',
+      icon: Scale,
+      tooltipKey: 'monteCarlo.tooltip.sortinoRatio',
     },
     {
-      label: t('monteCarlo.confidence95'),
-      value: `${formatCurrency(stats.ci95Lower, currency)} — ${formatCurrency(stats.ci95Upper, currency)}`,
-      sentiment: 'neutral',
-      icon: BarChart3,
+      label: t('monteCarlo.calmarRatio'),
+      value: stats.calmarRatio.toFixed(2),
+      sentiment: stats.calmarRatio > 1 ? 'good' : stats.calmarRatio > 0 ? 'neutral' : 'bad',
+      icon: TrendingUpDown,
+      tooltipKey: 'monteCarlo.tooltip.calmarRatio',
     },
     {
       label: isSequential ? t('dashboard.maxDrawdown') : t('monteCarlo.meanDrawdown'),
@@ -125,6 +161,14 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
       sentiment: 'bad',
       icon: Minus,
       isSequentialOnly: true,
+      tooltipKey: 'monteCarlo.tooltip.meanDrawdown',
+    },
+    {
+      label: t('monteCarlo.medianMaxDrawdown'),
+      value: formatCurrency(stats.medianDrawdown, currency),
+      sentiment: 'bad',
+      icon: Minus,
+      tooltipKey: 'monteCarlo.tooltip.medianMaxDrawdown',
     },
     {
       label: t('monteCarlo.worstDrawdown'),
@@ -132,18 +176,51 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
       sentiment: 'bad',
       icon: AlertTriangle,
       isSequentialOnly: true,
+      tooltipKey: 'monteCarlo.tooltip.worstDrawdown',
+    },
+    {
+      label: t('monteCarlo.worstMaxDrawdown'),
+      value: formatCurrency(stats.worstDrawdown, currency),
+      sentiment: 'bad',
+      icon: AlertTriangle,
+      tooltipKey: 'monteCarlo.tooltip.worstMaxDrawdown',
     },
     {
       label: t('monteCarlo.probProfit'),
       value: `${stats.probProfit.toFixed(1)}%`,
       sentiment: stats.probProfit >= 50 ? 'good' : 'bad',
       icon: Percent,
+      tooltipKey: 'monteCarlo.tooltip.probProfit',
+    },
+    {
+      label: t('monteCarlo.probabilityTarget'),
+      value: `${stats.probTarget.toFixed(1)}%`,
+      sentiment: stats.probTarget >= 50 ? 'good' : 'bad',
+      icon: Crosshair,
+      tooltipKey: 'monteCarlo.tooltip.probabilityTarget',
     },
     {
       label: t('monteCarlo.riskOfRuin'),
       value: `${stats.riskOfRuin.toFixed(2)}%`,
       sentiment: stats.riskOfRuin < 5 ? 'good' : stats.riskOfRuin < 20 ? 'neutral' : 'bad',
       icon: ShieldCheck,
+      tooltipKey: 'monteCarlo.tooltip.riskOfRuin',
+    },
+    {
+      label: t('monteCarlo.worstProfit'),
+      value: formatCurrency(stats.worstProfit, currency),
+      sentiment: stats.worstProfit >= 0 ? 'good' : 'bad',
+      icon: TrendingDown,
+      isSequentialOnly: true,
+      tooltipKey: 'monteCarlo.tooltip.worstProfit',
+    },
+    {
+      label: t('monteCarlo.bestProfit'),
+      value: formatCurrency(stats.bestProfit, currency),
+      sentiment: 'good',
+      icon: Target,
+      isSequentialOnly: true,
+      tooltipKey: 'monteCarlo.tooltip.bestProfit',
     },
   ];
 
@@ -162,47 +239,79 @@ export function StatisticsCards({ results, currency, accountBalance, isSequentia
   };
 
   return (
-    <Card className="border-border/50 shadow-lg overflow-hidden">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-xl">{t('monteCarlo.statistics')}</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {metrics.map((m, i) => {
-            const Icon = m.icon;
-            return (
-              <div
-                key={i}
-                className={cn(
-                  'rounded-xl p-4 border border-border/40 transition-all hover:bg-muted/10 hover:shadow-md hover:border-border cursor-default',
-                  'flex flex-col gap-2 bg-card/50 backdrop-blur-sm'
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-tight">
-                    {m.label}
-                  </p>
-                  <div className={cn('p-1.5 rounded-lg', sentimentBg(m.sentiment))}>
-                    <Icon className={cn('h-3 w-3', sentimentClass(m.sentiment))} />
-                  </div>
-                </div>
-                <p className={cn('text-sm font-bold tabular-nums leading-snug', sentimentClass(m.sentiment))}>
-                  {m.value}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-
-        {isSequential && (
-          <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border/50 flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-muted-foreground shrink-0" />
-            <p className="text-xs text-muted-foreground">
-              {t('monteCarlo.statsUnavailable')}
-            </p>
+    <TooltipProvider>
+      <Card className="border-border/50 shadow-lg overflow-hidden">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl">{t('monteCarlo.statistics')}</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {metrics.map((m, i) => {
+              const Icon = m.icon;
+              return (
+                <Tooltip key={i}>
+                  <TooltipTrigger asChild>
+                    <div
+                      className={cn(
+                        'rounded-xl p-4 border border-border/40 transition-all hover:bg-muted/10 hover:shadow-md hover:border-border cursor-help',
+                        'flex flex-col gap-2 bg-card/50 backdrop-blur-sm'
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground leading-tight">
+                          {m.label}
+                        </p>
+                        <div className={cn('p-1.5 rounded-lg', sentimentBg(m.sentiment))}>
+                          <Icon className={cn('h-3 w-3', sentimentClass(m.sentiment))} />
+                        </div>
+                      </div>
+                      <p className={cn('text-sm font-bold tabular-nums leading-snug', sentimentClass(m.sentiment))}>
+                        {m.value}
+                      </p>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-[200px] text-[11px]">
+                    <p>{t(m.tooltipKey as any)}</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {!isSequential && (
+            <div className="mt-8 pt-6 border-t border-border/40">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart3 className="h-4 w-4 text-primary" />
+                <h4 className="text-sm font-bold">{t('monteCarlo.quantiles')}</h4>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[
+                  { label: t('monteCarlo.quantile10'), value: stats.q10 },
+                  { label: t('monteCarlo.quantile25'), value: stats.q25 },
+                  { label: t('monteCarlo.quantile75'), value: stats.q75 },
+                  { label: t('monteCarlo.quantile90'), value: stats.q90 },
+                ].map((q, i) => (
+                  <div key={i} className="space-y-1">
+                    <p className="text-[10px] uppercase text-muted-foreground font-bold">{q.label}</p>
+                    <p className={cn("text-sm font-black", q.value >= 0 ? "text-emerald-500" : "text-rose-500")}>
+                      {formatCurrency(q.value, currency)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {isSequential && (
+            <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border/50 flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-muted-foreground shrink-0" />
+              <p className="text-xs text-muted-foreground">
+                {t('monteCarlo.statsUnavailable')}
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 }

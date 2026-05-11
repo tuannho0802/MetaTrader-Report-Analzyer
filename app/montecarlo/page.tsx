@@ -28,6 +28,7 @@ import {
   BarChart3,
   Settings2,
   History,
+  Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -85,6 +86,7 @@ export default function MonteCarloPage() {
   const [sampleSize, setSampleSize] = useState<string>(''); // empty = use all trades
   const [shuffle, setShuffle] = useState<boolean>(true);
   const [accountBalance, setAccountBalance] = useState<number>(10000);
+  const [targetProfitPercent, setTargetProfitPercent] = useState<number>(20);
 
   const { run, cancel, isLoading, isFallback, progress, results, error } = useMonteCarlo();
 
@@ -111,6 +113,13 @@ export default function MonteCarloPage() {
     ? Math.min(parseInt(sampleSize, 10) || filteredTrades.length, filteredTrades.length)
     : filteredTrades.length;
 
+  const totalDays = useMemo(() => {
+    if (filteredTrades.length < 2) return 1;
+    const start = new Date(filteredTrades[0].openTime.replace(/\./g, '/')).getTime();
+    const end = new Date(filteredTrades[filteredTrades.length - 1].closeTime.replace(/\./g, '/')).getTime();
+    return Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+  }, [filteredTrades]);
+
   const canRun = filteredTrades.length > 0 && !isLoading;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -122,6 +131,7 @@ export default function MonteCarloPage() {
         numSimulations: Math.min(Math.max(numSimulations, 10), 10000),
         sampleSize: effectiveSampleSize,
         shuffle,
+        totalDays,
       });
     } catch {
       // error is surfaced via `error` state from the hook
@@ -399,10 +409,34 @@ export default function MonteCarloPage() {
                   </Card>
                 )}
 
+                <div className="flex items-center gap-4 bg-card border border-border/50 rounded-xl p-4 shadow-sm">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Target className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-[200px]">
+                    <Label htmlFor="target-profit" className="text-xs font-bold uppercase text-muted-foreground mb-1 block">
+                      {t('monteCarlo.targetProfitInput')}
+                    </Label>
+                    <div className="flex items-center gap-3">
+                      <Input
+                        id="target-profit"
+                        type="number"
+                        className="h-8 w-24"
+                        value={targetProfitPercent}
+                        onChange={(e) => setTargetProfitPercent(Number(e.target.value))}
+                      />
+                      <p className="text-[10px] text-muted-foreground italic">
+                        {t('monteCarlo.tooltip.probabilityTarget')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <StatisticsCards
                   results={results}
                   currency={currentSession?.currency || 'USD'}
                   accountBalance={accountBalance}
+                  targetProfitPercent={targetProfitPercent}
                   isSequential={isSequential}
                 />
 
