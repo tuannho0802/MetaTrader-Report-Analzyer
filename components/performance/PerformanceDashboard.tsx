@@ -29,10 +29,49 @@ import {
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+import dynamic from "next/dynamic";
 import { PerformanceFilters, FilterState } from "./PerformanceFilters";
 import { ComparisonDrawdownChart } from "@/components/compare/ComparisonDrawdownChart";
 import { ComparisonHistogram } from "@/components/compare/ComparisonHistogram";
-import { MonthlyReturnsTable } from "@/components/compare/MonthlyReturnsTable";
+
+const MonthlyReturnsTable = dynamic(
+  () => import("@/components/compare/MonthlyReturnsTable").then(mod => mod.MonthlyReturnsTable),
+  { 
+    ssr: false, 
+    loading: () => (
+      <Card className="border-border/50 shadow-lg mt-6 min-h-[400px] animate-pulse">
+        <CardHeader className="pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-3 w-64" />
+          </div>
+          <Skeleton className="h-10 w-40 rounded-lg" />
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="border-b border-border/40 bg-muted/50 h-10 w-full mb-2" />
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="flex items-center px-4 py-4 border-b border-border/10">
+              <Skeleton className="h-4 w-32 mr-auto" />
+              <div className="flex gap-4">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            </div>
+          ))}
+          <div className="flex items-center justify-between px-4 py-4 bg-muted/10">
+            <Skeleton className="h-4 w-40" />
+            <div className="flex gap-2">
+              <Skeleton className="h-8 w-20 rounded-md" />
+              <Skeleton className="h-8 w-20 rounded-md" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    ) 
+  }
+);
 
 import {
   Card,
@@ -976,10 +1015,42 @@ export function PerformanceDashboard() {
                   }
                   
                   tableTrades = Object.fromEntries(tableSeries.map(s => [s.id || '', rawTradesBySeries[s.id || '']]));
-
-                  console.log('[MonthlyReturns] tradesByEa keys:', Object.keys(tableTrades));
-                  console.log('[MonthlyReturns] tradesByEa sample:', Object.entries(tableTrades).slice(0,5).map(([k,v]) => ({key: k, count: v.length})));
                   
+                  if (isCalculating) {
+                    return (
+                      <Card className="border-border/50 shadow-lg min-h-[400px] animate-pulse">
+                        <CardHeader className="pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="space-y-2">
+                            <Skeleton className="h-5 w-48" />
+                            <Skeleton className="h-3 w-64" />
+                          </div>
+                          <Skeleton className="h-10 w-40 rounded-lg" />
+                        </CardHeader>
+                        <CardContent className="p-0">
+                          <div className="border-b border-border/40 bg-muted/50 h-10 w-full mb-2" />
+                          {[...Array(6)].map((_, i) => (
+                            <div key={i} className="flex items-center px-4 py-4 border-b border-border/10">
+                              <Skeleton className="h-4 w-32 mr-auto" />
+                              <div className="flex gap-4">
+                                <Skeleton className="h-4 w-16" />
+                                <Skeleton className="h-4 w-16" />
+                                <Skeleton className="h-4 w-16" />
+                                <Skeleton className="h-4 w-16" />
+                              </div>
+                            </div>
+                          ))}
+                          <div className="flex items-center justify-between px-4 py-4 bg-muted/10">
+                            <Skeleton className="h-4 w-40" />
+                            <div className="flex gap-2">
+                              <Skeleton className="h-8 w-20 rounded-md" />
+                              <Skeleton className="h-8 w-20 rounded-md" />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  }
+
                   return (
                     <MonthlyReturnsTable 
                       series={tableSeries} 

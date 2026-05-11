@@ -377,6 +377,17 @@ export const translations = {
         recoveryFactorDesc: "Net profit divided by max drawdown amount",
         profitPerDayDesc: "Average daily profit over the filtered period"
       },
+      monthlyReturns: {
+        title: "Monthly Returns",
+        description: "Trading performance distributed by month",
+        note: "Monthly profit summary. Green cells = profitable months, red cells = losing months. Useful for spotting seasonality or weak periods.",
+        showAllEA: "Show all EAs",
+        hideZeroEA: "Only EAs with trades",
+        pageInfo: "Page {current} of {total} ({count} EAs)",
+        previous: "Previous",
+        next: "Next",
+        noTrades: "No trades in this month"
+      },
       charts: {
         equityCurve: "Equity Curve",
         equityCurveDesc: "Account balance growth over time. Hover for details.",
@@ -384,8 +395,9 @@ export const translations = {
         drawdownDesc: "Relative drawdown shows percentage decline from the equity peak.",
         profitDistribution: "Profit Distribution",
         profitDistributionDesc: "Distribution of individual trade profits.",
-        monthlyReturns: "Monthly Returns",
-        monthlyReturnsDesc: "Green = profitable month, Red = losing month."
+      },
+      monteCarlo: {
+        fallbackMode: "Running on main thread (worker unavailable)"
       },
       export: "Export CSV",
       empty: {
@@ -789,6 +801,17 @@ export const translations = {
         recoveryFactorDesc: "Lợi nhuận ròng chia cho số tiền sụt giảm tối đa",
         profitPerDayDesc: "Lợi nhuận hàng ngày trung bình trong khoảng thời gian đã lọc"
       },
+      monthlyReturns: {
+        title: "Lợi nhuận hàng tháng",
+        description: "Hiệu suất giao dịch phân bổ theo từng tháng",
+        note: "Bảng tổng kết lợi nhuận theo từng tháng. Ô màu xanh là tháng có lãi, ô màu đỏ là tháng thua lỗ. Dùng để phát hiện mùa vụ hoặc giai đoạn EA hoạt động kém.",
+        showAllEA: "Hiển thị tất cả EA",
+        hideZeroEA: "Chỉ EA có giao dịch",
+        pageInfo: "Trang {current} / {total} ({count} EA)",
+        previous: "Trước",
+        next: "Sau",
+        noTrades: "Không có giao dịch trong tháng"
+      },
       charts: {
         equityCurve: "Đường cong vốn",
         equityCurveDesc: "Sự tăng trưởng số dư tài khoản theo thời gian. Di chuột để xem chi tiết.",
@@ -796,8 +819,9 @@ export const translations = {
         drawdownDesc: "Sụt giảm tương đối cho thấy tỷ lệ phần trăm sụt giảm từ đỉnh vốn.",
         profitDistribution: "Phân bổ lợi nhuận",
         profitDistributionDesc: "Phân bổ lợi nhuận của từng giao dịch.",
-        monthlyReturns: "Lợi nhuận hàng tháng",
-        monthlyReturnsDesc: "Xanh = tháng có lãi, Đỏ = tháng thua lỗ."
+      },
+      monteCarlo: {
+        fallbackMode: "Đang chạy trên luồng chính (worker không khả dụng)"
       },
       export: "Xuất CSV",
       empty: {
@@ -829,7 +853,7 @@ const TranslationContext = createContext<{ language: Language }>({ language: 'en
 export const useTranslation = () => {
   const { language } = useSettingsStore();
 
-  const t = (path: string) => {
+  const t = (path: string, params?: Record<string, any>) => {
     const keys = path.split('.');
     let result: any = (translations as any)[language];
 
@@ -839,6 +863,12 @@ export const useTranslation = () => {
       } else {
         return path;
       }
+    }
+
+    if (typeof result === 'string' && params) {
+      Object.entries(params).forEach(([key, value]) => {
+        result = result.replace(`{${key}}`, String(value));
+      });
     }
 
     return result;

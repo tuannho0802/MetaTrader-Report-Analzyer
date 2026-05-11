@@ -163,7 +163,15 @@ export const useAnalysisStore = create<AnalysisStore>()(
           for (const record of allStatements) {
             if (!zustandIds.has(record.id)) {
               try {
+                // Wrap JSON.parse with safety and simple performance check
+                const startParse = Date.now();
                 const trades = JSON.parse(record.tradesJson);
+                const parseDuration = Date.now() - startParse;
+                
+                if (parseDuration > 5000) {
+                  console.warn(`[Store] JSON.parse took too long (${parseDuration}ms) for session ${record.id}. Skipping to preserve performance.`);
+                  continue;
+                }
                 const defaultFilter: FilterParams = {
                   commentPattern: '',
                   threshold: 0,
