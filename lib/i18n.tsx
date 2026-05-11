@@ -40,6 +40,9 @@ export const translations = {
       statistics: "Statistics",
       history: "History",
       noResults: "No transactions found in this time period.",
+      light: "Light",
+      dark: "Dark",
+      system: "System",
     },
     history: {
       filterFavorites: "Favorites",
@@ -61,6 +64,12 @@ export const translations = {
       confirmDelete: "Confirm delete this session? This action cannot be undone.",
       archivedBadge: "Archived",
       activeBadge: "Active",
+      confirmArchiveTitle: "Archive Session?",
+      confirmArchiveDesc: "This will move the session to archives and free up memory. You can restore it later.",
+      confirmDeleteTitle: "Delete Session?",
+      confirmDeleteDesc: "This will permanently delete this session and all its data. This action cannot be undone.",
+      confirmDeletePermanentTitle: "Delete Permanently?",
+      confirmDeletePermanentDesc: "Are you sure you want to permanently delete this archived session?",
     },
     comparison: {
       title: "EA Comparison",
@@ -421,6 +430,39 @@ export const translations = {
         others: 'Others',
       }
     },
+    settings: {
+      title: "Settings",
+      subtitle: "Configure your preferences and manage application data",
+      localization: {
+        title: "Localization & Theme",
+        desc: "Visual and language preferences",
+        theme: "App Theme",
+        darkMode: "Dark Mode",
+        darkModeDesc: "Switch between light and dark themes",
+      },
+      analysis: {
+        title: "Analysis Preferences",
+        desc: "Technical calculation settings",
+        maxTabs: "Maximum Active Reports",
+        maxTabsDesc: "Higher limits may increase browser memory consumption. Default is 5.",
+      },
+      dataManagement: {
+        title: "Data Management",
+        clearAllData: "Clear All Data",
+        clearAllDataDesc: "Delete all reports, settings, and cache. The app will reset to its initial state.",
+        clearCache: "Clear Cache",
+        clearCacheDesc: "Remove temporary data (exchange rates, cached reports) to free up space and refresh the app.",
+        storedData: "Stored Data",
+        sessions: "Sessions",
+        confirmClearAllTitle: "Delete all data?",
+        confirmClearAllDesc: "This will permanently delete all uploaded reports, settings, and cached data. This action cannot be undone.",
+        confirmClearAllButton: "Delete Everything",
+        confirmClearCacheTitle: "Clear cache?",
+        confirmClearCacheDesc: "This will remove temporary cached data. Your reports and settings will be kept.",
+        confirmClearCacheButton: "Clear Cache",
+        successMessage: "Data cleared successfully."
+      }
+    }
   },
   vi: {
     common: {
@@ -436,6 +478,9 @@ export const translations = {
       redo: "Làm lại",
       reset: "Đặt lại",
       noResults: "Không có giao dịch nào trong khoảng thời gian này.",
+      light: "Sáng",
+      dark: "Tối",
+      system: "Hệ thống",
       loading: "Đang tải...",
       error: "Lỗi",
       back: "Quay lại",
@@ -480,6 +525,12 @@ export const translations = {
       confirmDelete: "Xác nhận xóa session này? Hành động không thể hoàn tác.",
       archivedBadge: "Đã lưu trữ",
       activeBadge: "Đang hoạt động",
+      confirmArchiveTitle: "Lưu trữ phiên?",
+      confirmArchiveDesc: "Thao tác này sẽ di chuyển phiên vào kho lưu trữ để giải phóng bộ nhớ. Bạn có thể khôi phục sau.",
+      confirmDeleteTitle: "Xoá phiên?",
+      confirmDeleteDesc: "Thao tác này sẽ xoá vĩnh viễn phiên này và tất cả dữ liệu liên quan. Không thể hoàn tác.",
+      confirmDeletePermanentTitle: "Xoá vĩnh viễn?",
+      confirmDeletePermanentDesc: "Bạn có chắc chắn muốn xoá vĩnh viễn phiên đã lưu trữ này không?",
     },
     comparison: {
       title: "So sánh Robot (EA)",
@@ -845,6 +896,39 @@ export const translations = {
         others: 'Khác',
       }
     },
+    settings: {
+      title: "Cài đặt",
+      subtitle: "Cấu hình tùy chọn và quản lý dữ liệu ứng dụng",
+      localization: {
+        title: "Ngôn ngữ & Giao diện",
+        desc: "Tùy chọn hiển thị và ngôn ngữ",
+        theme: "Giao diện ứng dụng",
+        darkMode: "Chế độ tối",
+        darkModeDesc: "Chuyển đổi giữa giao diện sáng và tối",
+      },
+      analysis: {
+        title: "Tùy chọn phân tích",
+        desc: "Cấu hình tính toán kỹ thuật",
+        maxTabs: "Số lượng báo cáo tối đa",
+        maxTabsDesc: "Giới hạn cao hơn có thể tăng mức tiêu thụ bộ nhớ trình duyệt. Mặc định là 5.",
+      },
+      dataManagement: {
+        title: "Quản lý dữ liệu",
+        clearAllData: "Xoá toàn bộ dữ liệu",
+        clearAllDataDesc: "Xoá tất cả báo cáo, cài đặt và bộ nhớ đệm. Ứng dụng sẽ trở về trạng thái ban đầu.",
+        clearCache: "Xoá bộ nhớ đệm",
+        clearCacheDesc: "Xoá dữ liệu tạm thời (tỉ giá hối đoái, cache báo cáo) để giải phóng dung lượng và làm mới ứng dụng.",
+        storedData: "Dữ liệu hiện tại",
+        sessions: "Phiên làm việc",
+        confirmClearAllTitle: "Xoá toàn bộ dữ liệu?",
+        confirmClearAllDesc: "Thao tác này sẽ xoá vĩnh viễn tất cả báo cáo đã tải lên, cài đặt và dữ liệu trong bộ nhớ đệm. Hành động này không thể hoàn tác.",
+        confirmClearAllButton: "Xoá tất cả",
+        confirmClearCacheTitle: "Xoá bộ nhớ đệm?",
+        confirmClearCacheDesc: "Thao tác này sẽ xoá dữ liệu tạm thời trong bộ nhớ đệm. Báo cáo và cài đặt của bạn sẽ được giữ nguyên.",
+        confirmClearCacheButton: "Xoá đệm",
+        successMessage: "Đã xoá dữ liệu thành công."
+      }
+    }
   }
 };
 

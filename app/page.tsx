@@ -19,6 +19,7 @@ import {
 import { useTranslation } from "@/lib/i18n";
 import { useSettingsStore } from "@/lib/store/useSettingsStore";
 import { fetchExchangeRates } from "@/lib/exchangeRates";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 
 export default function Home() {
   const {
@@ -28,6 +29,9 @@ export default function Home() {
     setActiveSession,
     isLoading,
   } = useAnalysisStore();
+
+  const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = React.useState(false);
+  const [sessionToArchive, setSessionToArchive] = React.useState<string | null>(null);
 
   const activeSessions = React.useMemo(() => {
     return sessions.filter(
@@ -110,16 +114,10 @@ export default function Home() {
                         {session.name}
                       </span>
                       <div
-                        onClick={async (e) => {
+                        onClick={(e) => {
                           e.stopPropagation();
-                          if (confirm("Archive this session to free up memory?")) {
-                            try {
-                              await archiveSession(session.id);
-                            } catch (error) {
-                              console.error("Archive failed:", error);
-                              alert("Failed to archive session");
-                            }
-                          }
+                          setSessionToArchive(session.id);
+                          setIsArchiveConfirmOpen(true);
                         }}
                         className="ml-1 p-0.5 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-rose-500"
                       >
@@ -148,6 +146,25 @@ export default function Home() {
           </div>
         </div>
       ) : null}
+
+      <ConfirmDialog
+        open={isArchiveConfirmOpen}
+        onOpenChange={setIsArchiveConfirmOpen}
+        title={t('history.confirmArchiveTitle')}
+        description={t('history.confirmArchiveDesc')}
+        confirmLabel={t('history.actions.archive')}
+        onConfirm={async () => {
+          if (sessionToArchive) {
+            try {
+              await archiveSession(sessionToArchive);
+            } catch (error) {
+              console.error("Archive failed:", error);
+            } finally {
+              setSessionToArchive(null);
+            }
+          }
+        }}
+      />
     </>
   );
 }

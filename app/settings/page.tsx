@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useSettingsStore } from "@/lib/store/useSettingsStore";
 import { useAnalysisStore } from "@/lib/store/useAnalysisStore";
 import { useTranslation } from "@/lib/i18n";
 import { useTheme } from "next-themes";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -17,7 +18,8 @@ import {
   Upload, 
   Trash2,
   Monitor,
-  LayoutGrid
+  LayoutGrid,
+  Settings2
 } from "lucide-react";
 import { 
   Select, 
@@ -44,9 +46,58 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { t } = useTranslation();
 
-  const handleClearData = () => {
-    if (confirm("Are you sure you want to clear ALL trading data and sessions? This cannot be undone.")) {
-      reset().catch(console.error);
+  const [isClearAllOpen, setIsClearAllOpen] = useState(false);
+  const [isClearCacheOpen, setIsClearCacheOpen] = useState(false);
+
+  const handleClearAllData = () => {
+    try {
+      // 1. Delete all IndexedDB databases known to the app
+      indexedDB.deleteDatabase('MT4AnalyzerDB');
+      
+      // 2. Comprehensive localStorage cleanup
+      const keysToRemove: string[] = [];
+      const appKeyPattern = /^(exchange-rates-cache|settings-storage|mt4-sessions|mt4-profit-filter|trades-cache|mt4-analyzer)/i;
+      
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && appKeyPattern.test(key)) {
+          keysToRemove.push(key);
+        }
+      }
+      
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      
+      // 3. Clear session storage
+      sessionStorage.clear();
+      
+      // 4. Force reload to reset state
+      window.location.reload();
+    } catch (error) {
+      console.error("Failed to clear all data", error);
+      alert("An unexpected error occurred while clearing data. Please try clearing your browser cache manually.");
+    }
+  };
+
+  const handleClearCache = () => {
+    try {
+      // 1. Target only cache-related keys
+      const keysToRemove: string[] = [];
+      const cachePattern = /^(exchange-rates-cache|trades-cache)/i;
+      
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && cachePattern.test(key)) {
+          keysToRemove.push(key);
+        }
+      }
+      
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      
+      // 2. Reload to refresh data
+      window.location.reload();
+    } catch (error) {
+      console.error("Failed to clear cache", error);
+      alert("Failed to clear cache.");
     }
   };
 
@@ -56,9 +107,9 @@ export default function SettingsPage() {
         <div className="p-3 bg-primary/10 rounded-2xl">
           <SettingsIcon className="h-8 w-8 text-primary" />
         </div>
-        <div>
-          <h1 className="text-3xl font-black tracking-tight">{t('common.settings')}</h1>
-          <p className="text-muted-foreground text-sm">Configure your preferences and manage application data</p>
+        <div className="space-y-1">
+          <h1 className="text-3xl font-black tracking-tight">{t('settings.title')}</h1>
+          <p className="text-muted-foreground text-sm">{t('settings.subtitle')}</p>
         </div>
       </div>
 
@@ -68,9 +119,9 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Languages className="h-5 w-5 text-primary" />
-              Localization & Theme
+              {t('settings.localization.title')}
             </CardTitle>
-            <CardDescription>Visual and language preferences</CardDescription>
+            <CardDescription>{t('settings.localization.desc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
@@ -87,28 +138,28 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>App Theme</Label>
+              <Label>{t('settings.localization.theme')}</Label>
               <div className="grid grid-cols-3 gap-2">
                 <Button 
                   variant={theme === 'light' ? 'default' : 'outline'} 
                   className="w-full gap-2"
                   onClick={() => setTheme('light')}
                 >
-                  <Sun className="h-4 w-4" /> Light
+                  <Sun className="h-4 w-4" /> {t('common.light')}
                 </Button>
                 <Button 
                   variant={theme === 'dark' ? 'default' : 'outline'} 
                   className="w-full gap-2"
                   onClick={() => setTheme('dark')}
                 >
-                  <Moon className="h-4 w-4" /> Dark
+                  <Moon className="h-4 w-4" /> {t('common.dark')}
                 </Button>
                 <Button 
                   variant={theme === 'system' ? 'default' : 'outline'} 
                   className="w-full gap-2"
                   onClick={() => setTheme('system')}
                 >
-                  <Monitor className="h-4 w-4" /> System
+                  <Monitor className="h-4 w-4" /> {t('common.system')}
                 </Button>
               </div>
             </div>
@@ -139,18 +190,20 @@ export default function SettingsPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-[10px] text-muted-foreground italic">
-                  All reports will be converted to this currency using live exchange rates.
+                  {t('common.autoConvertDesc')}
                 </p>
               </div>
             )}
             
             <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>{t('common.autoConvert')}</Label>
-                <p className="text-[10px] text-muted-foreground italic">
-                  Automatically convert all monetary values to base currency
-                </p>
-              </div>
+                <div className="space-y-0.5">
+                  <Label className="text-base">
+                    {t('common.autoConvert')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {t('common.autoConvertDesc')}
+                  </p>
+                </div>
               <Switch 
                 checked={autoConvertCurrency} 
                 onCheckedChange={setAutoConvertCurrency}
@@ -163,15 +216,15 @@ export default function SettingsPage() {
         <Card className="border-border/50 shadow-lg">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <LayoutGrid className="h-5 w-5 text-primary" />
-              Workspace
+              <Settings2 className="h-5 w-5 text-primary" />
+              {t('settings.analysis.title')}
             </CardTitle>
-            <CardDescription>Manage your active tab limits</CardDescription>
+            <CardDescription>{t('settings.analysis.desc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <div className="flex justify-between">
-                <Label htmlFor="max-tabs">Maximum Active Reports</Label>
+                <Label htmlFor="max-tabs">{t('settings.analysis.maxTabs')}</Label>
                 <span className="text-sm font-bold text-primary">{maxTabs}</span>
               </div>
               <Slider 
@@ -183,7 +236,7 @@ export default function SettingsPage() {
                 step={1} 
               />
               <p className="text-[10px] text-muted-foreground italic">
-                Higher limits may increase browser memory consumption. Default is 5.
+                {t('settings.analysis.maxTabsDesc')}
               </p>
             </div>
           </CardContent>
@@ -195,48 +248,69 @@ export default function SettingsPage() {
             <div>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Database className="h-5 w-5 text-primary" />
-                Data Management
+                {t('settings.dataManagement.title')}
               </CardTitle>
-              <CardDescription>Backup, restore, and session cleanup</CardDescription>
+              <CardDescription>{t('settings.dataManagement.clearAllDataDesc')}</CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <div className="text-right">
-                <p className="text-[10px] font-bold uppercase text-muted-foreground">Stored Data</p>
-                <p className="text-lg font-black text-foreground">{totalSessionsCount} Sessions</p>
+                <p className="text-[10px] font-bold uppercase text-muted-foreground">{t('settings.dataManagement.storedData')}</p>
+                <p className="text-lg font-black text-foreground">{totalSessionsCount} {t('settings.dataManagement.sessions')}</p>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Button variant="outline" className="h-20 flex-col gap-2" disabled>
-                <Download className="h-5 w-5" />
-                <div className="flex flex-col items-center">
-                  <span className="text-sm font-bold">Export Backup</span>
-                  <span className="text-[10px] opacity-60">Save all sessions to .json</span>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between p-4 border border-border/50 rounded-lg">
+                <div className="space-y-1 mr-4">
+                  <h4 className="text-sm font-semibold text-foreground">{t('settings.dataManagement.clearCache')}</h4>
+                  <p className="text-xs text-muted-foreground">{t('settings.dataManagement.clearCacheDesc')}</p>
                 </div>
-              </Button>
-              <Button variant="outline" className="h-20 flex-col gap-2" disabled>
-                <Upload className="h-5 w-5" />
-                <div className="flex flex-col items-center">
-                  <span className="text-sm font-bold">Import Backup</span>
-                  <span className="text-[10px] opacity-60">Restore from .json file</span>
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsClearCacheOpen(true)}
+                  className="shrink-0"
+                >
+                  {t('settings.dataManagement.clearCache')}
+                </Button>
+              </div>
+              
+              <div className="flex items-center justify-between p-4 border border-rose-500/20 bg-rose-500/5 rounded-lg">
+                <div className="space-y-1 mr-4">
+                  <h4 className="text-sm font-semibold text-rose-500">{t('settings.dataManagement.clearAllData')}</h4>
+                  <p className="text-xs text-muted-foreground">{t('settings.dataManagement.clearAllDataDesc')}</p>
                 </div>
-              </Button>
-              <Button 
-                variant="destructive" 
-                className="h-20 flex-col gap-2 bg-rose-500 hover:bg-rose-600"
-                onClick={handleClearData}
-              >
-                <Trash2 className="h-5 w-5" />
-                <div className="flex flex-col items-center">
-                  <span className="text-sm font-bold">Clear All Data</span>
-                  <span className="text-[10px] opacity-60">Wipe IndexedDB & Storage</span>
-                </div>
-              </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={() => setIsClearAllOpen(true)}
+                  className="shrink-0 bg-rose-500 hover:bg-rose-600 text-white"
+                >
+                  {t('settings.dataManagement.clearAllData')}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={isClearCacheOpen}
+        onOpenChange={setIsClearCacheOpen}
+        title={t('settings.dataManagement.confirmClearCacheTitle')}
+        description={t('settings.dataManagement.confirmClearCacheDesc')}
+        confirmLabel={t('settings.dataManagement.confirmClearCacheButton')}
+        onConfirm={handleClearCache}
+      />
+
+      <ConfirmDialog
+        open={isClearAllOpen}
+        onOpenChange={setIsClearAllOpen}
+        title={t('settings.dataManagement.confirmClearAllTitle')}
+        description={t('settings.dataManagement.confirmClearAllDesc')}
+        confirmLabel={t('settings.dataManagement.confirmClearAllButton')}
+        variant="destructive"
+        onConfirm={handleClearAllData}
+      />
     </div>
   );
 }

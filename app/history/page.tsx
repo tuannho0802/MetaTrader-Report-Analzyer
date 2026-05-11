@@ -21,6 +21,7 @@ import {
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatCurrency";
+import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 
 export default function HistoryPage() {
   const { 
@@ -37,6 +38,26 @@ export default function HistoryPage() {
   const archivedSessionsList = sessions.filter(s => s.archived);
   const [archiving, setArchiving] = useState<string | null>(null);
   
+  const [confirmConfig, setConfirmConfig] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    confirmLabel: string;
+    variant: 'destructive' | 'default';
+    onConfirm: () => void;
+  }>({
+    open: false,
+    title: "",
+    description: "",
+    confirmLabel: "",
+    variant: 'default',
+    onConfirm: () => {}
+  });
+
+  const openConfirm = (config: Omit<typeof confirmConfig, 'open'>) => {
+    setConfirmConfig({ ...config, open: true });
+  };
+
   const deletedSessionsList: any[] = []; 
 
   const SessionList = ({ items, type, emptyKey }: { 
@@ -148,19 +169,24 @@ export default function HistoryPage() {
                                   size="icon" 
                                   className="h-8 w-8 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10" 
                                   disabled={archiving === s.id}
-                                  onClick={async (e) => {
+                                  onClick={(e) => {
                                     e.stopPropagation();
-                                    if (window.confirm("Are you sure you want to archive this session?")) {
-                                      setArchiving(s.id);
-                                      try {
-                                        await archiveSession(s.id);
-                                      } catch (error) {
-                                        console.error('Archive operation failed:', error);
-                                        alert(`Failed to archive session`);
-                                      } finally {
-                                        setArchiving(null);
+                                    openConfirm({
+                                      title: t('history.confirmArchiveTitle'),
+                                      description: t('history.confirmArchiveDesc'),
+                                      confirmLabel: t('history.actions.archive'),
+                                      variant: 'default',
+                                      onConfirm: async () => {
+                                        setArchiving(s.id);
+                                        try {
+                                          await archiveSession(s.id);
+                                        } catch (error) {
+                                          console.error('Archive failed:', error);
+                                        } finally {
+                                          setArchiving(null);
+                                        }
                                       }
-                                    }
+                                    });
                                   }} 
                                   title={t('history.actions.archive')}
                                 >
@@ -171,16 +197,21 @@ export default function HistoryPage() {
                                   size="icon" 
                                   className="h-8 w-8 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10" 
                                   disabled={archiving === s.id}
-                                  onClick={async (e) => {
+                                  onClick={(e) => {
                                     e.stopPropagation();
-                                    if (window.confirm("Are you sure you want to delete this session?")) {
-                                      try {
-                                        await deleteSession(s.id);
-                                      } catch (error) {
-                                        console.error('Delete failed:', error);
-                                        alert('Failed to delete session');
+                                    openConfirm({
+                                      title: t('history.confirmDeleteTitle'),
+                                      description: t('history.confirmDeleteDesc'),
+                                      confirmLabel: t('history.actions.delete'),
+                                      variant: 'destructive',
+                                      onConfirm: async () => {
+                                        try {
+                                          await deleteSession(s.id);
+                                        } catch (error) {
+                                          console.error('Delete failed:', error);
+                                        }
                                       }
-                                    }
+                                    });
                                   }} 
                                   title={t('history.actions.delete')}
                                 >
@@ -215,16 +246,21 @@ export default function HistoryPage() {
                                   size="icon" 
                                   className="h-8 w-8 rounded-lg text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10" 
                                   disabled={archiving === s.id}
-                                  onClick={async (e) => {
+                                  onClick={(e) => {
                                     e.stopPropagation();
-                                    if (window.confirm("Are you sure you want to permanently delete this archived session?")) {
-                                      try {
-                                        await deleteSession(s.id);
-                                      } catch (error) {
-                                        console.error('Delete failed:', error);
-                                        alert('Failed to delete session');
+                                    openConfirm({
+                                      title: t('history.confirmDeletePermanentTitle'),
+                                      description: t('history.confirmDeletePermanentDesc'),
+                                      confirmLabel: t('history.actions.delete'),
+                                      variant: 'destructive',
+                                      onConfirm: async () => {
+                                        try {
+                                          await deleteSession(s.id);
+                                        } catch (error) {
+                                          console.error('Delete failed:', error);
+                                        }
                                       }
-                                    }
+                                    });
                                   }} 
                                   title={t('history.actions.delete')}
                                 >
@@ -302,6 +338,16 @@ export default function HistoryPage() {
           <SessionList items={deletedSessionsList} type="deleted" emptyKey="history.noDeleted" />
         </TabsContent>
       </Tabs>
+
+      <ConfirmDialog
+        open={confirmConfig.open}
+        onOpenChange={(open) => setConfirmConfig(prev => ({ ...prev, open }))}
+        title={confirmConfig.title}
+        description={confirmConfig.description}
+        confirmLabel={confirmConfig.confirmLabel}
+        variant={confirmConfig.variant}
+        onConfirm={confirmConfig.onConfirm}
+      />
     </div>
   );
 }
