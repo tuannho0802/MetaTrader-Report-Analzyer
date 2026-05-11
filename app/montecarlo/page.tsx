@@ -86,7 +86,7 @@ export default function MonteCarloPage() {
   const [shuffle, setShuffle] = useState<boolean>(true);
   const [accountBalance, setAccountBalance] = useState<number>(10000);
 
-  const { run, cancel, isLoading, progress, results, error } = useMonteCarlo();
+  const { run, cancel, isLoading, isFallback, progress, results, error } = useMonteCarlo();
 
   // ── Derived data ──────────────────────────────────────────────────────────
   const allTrades = currentSession?.allTrades || currentSession?.currentResult?.trades || [];
@@ -326,9 +326,17 @@ export default function MonteCarloPage() {
           {isLoading && (
             <div className="space-y-1.5">
               <ProgressBar value={progress} />
-              <p className="text-xs text-muted-foreground text-center">
-                {Math.round(progress)}% — {Math.round((numSimulations * progress) / 100)} / {numSimulations}
-              </p>
+              <div className="flex justify-between items-center px-1">
+                <p className="text-xs text-muted-foreground">
+                  {Math.round(progress)}% — {Math.round((numSimulations * progress) / 100)} / {numSimulations}
+                </p>
+                {isFallback && (
+                  <p className="text-[10px] text-amber-500 font-medium animate-pulse flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    Fallback Mode (Main Thread)
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
