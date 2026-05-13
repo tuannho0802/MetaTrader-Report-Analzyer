@@ -39,7 +39,10 @@ export function adaptMT5ToParseResult(report: MT5Report): ParseResult {
     startDate: report.exportInfo.dateRangeFrom ? report.exportInfo.dateRangeFrom.split(' ')[0].replace(/\//g, '-') : null,
     endDate: report.exportInfo.dateRangeTo ? report.exportInfo.dateRangeTo.split(' ')[0].replace(/\//g, '-') : null,
     initialBalance: report.accountInfo.currentBalance,
-    finalBalance: report.accountInfo.currentBalance
+    finalBalance: report.accountInfo.currentBalance,
+    broker: report.accountInfo.broker,
+    accountNumber: report.accountInfo.accountNumber,
+    accountName: report.accountInfo.accountName
   };
 
   // Fallback to deriving from trades if not available from export info

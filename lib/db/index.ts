@@ -10,6 +10,9 @@ interface StatementRecord {
   tradesJson: string; // Stringified Trade[]
   initialBalance?: number;
   finalBalance?: number;
+  broker?: string;
+  accountNumber?: string;
+  accountName?: string;
 }
 
 interface SettingRecord {

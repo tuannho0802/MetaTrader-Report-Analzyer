@@ -18,6 +18,7 @@ import { BalanceCard } from "./BalanceCard"
 import { Trade } from "@/lib/types"
 import { Badge } from "@/components/ui/badge"
 import { calculateMetrics } from "@/lib/comparison"
+import { AccountInfoCard } from "./AccountInfoCard"
 
 interface KpiCardsProps {
   trades: Trade[];
@@ -27,6 +28,9 @@ interface KpiCardsProps {
   descriptions?: Record<string, string>;
   className?: string;
   isLoading?: boolean;
+  broker?: string;
+  accountNumber?: string;
+  accountName?: string;
 }
 
 export function KpiCards({ 
@@ -36,7 +40,10 @@ export function KpiCards({
   finalBalance, 
   descriptions, 
   className,
-  isLoading = false 
+  isLoading = false,
+  broker,
+  accountNumber,
+  accountName
 }: KpiCardsProps) {
   const autoConvertCurrency = useSettingsStore(state => state.autoConvertCurrency)
   const baseCurrency = useSettingsStore(state => state.baseCurrency)
@@ -118,6 +125,11 @@ export function KpiCards({
 
   return (
     <div className={cn("space-y-4", className)}>
+      <AccountInfoCard 
+        broker={broker}
+        accountNumber={accountNumber}
+        accountName={accountName}
+      />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex-1">
           <BalanceCard 

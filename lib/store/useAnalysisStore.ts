@@ -77,6 +77,9 @@ export const useAnalysisStore = create<AnalysisStore>()(
             currency: result.currency, startDate: result.startDate, endDate: result.endDate, 
             initialBalance: result.initialBalance,
             finalBalance: result.finalBalance,
+            broker: result.broker,
+            accountNumber: result.accountNumber,
+            accountName: result.accountName,
             createdAt: uploadedAt,
             archived: false,
             favorite: false
@@ -92,7 +95,10 @@ export const useAnalysisStore = create<AnalysisStore>()(
             totalTrades: allTradesResult.trades.length, 
             tradesJson: JSON.stringify(allTradesResult.trades),
             initialBalance: result.initialBalance,
-            finalBalance: result.finalBalance
+            finalBalance: result.finalBalance,
+            broker: result.broker,
+            accountNumber: result.accountNumber,
+            accountName: result.accountName
           });
           const updatedSessions = [...sessions, newSession];
           set({ sessions: updatedSessions, activeSessionId: sessionId, file: null, isProcessing: false, statusMsg: '' });
@@ -119,6 +125,9 @@ export const useAnalysisStore = create<AnalysisStore>()(
             currency: parseResult.currency, startDate: parseResult.startDate, endDate: parseResult.endDate, 
             initialBalance: parseResult.initialBalance,
             finalBalance: parseResult.finalBalance,
+            broker: parseResult.broker,
+            accountNumber: parseResult.accountNumber,
+            accountName: parseResult.accountName,
             createdAt: uploadedAt,
             archived: false,
             favorite: false
@@ -134,7 +143,10 @@ export const useAnalysisStore = create<AnalysisStore>()(
             totalTrades: parseResult.trades.length, 
             tradesJson: JSON.stringify(parseResult.trades),
             initialBalance: parseResult.initialBalance,
-            finalBalance: parseResult.finalBalance
+            finalBalance: parseResult.finalBalance,
+            broker: parseResult.broker,
+            accountNumber: parseResult.accountNumber,
+            accountName: parseResult.accountName
           });
           const updatedSessions = [...sessions, newSession];
           set({ sessions: updatedSessions, activeSessionId: sessionId, file: null, isProcessing: false, statusMsg: '' });
@@ -197,6 +209,9 @@ export const useAnalysisStore = create<AnalysisStore>()(
                   endDate: result.endDate,
                   initialBalance: record.initialBalance,
                   finalBalance: record.finalBalance,
+                  broker: record.broker,
+                  accountNumber: record.accountNumber,
+                  accountName: record.accountName,
                   createdAt: record.uploadedAt || Date.now(),
                   archived: false,
                   favorite: false

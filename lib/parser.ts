@@ -136,6 +136,37 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
     }
   }
 
+  // Extract Broker Name (usually in a div with 20pt Times New Roman)
+  let broker = '';
+  const divTags = doc.querySelectorAll('div');
+  for (const div of Array.from(divTags)) {
+    const style = div.getAttribute('style') || '';
+    if (style.includes('font:20pt') || style.includes('font: 20pt')) {
+      const b = div.querySelector('b');
+      if (b) {
+        broker = b.textContent?.trim() || '';
+        break;
+      }
+    }
+  }
+
+  // Extract Account Number and Account Name
+  let accountNumber = '';
+  let accountName = '';
+  const trTags = doc.querySelectorAll('tr');
+  for (const tr of Array.from(trTags)) {
+    const text = tr.textContent || '';
+    if (text.includes('Account:') && text.includes('Name:')) {
+      // Common pattern: Account: 123456 Name: John Doe
+      const accMatch = text.match(/Account:\s*([\w-]+)/i);
+      const nameMatch = text.match(/Name:\s*([^;]+?)(?:\s+Currency|$)/i) || text.match(/Name:\s*([^;]+)/i);
+      
+      if (accMatch) accountNumber = accMatch[1].trim();
+      if (nameMatch) accountName = nameMatch[1].trim();
+      break;
+    }
+  }
+
   // Extract Date Range from header info
   let startDate: string | null = null;
   let endDate: string | null = null;
@@ -379,7 +410,10 @@ export function parseHTMLStatement(html: string, params: FilterParams & { curren
     startDate,
     endDate,
     initialBalance,
-    finalBalance
+    finalBalance,
+    broker,
+    accountNumber,
+    accountName
   };
 }
 

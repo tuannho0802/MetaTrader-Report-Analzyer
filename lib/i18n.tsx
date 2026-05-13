@@ -135,6 +135,10 @@ export const translations = {
       equityDesc: "Cumulative profit comparison over time"
     },
     dashboard: {
+      accountInfo: {
+        broker: "Broker",
+        account: "Account",
+      },
       ready: "Ready to analyze your trading performance?",
       uploadHint: "Upload an MT4 Detailed Report (.htm) to get started.",
       privacy: "Privacy-First: Analysis happens entirely in your browser",
@@ -617,6 +621,10 @@ export const translations = {
       equityDesc: "So sánh lợi nhuận tích lũy theo thời gian"
     },
     dashboard: {
+      accountInfo: {
+        broker: "Sàn giao dịch",
+        account: "Tài khoản",
+      },
       ready: "Sẵn sàng phân tích hiệu suất giao dịch của bạn?",
       uploadHint: "Tải lên báo cáo chi tiết MT4 (.htm) để bắt đầu.",
       privacy: "Quyền riêng tư: Phân tích diễn ra hoàn toàn trên trình duyệt",

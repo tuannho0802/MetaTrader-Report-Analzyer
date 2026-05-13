@@ -106,6 +106,9 @@ export function SessionView({
           currency={displayCurrency}
           initialBalance={initialBalance}
           finalBalance={finalBalance}
+          broker={session.broker}
+          accountNumber={session.accountNumber}
+          accountName={session.accountName}
         />
       </section>
 
